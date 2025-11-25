@@ -1,0 +1,113 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+.wcs-date-input {display:flex;justify-content: space-between;align-items: center;margin: 5px 0;}
+.wcs-date-input > input:not(:first-child) {max-width: 50px !important;}
+.wcs-date-input input.edited {border-color: #06bd0d !important;}
+
+div#pause-subscription-section {
+    margin-top: 30px;
+    display: inline-block;
+    width: 100%;
+    /*border: 1px solid #dfdfdf;
+    padding: 1rem 0.5rem;*/
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+div#pause-subscription-section label {display: block;cursor: pointer;}
+div#pause-subscription-section label:hover {font-weight: 500;}
+div#pause-subscription-section label input:checked + span {font-weight: 700;}
+div#pause-subscription-section select {width: 100%;display: block;}
+
+div#pause-box {
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f8f8;
+    gap: 5px;
+    padding: 0.5rem 1rem 1rem;
+    border: 1px solid #eee;
+    margin: 15px 0;
+    border-radius: 8px;
+}
+div#pause-box .buttons {margin-top: 15px;display: flex;justify-content: space-between;}
+
+
+.wcs-date-input.edited:before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: -6px;
+    top: -6px;
+    animation: infinite resplandorAnimation 10s;
+    padding-bottom: 12px;
+    padding-right: 12px;
+    border-radius: 8px;
+}
+.wcs-date-input.edited {position: relative;z-index: 0;}
+.wcs-date-input.edited * {z-index: 1;}
+#pause-info {padding: 5px 5px  5px  30px;position: relative;border-radius: 8px;border: 1px solid #e9dd7e;background-color: #F8F4D5;color: #B83C37;margin:1rem 0;}
+#pause-info > span {position: absolute;left: 5px;font-size: 1.25rem;}
+@keyframes resplandorAnimation{
+    100%{
+        background-color: rgba(255, 255, 255, 0.25)
+    }
+    50%{
+       background-color: rgba(214, 245, 223, 0)
+    }
+    0%{
+       background-color: rgba(214, 245, 223, 0.75)
+    }
+}
+
+#order_data .warning-message{margin:10px 0;padding:10px;background:#ffebe8;border-left:4px solid #d63638;display: inline-block;box-sizing: border-box;}
+#order_data  #state-warning {margin-bottom: -5px !important;}
+
+#adminmenu li#toplevel_page_bh-features a.wp-has-submenu {background-color: #453796;}
+
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub {line-height: 1.5rem;float: none;display: flex;gap: 5px 7px;flex-wrap: wrap;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li {font-size: 0;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li a {border: 1px solid transparent;border-radius: 4px;padding: 5px;white-space: nowrap;max-width: 100%;color: #333;font-size: 13px;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li:not(.all) a {background-color: rgba(224, 224, 224, 0.25);border: 1px solid #ccc;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-pending a {background-color: rgba(229, 229, 229, 0.75);border:1px solid #ccc;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-completed a {background-color: rgba(200, 215, 225, 0.5);color: #003d66;border:1px solid #003d66;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-on-hold a {background-color: rgba(248, 221, 167, 0.25);color: #573b00;border:1px solid #f7a708;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-failed a {background-color: rgba(235, 163, 163, 0.25);color: #570000;border:1px solid #eb2f2f;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-active a,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-processing a {background-color: rgba(198, 225, 198, 0.25);color: #2c4700;border:1px solid #71a671;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-cancelled a {background-color: rgba(255, 231, 242,0.25);color: #b3063d;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-pending-cancel a {background:rgba(191, 191, 191, 0.35);color:#737373}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-refunded a {background-color: rgba(252, 227, 255, 0.25);color: #9f05b0;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.trash a {background-color: rgba(235, 163, 163, 0.25);color: #550202;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-expired a {background: rgba(189, 148, 175, 0.25);color: #724663;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-waiting_room a,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-prerequisites a,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-provider_review a,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-admin_review a,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-collect_payment a,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-error_review a {background-color: rgba(207, 245, 246, 0.25);color:#0055bc;border:1px solid #0055bc;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li a.current {}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li:not(.all) a.current {background-color: #e5e5e5;}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-completed a.current { background-color: rgba(200, 215, 225, 0.5); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-on-hold a.current { background-color: rgba(248, 221, 167, 0.25); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-failed a.current { background-color: rgba(235, 163, 163, 0.25); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-processing a.current,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-active a.current { background-color: rgb(198, 225, 198, 0.25); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-cancelled a.current { background-color: rgba(255, 231, 242, 1); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-refunded a.current { background-color: rgba(252, 227, 255, 1); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.trash a.current {background: rgba(235, 163, 163, 0.75);}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-trash a.current { background-color: rgba(235, 163, 163, 0.25); }
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-expired a.current {background: rgba(189, 148, 175, 0.5);}
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-waiting_room a.current,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-prerequisites a.current,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-provider_review a.current,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-admin_review a.current,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-collect_payment a.current,
+body[class*="woocommerce_page_wc-orders"] ul.subsubsub li.wc-error_review a.current {background-color: rgba(207, 245, 246, 0.25);}
+select#shipping_insurance_filter_hpos {display: none;}
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content {background-color: rgba(215, 202, 210, 0.5);}
+#woocommerce-order-notes ul.order_notes li.customer-note .note_content {background-color: rgba(167, 206, 220, 0.5);}
+#woocommerce-order-notes ul.order_notes li .note_content .bh.error-message {font-weight: 500;}
+#woocommerce-order-notes ul.order_notes li .note_content a {font-weight: 700;}

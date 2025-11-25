@@ -1,0 +1,110 @@
+
+
+.telemdnow_tab .tab{
+	display: flex;
+	border-bottom: 1px solid #c3c4c7;
+}
+.telemdnow_tab .tab li{
+	margin-bottom:0;
+	margin-left:7px;
+	padding: 8px 10px;
+	background-color: #fff;
+}
+.telemdnow_tab .tab li a{
+	text-decoration: none;
+	color: #50575e;
+	font-weight: 600;
+}
+.telemdnow_tab .tab li a:focus{
+	box-shadow: none;
+    outline: none;
+}
+.telemdnow_tab .tab li{
+	background-color: #dcdcde;
+	border: 1px solid #c3c4c7;
+	color: #fff;
+border-bottom:none;
+}
+
+.tab_one{
+	cursor: pointer;
+}
+#wpbody-content main{
+	padding-top: 50px;
+}
+
+.general_form .form-group{
+	margin-bottom: 8px;
+	display: flex;
+    align-items: center;
+}
+.myBtn{
+	color: #fff;
+	border-radius:4px;
+	padding: 5px 10px;
+    background: #2271b1;
+	border: 1px solid #2271b1;
+    cursor: pointer;
+}
+.general_form .form-group label{
+	color: #1d2327;
+	font-weight:600;
+	min-width: 135px;
+}
+.active-a{
+	border-bottom: 1px solid #f0f0f1 !important;
+    background: #f0f0f1 !important;
+    color: #000 !important;
+	margin-bottom: -1px !important;
+}
+.active-a a{
+ color: #000 !important;
+}
+
+/*  */
+
+.talemdnowvar .form-group > label {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 15px;
+    display: inline-block;
+}
+.telemdnowstatusmapping .heading > label, .wooactions .heading > label {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 15px;
+    display: inline-block;
+}
+.talemdnow_area .list_vie label {
+    min-width: 200px;
+    display: inline-block;
+	text-transform: capitalize;
+    font-size: 13px;
+    font-weight: 700;
+	margin-left: 10px;
+}
+.talemdnow_area .list_vie {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid;
+    display: inline-block;
+    margin-right: 70px;
+}
+.telemdnowstatusmapping .list_vie, .wooactions .list_vie {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: none;
+    display: block;
+}
+
+.telemdnowstatusmapping .list_vie label , .wooactions .list_vie label{
+    min-width: 230px;
+    display: inline-block;
+	text-transform: capitalize;
+    font-size: 13px;
+    font-weight: 700;
+	margin-left: 10px;
+}
+.general_form .form-control{
+	width: 45%;
+}
