@@ -1,0 +1,54 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+ #adminmenu li#toplevel_page_bh-tools a.wp-has-submenu {background: #453796;}
+
+ .toggle-btn {cursor: pointer;color:#666;text-decoration: none;outline:none !important;box-shadow:none !important}
+
+ .box-rounded {background: #fff;padding: 2rem;border-radius: 1rem;box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);}
+ .box-rounded:not(:first-of-type) {margin-top: 2rem;}
+.input-filters {display: flex;gap: 20px;}
+.input-filters:not(:first-child) {border-top: 1px solid #fff;padding-top: 5px;}
+.input-filters > div {display: flex;flex-direction: column;gap: 5px;justify-content: flex-end;min-width: 9rem;}
+.input-filters > div.cont-states{min-width: 50%;}
+.box-form {display: flex;flex-direction: column;gap: 10px;padding: 2rem;margin-bottom:2rem;border: 1px solid #fff;background-color: #f9f9f9;box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);}
+.box-form > label {display: flex;flex-direction: column;gap: 5px;}
+.box-form span.select2-selection.select2-selection--multiple ul > li {margin-bottom: 0;}
+.box-form span.select2-selection.select2-selection--multiple ul > li input.select2-search__field {margin-top: 0;}
+#progress-info{}
+
+.cont-checkbox {cursor:pointer}
+#include-amount-paid:checked + span {font-weight: 700;}
+
+.progress-bar {margin:1rem 0;}
+progress[value] {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #f3f3f3;
+    border: 1px solid #ddd;
+}
+progress[value]::-webkit-progress-bar {
+    background-color: #f3f3f3;
+    border-radius: 10px;
+}
+progress[value]::-webkit-progress-value {
+    background: linear-gradient(to right, rgb(133 255 133), rgb(0 156 0));
+    border-radius: 5px;
+    transition: width 0.5s ease;
+}    
+.progress-bar.load{animation: 6s linear load;}
+@keyframes load {
+    50% {
+        width: 0;
+        background: #fff;
+    }
+    50% {
+        width: 50%;
+        background: #f1f1f1;
+    }
+    100% {
+        width: 100%;
+        background: green;
+    }
+}

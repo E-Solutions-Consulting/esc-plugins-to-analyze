@@ -1,0 +1,19 @@
+<?php if($states) : ?>
+    <label for="states"><?php esc_html_e('US States', 'your-textdomain'); ?>
+        <select id="states" name="states[]" multiple="multiple" class="wc-enhanced-select" style="width: 100%">
+            <option value="">All</option>
+            <?php foreach ($states as $code => $name) : ?>
+                <option data-state="<?php echo esc_attr($code); ?>" value="<?php echo esc_attr($code); ?>"><?php echo esc_html($name); ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <?php endif; ?>
+    <div class="input-filters">
+        <div>
+            <label>Start date:</label> <input type="date" name="start_date">
+        </div>
+        <div>
+            <label>End date:</label> <input type="date" name="end_date">
+        </div>
+
+    </div>
