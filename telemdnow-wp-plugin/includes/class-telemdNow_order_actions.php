@@ -174,19 +174,11 @@ class TelemdNow_Order_Actions {
                 // $order->add_order_note('Error in send order to pharmacy action. Please check error logs for more detail');
                 // telemdnow_api_error($httpCode, $api_url, 'POST', $data_sent, $response);
                 $inserted_id    =   telemdnow_api_error($httpCode, $api_url, 'POST', $data_sent, $response);
-                $log_url        =   add_query_arg(
-                                        array(
-                                            'page'   => 'telemdnow-logs-edit',
-                                            'action' => 'edit',
-                                            'log'    => $inserted_id,
-                                        ),
-                                        admin_url( 'admin.php' )
-                                    );
-
                 $order->add_order_note(
                     sprintf(
-                        'Error in send order to pharmacy action. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
-                        esc_url( $log_url )
+                        'Error in send order to pharmacy action%s. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
+                        telemdnow_api_error_message($response),
+                        telemdnow_api_error_log_url($inserted_id)
                     )
                 );
             }
@@ -226,24 +218,8 @@ class TelemdNow_Order_Actions {
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
             if ($httpCode != 200 && $httpCode != 201) {
-                //$order->add_order_note('Error in cancel order action. Please check error logs for more detail');
-                //telemdnow_api_error($httpCode, $api_url, 'POST', '', $response);
-                $inserted_id    =   telemdnow_api_error($httpCode, $api_url, 'POST', '', $response);
-                $log_url        =   add_query_arg(
-                                        array(
-                                            'page'   => 'telemdnow-logs-edit',
-                                            'action' => 'edit',
-                                            'log'    => $inserted_id,
-                                        ),
-                                        admin_url( 'admin.php' )
-                                    );
-
-                $order->add_order_note(
-                    sprintf(
-                        'Error in cancel order action. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
-                        esc_url( $log_url )
-                    )
-                );
+                $order->add_order_note('Error in cancel order action. Please check error logs for more detail');
+                telemdnow_api_error($httpCode, $api_url, 'POST', '', $response);
             } else {
                 $order->add_order_note('Cancel order action executed at telegra');
                 update_post_meta($order_id, 'telegra_order_cancelled', true);
@@ -289,24 +265,8 @@ class TelemdNow_Order_Actions {
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
             if ($httpCode != 200 && $httpCode != 201) {
-                // $order->add_order_note('Error in expedite order action. Please check error logs for more detail');
-                // telemdnow_api_error($httpCode, $api_url, 'PUT', $data_sent, $response);
-                $inserted_id    =   telemdnow_api_error($httpCode, $api_url, 'PUT', $data_sent, $response);
-                $log_url        =   add_query_arg(
-                                        array(
-                                            'page'   => 'telemdnow-logs-edit',
-                                            'action' => 'edit',
-                                            'log'    => $inserted_id,
-                                        ),
-                                        admin_url( 'admin.php' )
-                                    );
-
-                $order->add_order_note(
-                    sprintf(
-                        'Error in expedite order action. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
-                        esc_url( $log_url )
-                    )
-                );
+                $order->add_order_note('Error in expedite order action. Please check error logs for more detail');
+                telemdnow_api_error($httpCode, $api_url, 'PUT', $data_sent, $response);
             } else {
                 $order->add_order_note('Expedite order action executed at telegra');
                 update_post_meta($order_id, 'telegra_order_expedite', true);
@@ -347,24 +307,8 @@ class TelemdNow_Order_Actions {
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
             if ($httpCode != 200 && $httpCode != 201) {
-                // $order->add_order_note('Error in leaveWaitingRoom order action. Please check error logs for more detail');
-                // telemdnow_api_error($httpCode, $api_url, 'POST', '', $response);
-                $inserted_id    =   telemdnow_api_error($httpCode, $api_url, 'POST', '', $response);
-                $log_url        =   add_query_arg(
-                                        array(
-                                            'page'   => 'telemdnow-logs-edit',
-                                            'action' => 'edit',
-                                            'log'    => $inserted_id,
-                                        ),
-                                        admin_url( 'admin.php' )
-                                    );
-
-                $order->add_order_note(
-                    sprintf(
-                        'Error in leaveWaitingRoom order action. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
-                        esc_url( $log_url )
-                    )
-                );
+                $order->add_order_note('Error in leaveWaitingRoom order action. Please check error logs for more detail');
+                telemdnow_api_error($httpCode, $api_url, 'POST', '', $response);
             } else {
                 $order->add_order_note('Leave Waiting Room order action executed at telegra');
                 update_post_meta($order_id, 'leave_waiting_room', true);
@@ -376,5 +320,5 @@ class TelemdNow_Order_Actions {
         }
     }
 }
-new TelemdNow_Order_Actions();
+// new TelemdNow_Order_Actions();
 TelemdNow_Order_Actions::get_instance();

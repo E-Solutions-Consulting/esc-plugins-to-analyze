@@ -37,12 +37,15 @@ class Telemdnow_Webhook_Logs_Table extends WP_List_Table {
     public function get_columns() {
         $columns = array(
             'id'          => 'ID',
-            'request_status'       => 'Request Status',
-            'request_url' => 'URL',
-            'request_type'        => 'Type',
-            'request_response'    => 'Request Response',
-            'data_received'      => 'Data Received',
-            'created_at'      => 'Created at'
+            'request_status'        =>  'Request Status',
+            'woo_order_id'          =>  'Order ID',
+            'woo_order_new_status'  =>  'Order New Status',            
+            // 'request_url' => 'URL',
+            // 'request_type'        => 'Type',
+            'telegra_order_id'      =>  'Telegra Order ID',
+            'request_response'      =>  'Request Response',
+            'data_received'         =>  'Data Received',
+            'created_at'            =>  'Created at'
         );
 
         return $columns;
@@ -98,6 +101,56 @@ class Telemdnow_Webhook_Logs_Table extends WP_List_Table {
      */
     public function column_default($item, $column_name) {
         switch ($column_name) {
+            case 'woo_order_new_status':
+                $newStatus  =   '';
+                if(isset($item['data_received'])){
+                    $data_received  = json_decode($item['data_received'], true);
+                    if(isset($data_received['eventData'])){
+                        $eventData   =   $data_received['eventData'];
+                       if(isset($eventData['newStatus']))
+                            $newStatus = $eventData['newStatus'];
+                    }
+                }
+                echo $newStatus;
+                break;
+                
+                break;
+            case 'woo_order_id':
+                $woo_order_id   =   $item['request_response'];
+                if(isset($item['data_received'])){
+                    $data_received  = json_decode($item['data_received'], true);
+                    if(isset($data_received['targetEntity'])){
+                        $targetEntity   =   $data_received['targetEntity'];
+                       if(isset($targetEntity['externalIdentifier'])){
+                            $url    =   add_query_arg([
+                                                    'page' => 'wc-orders',
+                                                    'action' => 'edit',
+                                                    'id' => $targetEntity['externalIdentifier']
+                                                ], admin_url('admin.php'));
+                        
+                            $woo_order_id =     sprintf(
+                                                '<a target="_blank" href="%s">%s</a>',
+                                                $url,
+                                                $targetEntity['externalIdentifier']
+                                            );
+                       }
+                            
+                    }
+                }
+                echo $woo_order_id;
+                break;
+            case 'telegra_order_id':
+                $telegra_order_id   =   '';
+                if(isset($item['data_received'])){
+                    $data_received  = json_decode($item['data_received'], true);
+                    if(isset($data_received['targetEntity'])){
+                        $targetEntity   =   $data_received['targetEntity'];
+                        if(isset($targetEntity['_id']))
+                            $telegra_order_id = '<a target="_blank" href="https://affiliate-admin.telegramd.com/orders/' . esc_html($targetEntity['_id']) . '">' . $targetEntity['_id'] . '</a>';
+                    }
+                }
+                echo $telegra_order_id;
+                break;
             case 'id':
             case 'request_status':
             case 'request_url':
@@ -106,7 +159,6 @@ class Telemdnow_Webhook_Logs_Table extends WP_List_Table {
             case 'data_received':
             case 'created_at':
                 return $item[$column_name];
-
             default:
                 return print_r($item, true);
         }

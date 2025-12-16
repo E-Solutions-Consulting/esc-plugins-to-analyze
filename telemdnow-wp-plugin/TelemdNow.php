@@ -45,7 +45,15 @@ function telemdnow_main_menu() {
 add_action( 'woocommerce_subscription_status_on-hold', 'change_telegra_subscription_status_to_active', 10, 1 );
 
 function change_telegra_subscription_status_to_active( $subscription ) {
-  bh_plugins_log('TelegraPlugin:change_telegra_subscription_status_to_active');
+  if (defined('REST_REQUEST') && REST_REQUEST) {
+    return;
+  }
+  if ( is_admin() ) {
+    $current_screen = get_current_screen();
+    if ( $current_screen && $current_screen->post_type === 'shop_subscription' ) {
+      return;
+    }
+  }
     $order = $subscription->get_parent();    
     if ( $order && $order->get_meta( 'telemdnow_entity_id' )) {
       if ( $subscription->get_status() === 'on-hold' ) {
@@ -158,10 +166,10 @@ function authenticate_telemdnow() {
 
 
 
-function get_authenticationToken() {
+function get_authenticationToken__original() {
   $username = get_option('telemdnow_affiliate_username');
   $Password = get_option('telemdnow_affiliate_password');
-  $telemdnow_rest_url = 'https://telegramd-rest.telegramd.com';//get_option('telemdnow_rest_url');
+  $telemdnow_rest_url = get_option('telemdnow_rest_url');
   $authenticationToken = base64_encode($username . ':' . $Password);
   $api_url = $telemdnow_rest_url . '/auth/client';
   $curl = curl_init();
@@ -200,6 +208,56 @@ function get_authenticationToken() {
 }
 
 
+function get_authenticationToken() {
+  $cached_token = get_transient('telemdnow_auth_token');
+  if ($cached_token !== false) {
+      return $cached_token;
+  }
+
+  $username = get_option('telemdnow_affiliate_username');
+  $Password = get_option('telemdnow_affiliate_password');
+  $telemdnow_rest_url = get_option('telemdnow_rest_url');
+  $authenticationToken = base64_encode($username . ':' . $Password);
+  $api_url = $telemdnow_rest_url . '/auth/client';
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => $api_url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_HTTPHEADER => array(
+      'Authorization: Basic ' . $authenticationToken
+    ),
+  ));
+  $response = curl_exec($curl);
+
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+  curl_close($curl);
+
+  // Check if the HTTP response code is the one you are interested in (e.g., HTTP 200 OK)
+  if ($httpCode != 200 && $httpCode != 201) {
+
+    telemdnow_api_error($httpCode, $api_url, 'POST', 'Authorization: Basic ' . $authenticationToken, $response);
+    return '';
+  }
+
+  $token = '';
+  if (!empty($response)) {
+    $res_data = json_decode($response);
+    if (isset($res_data->token)) {
+      $token = $res_data->token;        
+      set_transient('telemdnow_auth_token', $token, 0);
+    }
+  }
+  return $token;
+}
+
+
 function get_telemdnow_product() {
   $curl = curl_init();
   $affiliate_private_token = get_authenticationToken();
@@ -230,7 +288,6 @@ function get_telemdnow_product() {
 }
 
 function action_woocommerce_order_status_changed($order_id, $old_status, $new_status, $order) {
-  bh_plugins_log('TelegraPlugin:action_woocommerce_order_status_changed: ' . $order_id . ' from ' . $old_status . ' to ' . $new_status, 'bh_plugins_renewal_analysis_status_changed');
   $precheckout = get_post_meta($order_id, 'telemdnow_order_id', true);
   // print_r($precheckout ); die('dddd');
   if (empty($precheckout)) {
@@ -300,7 +357,7 @@ function get_patient_from_telegra($order, $affiliate_private_token) {
     $final_result["message"] = "Order #" . $order_id . " was not sent to Telemdnow";
     $final_result["status"] = "error";
     $final_result["error"] = 'An error has occurred when transferring over to Telemdnow: ' . $response;
-    $order->add_order_note('An error has occurred when transferring over to Telemdnow: ' . telemdnow_api_error_message($response));
+    $order->add_order_note('An error has occurred when transferring over to Telemdnow: ' . $response);
   }
   curl_close($curl);
   $data['patient_id'] = $res->id;
@@ -310,7 +367,6 @@ function get_patient_from_telegra($order, $affiliate_private_token) {
 }
 
 function activate_telegra_order_subscription($order) {
-  bh_plugins_log('TelegraPlugin:activate_telegra_order_subscription: ' . $order->get_id());
   if (function_exists('wcs_get_subscriptions_for_order')) {
     $subscriptions = wcs_get_subscriptions_for_order($order->get_id());
     if (is_array($subscriptions) && (bool) count($subscriptions)) {
@@ -322,7 +378,6 @@ function activate_telegra_order_subscription($order) {
 }
 
 function send_order_to_telegra($order_id) {
-  bh_plugins_log('TelegraPlugin:send_order_to_telegra: ' . $order_id);
   $affiliate_private_token = get_authenticationToken();
   $order = wc_get_order($order_id);
   $patient = get_patient_from_telegra($order, $affiliate_private_token);
@@ -406,16 +461,8 @@ function send_order_to_telegra($order_id) {
   // Check if the HTTP response code is the one you are interested in (e.g., HTTP 200 OK)
   if ($httpCode != 200 && $httpCode != 201) {
 
-    //telemdnow_api_error($httpCode, $api_url, 'POST', $data_sent, $response);
+    // telemdnow_api_error($httpCode, $api_url, 'POST', $data_sent, $response);
     $inserted_id    =   telemdnow_api_error($httpCode, $api_url, 'POST', $data_sent, $response);
-    $log_url        =   add_query_arg(
-                                        array(
-                                            'page'   => 'telemdnow-logs-edit',
-                                            'action' => 'edit',
-                                            'log'    => $inserted_id,
-                                        ),
-                                        admin_url( 'admin.php' )
-                                    );
 
     $post_data = array(
       'ID'          => $order_id,
@@ -463,11 +510,12 @@ function send_order_to_telegra($order_id) {
     // $order->add_order_note('An error has occurred when transferring over to Telemdnow: ' . $response);
     $order->add_order_note(
                     sprintf(
-                        'An error has occurred when transferring over to Telemdnow: <span class="error-message">%s</span>. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
+                        'An error has occurred when transferring over to Telemdnow%s. Please check <a href="%s" target="_blank">error logs</a> for more detail.',
                         telemdnow_api_error_message($response),
-                        esc_url( $log_url )
+                        telemdnow_api_error_log_url($inserted_id)
                     )
                 );
+
     $order->update_meta_data('telemdnow_visit_link',$full_url);
     $order->update_meta_data('telemdnow_order_creation','false');
     $order->save();
@@ -526,34 +574,34 @@ function slider_metaboxes_html() {
     echo '<a href="#" data-id="' . $post->ID . '" class="btn btn-primary patirnd_email_remder">Patient Email Reminder</a>';
     echo '<style>
 		
-      .table_order th:first-child {
-          text-align: left;
-          min-width: 110px;
-      }
-      #order_data .order_data_column .form-field .date-picker {
-          width: 45%;
-      }
-      a.patirnd_email_remder {
-          display: inline-block;
-          text-decoration: none;
-          font-size: 13px;
-          line-height: 2.15384615;
-          min-height: 30px;
-          margin: 20px 0 0;
-          padding: 0 10px;
-          cursor: pointer;
-          border-width: 1px;
-          border-style: solid;
-          -webkit-appearance: none;
-          border-radius: 3px;
-          white-space: nowrap;
-          box-sizing: border-box;
-      }
+.table_order th:first-child {
+    text-align: left;
+    min-width: 110px;
+}
+#order_data .order_data_column .form-field .date-picker {
+    width: 45%;
+}
+a.patirnd_email_remder {
+    display: inline-block;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 2.15384615;
+    min-height: 30px;
+    margin: 20px 0 0;
+    padding: 0 10px;
+    cursor: pointer;
+    border-width: 1px;
+    border-style: solid;
+    -webkit-appearance: none;
+    border-radius: 3px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
 
 
 
-      </style>';
-          echo '<script>
+</style>';
+    echo '<script>
 		 jQuery(".patirnd_email_remder").click(function(e){
 			e.preventDefault();
             var id=jQuery(this).data("id");
@@ -1259,13 +1307,41 @@ function telemdnow_api_error($status, $url, $type, $data_sent, $data_received) {
   }
   return $inserted_id;
 }
-function telemdnow_api_error_message($response){
-    $message = '';
-    $res = json_decode($response);
-    $message =  isset($res->message)? $res->message:$res;
 
-  return $message;
+function telemdnow_api_error_message( $response ) {
+    $message = '';
+    $decoded = json_decode( $response );
+
+    if ( json_last_error() === JSON_ERROR_NONE && isset( $decoded->message ) ) {
+        $message = $decoded->message;
+    } elseif ( ! empty( $response ) ) {
+        $message = $response;
+    }
+
+    $message = trim( (string) $message );
+
+    if ( $message !== '' ) {
+        $message = rtrim( $message, '.' );
+        $message = ': ' . $message;
+    } else {
+        $message = ': No response from server';
+    }
+
+    return '<span class="bh error-message">' . esc_html( $message ) . '</span>';
 }
+
+function telemdnow_api_error_log_url($inserted_id){
+  $log_url        =   add_query_arg(
+                                    array(
+                                        'page'   => 'telemdnow-logs-edit',
+                                        'action' => 'edit',
+                                        'log'    => $inserted_id,
+                                    ),
+                                    admin_url( 'admin.php' )
+                                );
+  return esc_url( $log_url );
+}
+
 
 /****** REST API  */
 

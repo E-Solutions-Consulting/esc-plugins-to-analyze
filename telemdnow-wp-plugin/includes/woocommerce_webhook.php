@@ -163,45 +163,9 @@ class Woocommerce_Webhook{
             $order = wc_get_order(get_the_ID());
             $request_response = 'Order status not mapped for order Id ' . $order->get_id();
 
-           // ============ HOOK PARA CONTROLAR ÓRDENES CANCELADAS EN ESTADOS BLOQUEADOS ============
-            $should_process_update = apply_filters('telegra_should_process_status_update', true, [
-                'order' => $order,
-                'telegra_status' => $orderStatus,
-                'event_title' => $eventTitle,
-                'telegra_order_id' => $orderId,
-                'event_data' => $eventData,
-                'previous_status' => $eventData['previousStatus'] ?? '' // Estado anterior en Telegra
-            ]);
-            
-            if ($should_process_update === false) {
-                // El hook determinó que NO debemos procesar este cambio de estado
-                $orders[] = array(
-                    'woo_order_id' => $order->get_id(),
-                    'telegra_order_id' => $orderId,
-                    'status' => $order->get_status(),
-                    'total' => $order->get_total(),
-                    'note' => 'Status update blocked - recovery process executed'
-                );
-                continue; // Saltar al siguiente order sin procesar el cambio de estado
-            }
-            
             if (!empty($orderStatusArray[$orderStatus])) {
-                $additionalInfo =   '';
-                $performedBy    =   '';
-                $reason         =   '';
-                if(isset($eventData['performedBy'])){
-                    $performedBy = $eventData['performedBy'];
-                    $performedBy = '<cite>' . $performedBy['name'] . '</cite>: ';
-                }
-                if(isset($eventData['reason'])){
-                    $additionalInfo = '<blockquote style="padding: 5px 10px;margin: 0 0 10px;border-left: 5px solid #999;">' . $performedBy . $eventData['reason'] . '</blockquote>';
-                }
-
-                $note   =   'The status was changed in Telegra: ' . $eventTitle . '. The order will transition to ' . $orderStatusArray[$orderStatus] . ' because of Telegra status mappings.';
-                if(!empty($additionalInfo)){
-                    $note = $additionalInfo . $note;
-                }
-                $order->add_order_note($note);
+        
+                $order->add_order_note('The status was changed in Telegra: ' . $eventTitle . '. The order will transition to ' . $orderStatusArray[$orderStatus] . ' because of Telegra status mappings.');
                 $order->update_status($orderStatusArray[$orderStatus]);
                 $request_response = 'Order status mapped successfully for order Id ' . $order->get_id();
             }

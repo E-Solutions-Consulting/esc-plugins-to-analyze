@@ -1,6 +1,25 @@
 <?php
 
 class Telemdnow_Logs_Table extends WP_List_Table {
+    function extra_tablenav($which) {
+        if ($which == 'top') {
+            $current_page   =   isset($_REQUEST['page']) ? sanitize_text_field($_REQUEST['page']) : '';
+            $order_id       =   isset($_REQUEST['telegra_order_id_filter']) ? sanitize_text_field($_REQUEST['telegra_order_id_filter']) : '';
+
+            $current_page   =   trim($current_page);
+            $order_id   =   trim($order_id);
+            ?>
+            <form method="get">
+            <div class="alignleft actions bh" style="margin-bottom:20px">
+                <input type="hidden" name="page" value="<?php echo esc_attr($current_page); ?>" />
+                <label for="order_id_filter">Telegra Order ID:</label><br>
+                <input type="text" name="telegra_order_id_filter" id="telegra_order_id_filter" value="<?php echo esc_attr($order_id); ?>" style="width:350px;max-width:100%" placeholder="order::8f0c31e3..." />
+                <?php submit_button('Filter', 'button', 'filter_action', false); ?>
+            </div>
+            </form>
+            <?php
+        }
+    }
     /**
      * Prepare the items for the table to process
      *
@@ -39,7 +58,10 @@ class Telemdnow_Logs_Table extends WP_List_Table {
             'id'          => 'ID',
             'request_status'       => 'Request Status',
             'request_url' => 'URL',
-            'request_type'        => 'Type',
+            'request_type'        => 'Type',            
+            'woo_order_id'          =>  'Order ID',
+            'telegra_order_id'      =>  'Telegra Order ID',
+            'message'        => 'Message',
             'data_sent'    => 'Data Sent',
             'data_received'      => 'Data Received',
             'created_at'      => 'Created at'
@@ -80,10 +102,16 @@ class Telemdnow_Logs_Table extends WP_List_Table {
         $data = array();
         global $wpdb;
 
-        $table = $wpdb->prefix . 'telemdnow_logs';
-
+        $telegra_order_id   = isset($_REQUEST['telegra_order_id_filter']) ? sanitize_text_field($_REQUEST['telegra_order_id_filter']) :'';
+        $table      = $wpdb->prefix . 'telemdnow_logs';
+        $sql    =   "SELECT * from {$table}";
+        $telegra_order_id   =   trim($telegra_order_id);
+        if(!empty($telegra_order_id)){
+            $sql    .=  ' WHERE request_url like \'%' . $telegra_order_id . '%\'';
+        }
+        echo '<pre style="display:none">' . $sql . '</pre>';
         return $wpdb->get_results(
-            "SELECT * from {$table}",
+            $sql,
             ARRAY_A
         );
     }
@@ -98,9 +126,85 @@ class Telemdnow_Logs_Table extends WP_List_Table {
      */
     public function column_default($item, $column_name) {
         switch ($column_name) {
+            case 'woo_order_id':
+                $echo='';
+                $url    =   $item['request_url'];
+                preg_match('/order::[a-zA-Z0-9-]+(?=[\/?&\s]|$)/', $url, $matches);
+                $order_full_id = $matches[0] ?? null;
+                if($order_full_id){
+                    global $wpdb;
+                    $order_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT post_id FROM {$wpdb->prefix}telemdnow_logs WHERE meta_key='telemdnow_entity_id' AND meta_value='%s'",
+                        $order_full_id
+                    ));
+                    if($order_id){
+                        $url    =   add_query_arg([
+                                                    'page' => 'wc-orders',
+                                                    'action' => 'edit',
+                                                    'id' => $order_id
+                                                ], admin_url('admin.php'));
+                        
+                        $echo =     sprintf(
+                                            '<a target="_blank" href="%s">%s</a>',
+                                            $url,
+                                            $order_id
+                                        );
+                    }
+                }
+                echo $echo;
+                break;
+            case 'telegra_order_id':
+                $echo='';
+                $url    =   $item['request_url'];
+                preg_match('/order::[a-zA-Z0-9-]+(?=[\/?&\s]|$)/', $url, $matches);
+                $order_full_id = $matches[0] ?? null; // "order::13213" o "order::8f0c31e3-7748-4e5c-8e65-1bf9988b6f53"
+                if(!empty($order_full_id)){
+                            $url    =   'https://affiliate-admin.telegramd.com/orders/' . $order_full_id;                        
+                            $echo =     sprintf(
+                                                '<a target="_blank" href="%s">%s</a>',
+                                                $url,
+                                                $order_full_id
+                                            );
+                }
+                echo $echo;
+                break;
+            case 'message':
+                 if(isset($item['data_received'])){
+                    $data_received  = json_decode($item['data_received'], true);
+                    $limit  =   70;
+                    $length =   strlen($data_received['message']);
+                    $new_text=  substr($data_received['message'],0, $limit);
+                    if($length>$limit)
+                        $new_text .= '...';
+                    echo $new_text;
+                    //echo $data_received['message'];
+                    // if(isset($data_received['message'])){
+                    //     echo $data_received['message'];
+                    // }
+                }
+                break;
+            case 'request_url':
+                $url    =   $item[$column_name];
+                $query_string = parse_url($url, PHP_URL_QUERY);
+                parse_str($query_string, $params);
+                $access_token = $params['access_token'] ?? '';
+
+                if (!empty($access_token)) {
+                    $first_five = substr($access_token, 0, 5);                    
+                    $last_five  = substr($access_token, -5);                    
+                    $new_url = str_replace(
+                        $access_token, 
+                        $first_five . '...' . $last_five, 
+                        $url
+                    );
+                    
+                    echo $new_url;
+                } else {
+                    echo "No se encontró access_token en la URL";
+                }
+                break;
             case 'id':
             case 'request_status':
-            case 'request_url':
             case 'request_type':
             case 'data_sent':
             case 'data_received':
