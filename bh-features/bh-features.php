@@ -39,16 +39,9 @@ define( 'BH_FEATURES_VERSION', '1.0.0' );
 if ( ! defined( 'PARENT_MENU_SLUG' ) ) {
 	define( 'PARENT_MENU_SLUG', 'bh-features' );
 }
-
-// Define plugin constants
-if (!defined('BH_FEATURES_PLUGIN_URL')) {
-    define('BH_FEATURES_PLUGIN_URL', plugin_dir_url(__FILE__));
-}
-
 // Plan Days
 define( 'BH_DAYS_MONTHLY_PLAN', 25 );
 define( 'BH_DAYS_THREE_MONTH_PLAN', 70 );
-
 
 
 if(!function_exists('_print'))    :
@@ -91,8 +84,17 @@ if (!function_exists('bh_send_slack_notification')) {
 	 * Send Notifications to Slack Channel
 	 */
 	function bh_send_slack_notification($message, $webhook_url='') {
-		if(empty($webhook_url))
-			$webhook_url = BH_SLACK_CHANNEL_TEST_DEVELOPMENT;
+
+		if (empty($webhook_url)) {
+	        if (!defined('BH_SLACK_CHANNEL_TEST_DEVELOPMENT') || empty(BH_SLACK_CHANNEL_TEST_DEVELOPMENT)) {
+	            return ;
+	        }
+	        $webhook_url = BH_SLACK_CHANNEL_TEST_DEVELOPMENT;
+	    }
+
+	    if (empty($message)) {
+	        return ;
+	    }
 
 		$payload = array(
 			'text' => $message,

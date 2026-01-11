@@ -732,7 +732,6 @@ class Bh_Features_Public {
 	            LIMIT 1",
 	            $user_id, $user_email, preg_replace('/[^0-9]/', '', $user_phone)
 	        );
-			bh_plugins_log([$_GET, $_POST, $query]);
 	        $has_weight_loss_order = $wpdb->get_var($query);
 	        if ($has_weight_loss_order) {
 	            wc_add_notice(
@@ -975,7 +974,9 @@ class Bh_Features_Public {
 	}
 
 	function restrict_shipping_states($fields, $errors) {
-		$licensed_states	=	array_keys($this->licensed_states);
+		$states			=	AH_States::get_all();
+		$_states 		=	AH_States::get_states_for_current_user($states);
+		$licensed_states=	array_keys($_states['US']);
 		$shipping_state	=	isset($_POST['shipping_state']) ? strtoupper(sanitize_text_field($_POST['shipping_state'])) : '';
 		$billing_state	=	isset($_POST['billing_state']) ? strtoupper(sanitize_text_field($_POST['billing_state'])) : '';
 		
@@ -1200,26 +1201,6 @@ class Bh_Features_Public {
 						$subscription->set_billing_interval($billing_interval);
 					}
 					$subscription->save();
-				}
-			}
-		} catch (\Throwable $th) {
-			return ;
-		}
-	}
-
-	function order_renewal_payment_completed_send_to_telegram( $order_id, $old_status, $new_status, $order ){
-		try {
-			if (!$order || $order->get_status()!=='processing') {
-				return;
-			}
-			
-			if(wcs_order_contains_renewal($order)){
-				$subscriptions	=	wcs_get_subscriptions_for_renewal_order($order_id);
-				foreach ($subscriptions as $subscription) {
-					if ($subscription->get_status() !== 'active') {
-						continue;
-					}
-					$order->update_status('wc-on-hold');
 				}
 			}
 		} catch (\Throwable $th) {
@@ -1482,15 +1463,15 @@ class Bh_Features_Public {
 					<li>Please ensure you provide accurate information about your prior GLP-1 medication use, as healthcare providers rely on this to determine the appropriate dosage. If accurate information is not provided on the intake form, and the healthcare provider issued a prescription based on the information, changes will not be allowed and refunds will not be issued.</li>
 					<li><strong>**Cancellation policy:**</strong> If the patient wishes to cancel and the provider-led health review is completed and a prescription has been written, Brello may refund the total amount paid, less a <strong>$50 professional fee</strong>.<br>
 					This will only apply if the patient sends a written notice via email to <a href="mailto:info@brellohealth.com">info@brellohealth.com</a> within 24 hours from the time the provider-led health review was completed.</li>
+					<li><strong>**Post-Dispatch:**</strong> Due to the nature of compounded medications and in accordance with pharmacy regulations, dispensed medications are non-refundable. If you have concerns about your medication or suspect a dispensing error, please contact the dispensing pharmacy within 48 hours of receiving your medication.
+						<br><strong>Note:</strong> The dispensing pharmacy contact information can be found on the prescription label.
+					</li>
 					<li>Please ensure the shipping address is entered correctly during checkout. A refund will not be issued if the shipping address was entered incorrectly and the medications have been shipped.</li>
 					<li><strong>**Replacement Policy**</strong><br>
-					If your medication is not received at the address provided during checkout, we’re happy to work with one of the qualified pharmacies to send you a replacement at no extra cost.
-						<ul>
-							<li>Shipping Discrepancies<br>
-							In instances where the patient reports non-receipt of medication, yet our records confirm delivery, a qualified pharmacy may re-ship medications.<br>
-							<strong>All replacements are on a case-by-case basis and subject to verification.</strong>
-							</li>
-						</ul>
+						Once a delivery confirmation is recorded by the carrier, the fulfillment of the order is considered complete. Please note that we are unable to reship medications for orders that have been marked as delivered by the carrier.
+						<br>
+						If a patient reports non-receipt of a medication despite the delivery confirmation, the patient will be required to pay for a new order but can file a claim directly with the courier for any lost or stolen packages
+
 					</li>
 				</ol>
 			</div>
@@ -1736,9 +1717,8 @@ class Bh_Features_Public {
 
 				$message .= "🔎 Stripe: <{$intent_url}|{$payment_intent->id}>";
 				$message .= "```";
-				//	#cancelled-orders-brello
-				$channel	=	'SLACK_CHANNEL_CANCELLED_ORDERS_BRELLO';
-				bh_send_slack_notification($message, $channel);
+				bh_send_slack_notification($message, BH_SLACK_CHANNEL_STRIPE_PI_EXPIRED);
+
 				if (function_exists('wc_get_logger')) {
 					$logger = wc_get_logger();
 					$logger->info("Stripe Webhook Processed: {$event->type}", [
@@ -1880,7 +1860,7 @@ class Bh_Features_Public {
 					});
 					setTimeout(function() {
 						window.location.href = "<?php echo esc_url($tracking_data['redirect_url']); ?>";
-					}, 100);
+					}, 1500);
 				} else {
 					setTimeout(checkTrackingLoaded, 100);
 				}
@@ -2311,6 +2291,77 @@ class Bh_Features_Public {
 		<?php 
 	}
 
+	function insert_northbeam_pixel_tracking(){
+		if (!is_order_received_page()) return;
+
+		global $tracking_data;
+		if(!$tracking_data)
+			return ;
+
+	    $order	= wc_get_order($tracking_data['order_id']);
+	    if (!$order) return;
+
+	    $line_items = [];
+	    foreach ($order->get_items() as $item_id => $item) {
+	        $product = $item->get_product();
+	        if (!$product) continue;
+
+	        $parent_id = $product->is_type('variation') ? $product->get_parent_id() : $product->get_id();
+	        $parent_sku = wc_get_product($parent_id) ? wc_get_product($parent_id)->get_sku() : '';
+
+	        $productId = $parent_sku ? $parent_sku : (string) $parent_id;
+
+	        if ($product->is_type('variation')) {
+	            $variant_sku = $product->get_sku();
+	            $variantId = $variant_sku ? $variant_sku : (string) $product->get_id();
+	        } else {
+	            $variantId = $productId;
+	        }
+
+	        $variantName = '';
+	        if ($product->is_type('variation')) {
+	            $attributes = $product->get_variation_attributes();
+	            $clean = [];
+	            foreach ($attributes as $key => $value) {
+	                $clean[] = ucfirst(str_replace('attribute_', '', $key)) . ': ' . ucfirst($value);
+	            }
+	            $variantName = implode(', ', $clean);
+	        }
+
+	        $line_items[] = [
+	            'productId'   => strval($productId),
+	            'variantId'   => strval($variantId),
+	            'productName' => $item->get_name(),
+	            'variantName' => $variantName,
+	            'price'       => floatval($item->get_total()),
+	            'quantity'    => intval($item->get_quantity()),
+	        ];
+	    }
+
+	    $coupons = [];
+	    foreach ($order->get_items('coupon') as $coupon_item) {
+	        $coupons[] = $coupon_item->get_code();
+	    }
+	    $coupons_str = implode(',', $coupons);
+
+	    $nb_data = [
+	        'id'            => strval($order->get_id()),
+	        'totalPrice'    => floatval($order->get_total()),
+	        'shippingPrice' => floatval($order->get_shipping_total()),
+	        'taxPrice'      => floatval($order->get_total_tax()),
+	        'coupons'       => $coupons_str,
+	        'currency'      => $order->get_currency(),
+	        'lineItems'     => $line_items,
+	    ];
+	    ?>
+	    <script type="application/javascript">
+	        const nbData = <?php echo json_encode($nb_data, JSON_UNESCAPED_UNICODE); ?>;
+	        window.Northbeam.firePurchaseEvent(nbData);
+	    </script>
+	    <?php
+	    $ip_address = $_SERVER['REMOTE_ADDR'] ?? '???';
+	    bh_plugins_log($ip_address . ' ' . json_encode($nb_data, JSON_UNESCAPED_UNICODE), 'bh_plugins-northbeam_firePurchaseEvent');
+	}
 
 	/*
 	*	Rules
@@ -2694,6 +2745,305 @@ class Bh_Features_Public {
 	}
 
 	/**
+	 * Northbeam
+	 * */
+	function nb_build_order_payload( WC_Order $order ) {
+		$products	=	[];
+		foreach ( $order->get_items() as $item ) {
+			$product = $item->get_product();
+			if(!$product)
+				continue ;
+
+			$product_id	=	(string) $item->get_product_id();     // siempre el ID padre
+			$variant_id	=	$item->get_variation_id() ? (string) $item->get_variation_id() : null;
+			$name		= 	$item->get_name();
+			$quantity 	=	(int) $item->get_quantity();
+			$price 		=	(float) wc_get_price_excluding_tax( $product ) ?: (float) ( $item->get_total() / max(1, $quantity) );
+			$prod_obj = array(
+				'id'       => $product_id,
+				'name'     => $item->get_name(),
+				'quantity' => (int) $item->get_quantity(),
+				'price'    => (float) ( $item->get_total() / max(1, $item->get_quantity()) ),
+			);
+
+			if ( $variant_id ) {
+				$prod_obj['variant_id'] = $variant_id;
+			}
+
+			$products[] = $prod_obj;
+		}
+		if(count($products)==0){
+			return ['products'=>[]];
+		}
+
+		$order_id 			=	(string) $order->get_id();
+		$customer_email 	=	$order->get_billing_email();
+		$customer_id 		=	(string) ( $order->get_user_id() ? $order->get_user_id() : $customer_email );
+
+		$time_of_purchase 	=	date_i18n( 'c', strtotime( $order->get_date_created()->date_i18n( 'c' ) ) );
+		$currency 			=	$order->get_currency();
+		$purchase_total 	=	(float) $order->get_total();
+		$tax 				=	(float) $order->get_total_tax();
+		$shipping_cost 		=	(float) $order->get_shipping_total();
+
+		// --- Order tags ---
+		$order_tags = [];
+		$order_type	=	'standard_order';
+		if ( function_exists( 'wcs_order_contains_subscription' ) && function_exists( 'wcs_order_contains_renewal' ) ) {
+			if ( wcs_order_contains_subscription( $order ) ) {
+				$order_type	= 'subscription_initial';
+			}
+			if ( wcs_order_contains_renewal( $order ) ) {
+				$order_type	= 'subscription_renewal';
+			}
+		}
+		$order_tags[] 	=	$order_type;
+
+		$status      	=	$order->get_status();       // completed, processing, etc.
+		$created_via	=	$order->get_created_via(); // checkout, admin, store-api, subscription, etc.
+
+		$origin	=	'subscription_origin_frontend';
+		if( $created_via=='admin' )
+			$origin	=	'subscription_origin_backend';
+
+		$order_tags[]	=	$origin;
+		$order_tags[] 	=	'wc_order_status_' . $status;
+		$order_tags[] 	=	'wc_order_created_via_' . $created_via;
+
+		$source_type = $order->get_meta( '_wc_order_attribution_source_type' );
+		$source      = $order->get_meta( '_wc_order_attribution_utm_source' );
+		$medium      = $order->get_meta( '_wc_order_attribution_utm_medium' );
+		if ( !empty( $source ) )
+			$order_tags[]	=	'wc_order_utm_source_' . $source;
+		if ( !empty( $source_type ) ){
+			$order_tags[]	=	'wc_order_source_type_' . $source_type;
+		}
+		if ( !empty( $medium ) )
+			$order_tags[]	=	'wc_order_utm_medium_' . $medium;
+
+		$payload = [
+				'order_id'         => $order_id,
+				'customer_id'      => $customer_id,
+				'customer_email'   => $customer_email,
+				'time_of_purchase' => $time_of_purchase,
+				'currency'         => $currency,
+				'purchase_total'   => $purchase_total,
+				'tax'              => $tax,
+				'is_recurring_order' => in_array( 'subscription_renewal', $order_tags, true ),
+				'shipping_cost'    => $shipping_cost,
+				'products'         => $products,
+				'order_tags'       => array_values( array_unique( $order_tags ) ),
+			];
+		//_print($payload);
+		return $payload;
+	}
+
+	function nb_send_order_to_northbeam( WC_Order $order ) {
+		$endpoint	=	$this->northbeam['api_url']['production'] . '/v2/orders';
+		//$endpoint	=	$this->northbeam['api_url']['test'] . '/v2/orders';
+		try {
+			$order_payload = $this->nb_build_order_payload($order);
+			if ( empty($order_payload['products']) ) {				
+				return false;
+			}
+
+			$payload = array($order_payload);
+
+			if(isset($_GET['preview'])){
+				if($_GET['preview']=='payload'){
+					_print($payload);
+				}
+				die('Development Environment');
+			}
+
+			$args = array(
+				'method'  => 'POST',
+				'headers' => array(
+					'Authorization'  => 'Bearer ' . $this->northbeam['api_key'],
+					'Data-Client-ID' => $this->northbeam['client_id'],
+					'Content-Type'   => 'application/json',
+				),
+				'body'    => wp_json_encode( $payload ),
+				'timeout' => 20,
+			);
+
+			$response = wp_remote_post( $endpoint, $args );
+
+			if ( is_wp_error( $response ) ) {
+				error_log( '[Northbeam] Error enviando orden ' . $order_id . ': ' . $response->get_error_message() );
+				return false;
+			}
+
+			$code = wp_remote_retrieve_response_code( $response );
+			$body = wp_remote_retrieve_body( $response );
+
+			if ( $code >= 200 && $code < 300 ) {
+				bh_plugins_log(['nb_send_order_to_northbeam:Success', $order_id, $code, $body]);
+				return true;
+			} else {
+				bh_plugins_log(['nb_send_order_to_northbeam:Failed', $order_id, $code, $body]);
+				return false;
+			}
+
+		} catch (Exception $e) {
+			bh_plugins_error_log(['nb_send_order_to_northbeam', $order_id, $e->getMessage()]);
+			return false;
+		}
+	}
+
+	function bh_action_send_order_to_northbean(){
+		if (!isset($_GET['bh_action']) || $_GET['bh_action'] !== 'send_order_to_northbean')
+            return;
+        
+        if (!isset($_GET['order_id']))
+            die('Invalid order_id parameter.');
+
+		$order_id = intval($_GET['order_id']);
+		if ($order_id <= 0)
+			die('Invalid order_id value.');
+
+		$order = wc_get_order($order_id);
+		if (!$order)
+			die('Order not found.');
+
+		$result = $this->nb_send_order_to_northbeam($order);
+		if ($result) {
+			_print( 'Order ' . $order_id . ' sent to Northbeam successfully.');
+		} else {
+			_print('Failed to send order ' . $order_id . ' to Northbeam.');
+		}
+		die('bh_send_order_to_northbean executed.');
+	}
+
+	/***
+	 * batch process orders to Northbeam
+	 */
+	function nb_send_payload_to_northbeam( $payload ) {
+		if ( empty($payload) ) {
+			_print('[Northbeam] Payload empty, none to send.');
+			return false;
+		}
+		$endpoint	=	$this->northbeam['api_url']['production'] . '/v2/orders';
+		//$endpoint	=	$this->northbeam['api_url']['test'] . '/v2/orders';
+
+		$args = array(
+			'method'  => 'POST',
+			'headers' => array(
+				'Authorization'  => 'Bearer ' . $this->northbeam['api_key'],
+				'Data-Client-ID' => $this->northbeam['client_id'],
+				'Content-Type'   => 'application/json',
+			),
+			'body'    => wp_json_encode( $payload ),
+			'timeout' => 20,
+		);
+
+		$response = wp_remote_post( $endpoint, $args );
+
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = wp_remote_retrieve_body( $response );
+
+		if ( $code >= 200 && $code < 300 ) {
+			_print( '[Northbeam] Orders ' . $order_id . ' sent successfully. Response: ' . $body );
+			return true;
+		} else {
+			_print( '[Northbeam] Orders ' . $order_id . ' Failed. HTTP ' . $code . ' - ' . $body );
+			return false;
+		}
+	}
+
+	function bh_action_send_orders_batch_callback() {
+	    if (!isset($_GET['bh_action']) || $_GET['bh_action'] !== 'send_orders_to_northbean')
+	        return;
+
+	    $batch_size = 100; // Ajustable según memoria/servidor
+	    $last_id = (int) get_option('northbeam_last_order_id', 0);
+
+	    $executing = true;
+
+	    while ( $executing ) {
+	        $args = [
+			    'limit'   => $batch_size,
+			    'status'  => ['completed', 'processing'],
+			    'orderby' => 'ID',
+			    'order'   => 'ASC',
+			    'return'  => 'objects',
+			    'type'    => 'shop_order',
+			    'field_query' => [
+			        [
+			            'field' => 'id',
+			            'value' => $last_id,
+			            'compare' => '>'
+			        ]
+			    ],
+			];
+	        //_print($args);
+	        $orders = wc_get_orders($args);
+	        //_print($orders);die('testing!...');
+	        if ( empty($orders) ) {
+	            _print('All Orders were processed.');
+	            break;
+	        }
+	        //die('test');
+	        $payload = [];
+	        $orders_with_problems = [];
+
+	        foreach ( $orders as $order ) {
+	            $order_payload = $this->nb_build_order_payload($order);
+	            if ( empty($order_payload['products']) ) {
+	                $orders_with_problems[] = [
+	                    'order_id' => $order->get_id(),
+	                    'reason'   => 'No products in order'
+	                ];
+	                continue;
+	            }
+
+	            $payload[] = $order_payload;
+	            if ( $order->get_id() > $last_id ) {
+	                $last_id = $order->get_id();
+	            }
+	        }
+
+	        if ( ! empty($payload) ) {
+	            $success = $this->nb_send_payload_to_northbeam($payload);
+	        } else {
+	            _print('[Northbeam] There are no valid orders to send in this batch.');
+	            $success = true;
+	        }
+
+	        if ( ! $success ) {
+	            _print("Error sending batch from ID $last_id. Process stopped.");
+	            break;
+	        }
+
+	        _print("Batch Sent. Orders processed: " . count($payload) . ". Last ID: $last_id");
+	        update_option('northbeam_last_order_id', $last_id);
+
+	        if ( ! empty($orders_with_problems) ) {
+	            foreach ( $orders_with_problems as $problem ) {
+					bh_plugins_log( '[Northbeam] Order skipped: ' . $problem['order_id'] . ' - ' . $problem['reason'], 'bh_plugins-northbeam-error');
+	            }
+	        }
+
+	        echo '<hr/>';
+
+	        usleep(500000); // 0.5 segundos
+	    }
+	    _print("Backfill completed. Last processed order ID: $last_id");
+	}
+
+	function nb_order_status_changed_send_to_northbeam( $order_id, $old_status, $new_status, $order ){
+		bh_plugins_log(['nb_order_status_changed_send_to_northbeam:', $order_id, $new_status]);
+	 	$order = wc_get_order( $order_id );
+	 	if ( $order ) {
+	 		$this->nb_send_order_to_northbeam( $order );
+	 	}	
+	}
+
+	/**
 	 * Friendbuy tracking
 	 * */
 	function insert_friendbuy_tracking_customer(){
@@ -2755,356 +3105,5 @@ class Bh_Features_Public {
 	        exit;
 	    }
 	}
-
-	/**
-	 * US Phone Number Standardization
-	 * */
-	 /**
-     * Cargar scripts y estilos necesarios
-     */
-    public function enqueue_scripts_phone_validations() {
-        if (is_checkout() || is_account_page() || is_wc_endpoint_url('edit-address')) {
-            wp_enqueue_script('bh-us-phone-validation', plugin_dir_url(__FILE__) . 'js/phone-validation.js', array('jquery'), '1.0.0', true);
-            
-            wp_localize_script('bh-us-phone-validation', 'bh_us_phone_params', array(
-                'required' => __('Phone number is required', 'bh-features'),
-                'invalid_phone' => __('Please enter a valid US phone number. Format: (555) 123-4567', 'bh-features'),
-                'placeholder' => __('(555) 123-4567', 'bh-features')
-            ));
-            
-            // CSS para el formato
-            wp_add_inline_style('woocommerce-general', '
-                .bh-phone-error {
-                    color: #e2401c;
-                    font-size: 12px;
-                    margin-top: 5px;
-                    display: block;
-                }
-                input.bh-phone-formatted {
-                    font-family: monospace;
-                    letter-spacing: 1px;
-                }
-            ');
-        }
-    }
-    
-    /**
-     * Modificar el campo de teléfono en el checkout
-     */
-    public function modify_billing_phone_field($fields) {
-        if (isset($fields['billing_phone'])) {
-            $fields['billing_phone']['class'] = array('form-row-wide');
-            $fields['billing_phone']['placeholder'] = __('(555) 123-4567', 'bh-features');
-            $fields['billing_phone']['custom_attributes']['data-phone-us'] = 'true';
-        }
-        
-        return $fields;
-    }
-    
-    /**
-     * Validar el número de teléfono durante el checkout
-     */
-    public function validate_phone_number() {
-        if (isset($_POST['billing_phone'])) {
-            $phone = sanitize_text_field($_POST['billing_phone']);
-            
-            if (!$this->is_valid_us_phone($phone)) {
-                wc_add_notice(__('Please enter a valid US phone number in the format (555) 123-4567.', 'bh-features'), 'error');
-            }
-        }
-    }
-    
-    /**
-     * Validación adicional en checkout
-     */
-    public function validate_checkout_phone($data, $errors) {
-        if (isset($data['billing_phone']) && !empty($data['billing_phone'])) {
-            if (!$this->is_valid_us_phone($data['billing_phone'])) {
-                $errors->add('validation', __('Please enter a valid US phone number in the format (555) 123-4567.', 'bh-features'));
-            }
-        }
-    }
-    
-    /**
-     * Formatear el número antes de guardarlo - GUARDAR EN FORMATO E.164
-     */
-    public function format_phone_before_save($phone) {
-        return $this->format_to_e164($phone);
-    }
-    
-    /**
-     * Validar número de teléfono USA
-     */
-    private function is_valid_us_phone($phone) {
-        // Patrón para (555) 123-4567 o 555-123-4567 o 5551234567
-        $pattern = '/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/';
-        
-        // Validación básica del patrón
-        if (!preg_match($pattern, trim($phone))) {
-            return false;
-        }
-        
-        // Extraer solo dígitos y verificar que sean 10
-        $digits_only = preg_replace('/\D/', '', $phone);
-        if (strlen($digits_only) !== 10) {
-            return false;
-        }
-        
-        // Validar que el código de área sea válido (no 555)
-        $area_code = substr($digits_only, 0, 3);
-        if ($area_code === '555') {
-            return false; // 555 es para ejemplos
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Convertir a formato E.164 (+15551234567)
-     */
-    // private function format_to_e164($phone) {
-    //     // Extraer solo dígitos
-    //     $digits_only = preg_replace('/\D/', '', $phone);
-        
-    //     // Si tiene 10 dígitos, agregar código de país USA
-    //     if (strlen($digits_only) === 10) {
-    //         return '+1' . $digits_only;
-    //     }
-        
-    //     // Si ya tiene el +1, dejarlo como está
-    //     if (substr($digits_only, 0, 1) === '1' && strlen($digits_only) === 11) {
-    //         return '+' . $digits_only;
-    //     }
-        
-    //     // Devolver limpio para mantener consistencia
-    //     return '+1' . $digits_only;
-    // }
-    
-    /**
-     * Formatear para visualización (555) 123-4567
-     */
-    // private function format_to_display($phone) {
-    //     $digits_only = preg_replace('/\D/', '', $phone);
-        
-    //     if (strlen($digits_only) === 10 || (strlen($digits_only) === 11 && substr($digits_only, 0, 1) === '1')) {
-    //         // Remover el 1 inicial si existe
-    //         if (strlen($digits_only) === 11) {
-    //             $digits_only = substr($digits_only, 1);
-    //         }
-            
-    //         return '(' . substr($digits_only, 0, 3) . ') ' . substr($digits_only, 3, 3) . '-' . substr($digits_only, 6, 4);
-    //     }
-        
-    //     return $phone; // Devolver original si no se puede formatear
-    // }
-
-    
-    /**
-     * Cargar scripts y estilos necesarios
-     */
-    public function enqueue_scripts_mobile_phone_validation() {
-        if (is_checkout() || is_account_page() || is_wc_endpoint_url('edit-address')) {
-            wp_enqueue_script('bh-us-mobile-phone-validation', plugin_dir_url(__FILE__) . 'js/mobile-phone-validation.js', array('jquery'), '1.0.0', true);
-            
-            wp_localize_script('bh-us-mobile-phone-validation', 'bh_us_mobile_phone_params', array(
-                'required' => __('Mobile phone number is required', 'bh-features'),
-                'invalid_phone' => __('Please enter a valid US mobile number. Format: +1 408-600-4784', 'bh-features'),
-                'placeholder' => __('+1 408-600-4784', 'bh-features')
-            ));
-            
-            // CSS para el formato
-            wp_add_inline_style('woocommerce-general', '
-                .bh-mobile-phone-error {
-                    color: #e2401c;
-                    font-size: 12px;
-                    margin-top: 5px;
-                    display: block;
-                }
-                input.bh-mobile-phone-formatted {
-                    font-family: monospace;
-                    letter-spacing: 1px;
-                    direction: ltr;
-                    text-align: left;
-                }
-                .bh-phone-prefix {
-                    color: #666;
-                    font-size: 14px;
-                    margin-right: 5px;
-                }
-            ');
-        }
-    }
-    
-    /**
-     * Agregar campo móvil al checkout
-     */
-    public function add_mobile_phone_to_checkout($fields) {
-        $fields['billing']['billing_mobile_phone'] = array(
-            'label' => __('Mobile Phone', 'bh-features'),
-            'placeholder' => __('+1 408-600-4784', 'bh-features'),
-            'required' => true,
-            'class' => array('form-row-wide'),
-            'clear' => true,
-            'type' => 'tel',
-            'priority' => 25, // Después del teléfono regular
-            'custom_attributes' => array(
-                'data-mobile-phone-us' => 'true'
-            )
-        );
-        
-        return $fields;
-    }
-    
-    /**
-     * Modificar el campo de móvil existente
-     */
-    public function modify_billing_mobile_phone_field($fields) {
-        if (isset($fields['billing_mobile_phone'])) {
-            $fields['billing_mobile_phone']['class'] = array('form-row-wide');
-            $fields['billing_mobile_phone']['placeholder'] = __('+1 408-600-4784', 'bh-features');
-            $fields['billing_mobile_phone']['custom_attributes']['data-mobile-phone-us'] = 'true';
-        }
-        
-        return $fields;
-    }
-    
-    /**
-     * Validar el número de móvil durante el checkout
-     */
-    public function validate_mobile_phone_number() {
-        if (isset($_POST['billing_mobile_phone'])) {
-            $mobile_phone = sanitize_text_field($_POST['billing_mobile_phone']);
-            
-            if (!$this->is_valid_us_mobile_phone($mobile_phone)) {
-                wc_add_notice(__('Please enter a valid US mobile number in the format +1 408-600-4784.', 'bh-features'), 'error');
-            }
-        }
-    }
-    
-    /**
-     * Validación adicional en checkout
-     */
-    public function validate_checkout_mobile_phone($data, $errors) {
-        if (isset($data['billing_mobile_phone']) && !empty($data['billing_mobile_phone'])) {
-            if (!$this->is_valid_us_mobile_phone($data['billing_mobile_phone'])) {
-                $errors->add('validation', __('Please enter a valid US mobile number in the format +1 408-600-4784.', 'bh-features'));
-            }
-        }
-    }
-    
-    /**
-     * Guardar campo móvil en la orden
-     */
-    public function save_mobile_phone_field($order_id) {
-        if (isset($_POST['billing_mobile_phone']) && !empty($_POST['billing_mobile_phone'])) {
-            $mobile_phone = sanitize_text_field($_POST['billing_mobile_phone']);
-            $formatted_phone = $this->format_to_e164($mobile_phone);
-            
-            update_post_meta($order_id, '_billing_mobile_phone', $formatted_phone);
-            update_post_meta($order_id, '_billing_mobile_phone_display', $mobile_phone);
-        }
-    }
-    
-    /**
-     * Guardar campo móvil en el cliente
-     */
-    public function save_mobile_phone_customer($user_id, $address_type) {
-        if ($address_type === 'billing' && isset($_POST['billing_mobile_phone'])) {
-            $mobile_phone = sanitize_text_field($_POST['billing_mobile_phone']);
-            $formatted_phone = $this->format_to_e164($mobile_phone);
-            
-            update_user_meta($user_id, 'billing_mobile_phone', $formatted_phone);
-        }
-    }
-    
-    /**
-     * Mostrar campo móvil en admin
-     */
-    public function display_mobile_phone_in_admin($order) {
-        $mobile_phone = get_post_meta($order->get_id(), '_billing_mobile_phone', true);
-        if ($mobile_phone) {
-            echo '<p><strong>' . __('Mobile Phone:') . '</strong><br>' . esc_html($this->format_to_display($mobile_phone)) . '</p>';
-        }
-    }
-    
-    /**
-     * Validar número de móvil USA con formato +1 408-600-4784
-     */
-    private function is_valid_us_mobile_phone($phone) {
-        // Patrón para +1 408-600-4784
-        $pattern = '/^\+\d{1}\s\d{3}-\d{3}-\d{4}$/';
-        
-        // Validación básica del patrón
-        if (!preg_match($pattern, trim($phone))) {
-            return false;
-        }
-        
-        // Verificar que empiece con +1
-        if (substr($phone, 0, 2) !== '+1') {
-            return false;
-        }
-        
-        // Extraer solo dígitos y verificar que sean 11 (1 + 10)
-        $digits_only = preg_replace('/\D/', '', $phone);
-        if (strlen($digits_only) !== 11) {
-            return false;
-        }
-        
-        // Validar que el código de área sea válido (no 555)
-        $area_code = substr($digits_only, 1, 3);
-        if ($area_code === '555') {
-            return false; // 555 es para ejemplos
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Convertir a formato E.164 (+14086004784)
-     */
-    private function format_to_e164($phone) {
-        // Extraer solo dígitos
-        $digits_only = preg_replace('/\D/', '', $phone);
-        
-        // Si tiene 10 dígitos, agregar código de país USA
-        if (strlen($digits_only) === 10) {
-            return '+1' . $digits_only;
-        }
-        
-        // Si ya tiene 11 dígitos (incluyendo el 1), agregar +
-        if (strlen($digits_only) === 11) {
-            return '+' . $digits_only;
-        }
-        
-        return $phone; // Devolver original si no cumple
-    }
-    
-    /**
-     * Formatear para visualización +1 408-600-4784
-     */
-    private function format_to_display($phone) {
-        $digits_only = preg_replace('/\D/', '', $phone);
-        
-        if (strlen($digits_only) === 10 || (strlen($digits_only) === 11 && substr($digits_only, 0, 1) === '1')) {
-            // Remover el 1 inicial si existe y tiene 11 dígitos
-            if (strlen($digits_only) === 11) {
-                $digits_only = substr($digits_only, 1);
-            }
-            
-            return '+1 ' . substr($digits_only, 0, 3) . '-' . substr($digits_only, 3, 3) . '-' . substr($digits_only, 6, 4);
-        }
-        
-        return $phone; // Devolver original si no se puede formatear
-    }
-    
-    /**
-     * Validar formato E.164
-     */
-    private function is_valid_e164($phone) {
-        return preg_match('/^\+\d{11}$/', $phone);
-    }
-
-
-
 
 }

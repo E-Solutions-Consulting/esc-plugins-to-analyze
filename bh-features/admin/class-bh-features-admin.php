@@ -1370,10 +1370,9 @@ class Bh_Features_Admin {
 			} else {
 			    $user_info = "👤 System";
 			}
-		    //	#health-website
-			$webhook_url = 'SLACK_WEBHOOK_URL_HERE';
+
 		    $message	=	'⏰ Schedule Settings Updated: ' . $start_time . ' | ' . $end_time . ' | ' . $user_info;
-			bh_send_slack_notification($message, $webhook_url);
+			bh_send_slack_notification($message, BH_SLACK_CHANNEL_ORDER_LIMIT);
 		} catch (Exception $e) {
 			bh_plugins_log('handle_schedule_settings_update: ' . $e->getMessage());
 		}
@@ -1498,7 +1497,6 @@ class Bh_Features_Admin {
 	        delete_post_meta($post_id, '_logged_in_only');
 	    }
 	}
-
 	/**
 	 * Show App Tracking Fields in User Profile
 	 * */
@@ -1551,5 +1549,139 @@ class Bh_Features_Admin {
 	    <hr>
 	    <?php
 	}
+
+	/**
+	 * Hide button Renew Now
+	 * */
+	function ah_hide_renew_now_based_on_next_payment__old( $actions, $subscription ) {
+
+	    if ( ! $subscription instanceof WC_Subscription ) {
+	        return $actions;
+	    }
+
+	    $limit_ts = strtotime( '2026-01-15 00:00:00' );
+
+	    $next_payment_ts = $subscription->get_time( 'next_payment' );
+
+	    if ( ! $next_payment_ts ) {
+	        return $actions;
+	    }
+
+	    if ( $next_payment_ts > $limit_ts ) {
+
+	        if ( isset( $actions['subscription_renewal_early'] ) ) {
+	            unset( $actions['subscription_renewal_early'] );
+	        }
+
+	        if ( isset( $actions['subscription_renewal'] ) ) {
+	            unset( $actions['subscription_renewal'] );
+	        }
+
+	    }
+
+	    return $actions;
+	}
+	
+	function ah_hide_renew_now_based_on_next_payment( $actions, $subscription ) {
+
+		if ( ! $subscription instanceof WC_Subscription ) {
+			return $actions;
+		}
+
+		$logger  = wc_get_logger();
+		$context = [
+			'source' => 'ah-renew-visibility',
+			'subscription_id' => $subscription->get_id(),
+		];
+
+		$state = $subscription->get_shipping_state();
+
+		if ( ! AH_States::is_allowed( $state ) ) {
+
+			$logger->debug(
+				'Renew button hidden: state not allowed',
+				array_merge( $context, [
+					'state' => $state,
+				] )
+			);
+
+			unset( $actions['subscription_renewal_early'] );
+			unset( $actions['subscription_renewal'] );
+
+			return $actions;
+		}
+
+		$next_payment_ts = $subscription->get_time( 'next_payment' );
+
+		if ( ! $next_payment_ts ) {
+			return $actions;
+		}
+
+		/*
+		$dec_17_ts = strtotime( '2025-12-17 00:00:00' );
+
+		if ( $next_payment_ts >= $dec_17_ts ) {
+
+			$logger->debug(
+				'Renew button hidden: next payment after Dec 17',
+				array_merge( $context, [
+					'state'            => $state,
+					'next_payment_ts'  => $next_payment_ts,
+					'next_payment_utc' => gmdate( 'Y-m-d H:i:s', $next_payment_ts ),
+				] )
+			);
+
+			unset( $actions['subscription_renewal_early'] );
+			unset( $actions['subscription_renewal'] );
+		}
+		*/
+
+		/**
+	     * Base window (default):
+	     * - allowed states
+	     * - before Dec 17
+	     */
+	    $window_start_ts = strtotime( '2025-12-09 00:00:00' );
+	    $window_end_ts   = strtotime( '2025-12-17 23:59:59' );
+
+	    /**
+	     * State-specific overrides
+	     */
+	    switch ( strtoupper( $state ) ) {
+
+	        case 'MO':
+	        case 'SD':
+	            $window_end_ts = strtotime( '2025-12-17 23:59:59' );
+	            break;
+
+	        case 'WY':
+	            $window_end_ts = strtotime( '2025-12-18 23:59:59' );
+	            break;
+
+	        case 'ND':
+	            $window_end_ts = strtotime( '2025-12-18 23:59:59' );
+	            break;
+	    }
+
+	    if ( $next_payment_ts < $window_start_ts || $next_payment_ts > $window_end_ts ) {
+
+	        $logger->debug(
+	            'Renew button hidden: next payment outside allowed window',
+	            array_merge( $context, [
+	                'state'           => $state,
+	                'next_payment_ts' => $next_payment_ts,
+	                'next_payment_utc'=> gmdate( 'Y-m-d H:i:s', $next_payment_ts ),
+	                'window_start'    => gmdate( 'Y-m-d H:i:s', $window_start_ts ),
+	                'window_end'      => gmdate( 'Y-m-d H:i:s', $window_end_ts ),
+	            ] )
+	        );
+
+	        unset( $actions['subscription_renewal_early'] );
+			unset( $actions['subscription_renewal'] );
+	    }
+
+		return $actions;
+	}
+
 
 }

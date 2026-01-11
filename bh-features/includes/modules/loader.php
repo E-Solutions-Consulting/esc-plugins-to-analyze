@@ -1,120 +1,250 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 /**
- * Module Loader for BrelloHealth Features
+ * ============================================================
+ *  SAFE PRODUCTION MODULE LOADER
+ * ============================================================
  *
- * Recursively loads all PHP modules inside /includes/modules/
- * and automatically excludes any PHP file starting with "__".
+ * - Uses safe_require() to avoid fatal errors.
+ * - Missing files are logged AND shown in WP Admin Notices.
  */
-
-if ( ! defined( 'ABSPATH' ) ) exit;
-
-class BH_ModuleLoader {
+class BH_Modules_Loader {
 
     /**
-     * Base path for the modules directory.
-     *
-     * @var string
-     */
-    private $modules_dir;
-
-    /**
-     * List of excluded top-level module folders (optional).
-     *
-     * Example: "wc", "emails", "subscriptions".
+     * Store missing modules for admin notice
      *
      * @var array
      */
-    private $excluded_modules = [];
+    private $missing_modules = [];
 
-    /**
-     * Constructor: initialize loader.
-     */
     public function __construct() {
 
-        // Set base directory
-        $this->modules_dir = plugin_dir_path( __FILE__ );
+        $base = plugin_dir_path( __FILE__ );
 
-        // Load modules early after plugins are ready
-        add_action( 'plugins_loaded', [ $this, 'load_all_modules' ], 1 );
+        try {
+
+        /**
+         * Hook admin notices AFTER we try to load everything.
+         */
+        add_action( 'admin_notices', [ $this, 'show_missing_module_notices' ] );
+
+        /**
+         * ============================================================
+         * COMMON (Utilities, shared state, helpers)
+         * ============================================================
+         */
+        //$this->safe_require( $base . 'common/bh-common-states.php' );
+
+
+        /**
+         * ============================================================
+         * UI (Login UI, frontend UI helpers)
+         * ============================================================
+         */
+        //$this->safe_require( $base . 'ui/bh-ui.php' );
+
+
+        /**
+         * ============================================================
+         * API (REST Endpoints)
+         * ============================================================
+         */
+        //$this->safe_require( $base . 'api/bh-rest-api.php' );
+
+
+        /**
+         * ============================================================
+         * US STATES
+         * ============================================================
+         */
+        $this->safe_require( $base . 'states/licensed-states/licensed-states-manager.php' );
+        $this->safe_require( $base . 'states/licensed-states/mapdata-generator.php' );
+        $this->safe_require( $base . 'states/states.php' );
+        $this->safe_require( $base . 'states/states-ui.php' );
+        $this->safe_require( $base . 'states/states-admin.php' );
+
+
+        /**
+         * ============================================================
+         * INTEGRATIONS (Tracking + External platforms)
+         * ============================================================
+         */
+
+        // Server-side tracking
+        //$this->safe_require( $base . 'integrations/tracking/container.php' );
+
+        // Frontend tracking
+        //$this->safe_require( $base . 'integrations/tracking/frontend.php' );
+
+        // Friendbuy
+        //$this->safe_require( $base . 'integrations/friendbuy/frontend-tracking.php' );
+
+        // TripleWhale
+        $this->safe_require( $base . 'integrations/triplewhale/loader.php' );
+
+
+
+        /**
+         * ============================================================
+         * ADMIN (Roles & Permissions)
+         * ============================================================
+         */
+        //$this->safe_require( $base . 'admin/bh-roles-and-permissions.php' );
+
+
+        /**
+         * ============================================================
+         * PAGE RESTRICTIONS (Access control for pages)
+         * ============================================================
+         */
+        //$this->safe_require( $base . 'pages/bh-restrictions.php' );
+
+
+        /**
+         * ============================================================
+         * WOOCOMMERCE MODULES
+         * ============================================================
+         */
+
+        /**
+         * --------------------------------
+         * WC Test Mode
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/bh-test-mode.php' );
+
+
+        /**
+         * --------------------------------
+         * PRODUCTS
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/products/bh-products.php' );
+        //$this->safe_require( $base . 'wc/products/bh-products-admin.php' );
+
+
+        /**
+         * --------------------------------
+         * CART
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/cart/bh-cart.php' );
+
+
+        /**
+         * --------------------------------
+         * CHECKOUT
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/checkout/bh-checkout-validations.php' );
+        $this->safe_require( $base . 'wc/checkout/bh-phone-standardization.php' );
+        $this->safe_require( $base . 'wc/checkout/checkout-ui.php' );
+        //$this->safe_require( $base . 'wc/checkout/bh-checkout.php' );
+        // $this->safe_require( $base . 'wc/checkout/__bh-us-phone-standardization.php' );
+
+
+        /**
+         * --------------------------------
+         * ORDERS
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/orders/bh-orders.php' );
+        //$this->safe_require( $base . 'wc/orders/bh-orders-admin.php' );
+
+        // Telegra integration
+        $this->safe_require( $base . 'wc/orders/telegra/renewal-handler.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/renewal-blocker.php' );
+
+        // Orders filters
+        //$this->safe_require( $base . 'wc/filters/bh-date-range-filter-core.php' );
+
+
+        /**
+         * --------------------------------
+         * SUBSCRIPTIONS
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/subscriptions/bh-renewal-endpoint.php' );
+        $this->safe_require( $base . 'wc/subscriptions/early-renewal-handler.php' );
+
+        $this->safe_require( $base . 'wc/subscriptions/state-reactivation/loader.php' );
+        
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-admin.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-next-payment-date.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-pause.php' );
+
+        // Subscription filters
+        //$this->safe_require( $base . 'wc/subscriptions/filters/bh-date-range-filter-subscriptions.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/filters/bh-state-filter-subscriptions.php' );
+
+
+        /**
+         * --------------------------------
+         * UPSELLS
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/upsells/bh-upsells.php' );
+
+
+        /**
+         * --------------------------------
+         * WC ADMIN
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/admin/admin.php' );
+
+
+        } catch ( Exception $e ) {
+            error_log( '[BH Modules Loader] Exception during module loading: ' . $e->getMessage() );
+        }
+
     }
 
     /**
-     * Load all top-level modules inside /modules/
-     *
-     * @return void
+     * Safely load PHP modules without breaking the site.
+     * Logs missing files and registers them for admin notice.
      */
-    public function load_all_modules() {
+    private function safe_require( $path ) {
 
-        if ( ! is_dir( $this->modules_dir ) ) {
+        if ( file_exists( $path ) ) {
+            require_once $path;
             return;
         }
 
-        $top_level_dirs = glob( $this->modules_dir . '*', GLOB_ONLYDIR );
+        // Track missing file
+        $this->missing_modules[] = $path;
 
-        if ( empty( $top_level_dirs ) ) {
-            return;
-        }
-
-        foreach ( $top_level_dirs as $dir ) {
-
-            $module_slug = basename( $dir );
-
-            // Skip excluded modules if explicitly set
-            if ( in_array( $module_slug, $this->excluded_modules, true ) ) {
-                continue;
-            }
-
-            $this->load_module_recursive( $dir );
-        }
+        // Log in error_log for debugging
+        error_log( "[BH Modules Loader] Missing file: {$path}" );
     }
 
+
     /**
-     * Recursively load all PHP files inside a module and its subfolders.
-     *
-     * @param string $path
-     * @return void
+     * Display admin notice if there are missing modules.
      */
-    private function load_module_recursive( $path ) {
+    public function show_missing_module_notices() {
 
-        // 1) Load PHP files in this folder
-        $php_files = glob( trailingslashit( $path ) . '*.php' );
-
-        if ( ! empty( $php_files ) ) {
-            foreach ( $php_files as $file ) {
-
-                $basename = basename( $file );
-
-                // Skip files starting with "__"
-                if ( strpos( $basename, '__' ) === 0 ) {
-                    continue;
-                }
-
-                require_once $file;
-            }
-        }
-
-        // 2) Load subdirectories (submodules)
-        $subdirs = glob( trailingslashit( $path ) . '*', GLOB_ONLYDIR );
-
-        if ( empty( $subdirs ) ) {
+        if ( empty( $this->missing_modules ) ) {
             return;
         }
 
-        foreach ( $subdirs as $subdir ) {
-            $this->load_module_recursive( $subdir );
-        }
-    }
-
-    /**
-     * Exclude a top-level module folder from being loaded.
-     *
-     * Example: $loader->exclude_module( 'wc' );
-     *
-     * @param string $slug
-     * @return void
-     */
-    public function exclude_module( $slug ) {
-        $this->excluded_modules[] = sanitize_key( $slug );
+        ?>
+        <div class="notice notice-error">
+            <p><strong>BH Modules Loader Warning:</strong></p>
+            <p>The following module files are missing and could not be loaded:</p>
+            <ul>
+                <?php foreach ( $this->missing_modules as $file ) : ?>
+                    <li><?php echo esc_html( $file ); ?></li>
+                <?php endforeach; ?>
+            </ul>
+            <p>Please check your modules directory.</p>
+        </div>
+        <?php
     }
 }
-new BH_ModuleLoader();
+
+new BH_Modules_Loader();

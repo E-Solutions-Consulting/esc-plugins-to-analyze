@@ -106,6 +106,11 @@ class Bh_Features {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-bh-features-loader.php';
 
 		/**
+		 * The class responsible for loading Modules
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/modules/loader.php';
+
+		/**
 		 * The class responsible for defining internationalization functionality
 		 * of the plugin.
 		 */
@@ -115,12 +120,6 @@ class Bh_Features {
 
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-bh-features-emails.php';
 
-		/**
-		 * The class responsible for FriendBuy integration
-		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/friendbuy/class-bh-friendbuy.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/wc-checkout/bh-us-phone-standardization.php';
-		
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
@@ -174,7 +173,7 @@ class Bh_Features {
 		 */
 		$this->loader->add_filter( 'wc_order_statuses', $plugin_admin, 'custom_reorder_wc_order_statuses', 100);
 
-		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_widget_telegra_metabox', 1 );
+		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_widget_telegra_metabox' );
 
 		$this->loader->add_action( 'init', $plugin_admin, 'add_customer_services_role' );
 		$this->loader->add_action( 'init', $plugin_admin, 'add_tracking_master_role' );
@@ -188,7 +187,7 @@ class Bh_Features {
 		
 		$this->loader->add_filter( 'login_redirect', $plugin_admin, 'force_redirect_for_customer_services', 999, 3 );
 
-		$this->loader->add_action('admin_menu', $plugin_admin, 'add_admin_menu' );
+		$this->loader->add_action('admin_menu', $plugin_admin, 'add_admin_menu', 1 );
 
 		/*
 		*	My Account Menu - remove downloads menu
@@ -218,7 +217,7 @@ class Bh_Features {
 		/**
 		 * Cancel Subscription if the state is CT
 		 */
-		add_filter('wcs_renewal_order_created', [$plugin_admin, 'cancel_subscription_renewal_if_state_is_ct'], 10, 2);
+		// add_filter('wcs_renewal_order_created', [$plugin_admin, 'cancel_subscription_renewal_if_state_is_ct'], 10, 2);
 
 		add_filter( 'woocommerce_can_subscription_be_updated_to_active', [ $plugin_admin, 'woocommerce_can_subscription_be_updated_to_active' ], 99, 2 );
 		add_action('admin_init', [ $plugin_admin, 'subscription_actions']);
@@ -278,8 +277,11 @@ class Bh_Features {
 		$this->loader->add_action('show_user_profile', $plugin_admin, 'show_app_tracking_profile_fields');
 		$this->loader->add_action('edit_user_profile', $plugin_admin, 'show_app_tracking_profile_fields');
 
-		
-
+		/**
+		 * Hide Button Renew Now in MyAccount
+		 * */
+		$this->loader->add_filter( 'wcs_view_subscription_actions', $plugin_admin, 'ah_hide_renew_now_based_on_next_payment', 20, 2 );
+		$this->loader->add_filter( 'woocommerce_my_account_my_subscriptions_actions', $plugin_admin, 'ah_hide_renew_now_based_on_next_payment', 20, 2 );
 	}
 
 	/**
@@ -305,24 +307,17 @@ class Bh_Features {
 		
 		remove_action('woocommerce_add_to_cart_redirect', 'wc_add_to_cart_message', 10);
 		
-		add_action( 'woocommerce_checkout_before_order_review', [ $plugin_public, 'add_billing_shipping_summary' ], 20 );
+		// add_action( 'woocommerce_checkout_before_order_review', [ $plugin_public, 'add_billing_shipping_summary' ], 20 );
 
-		$this->loader->add_action( 'woocommerce_order_review', $plugin_public, 'woocommerce_review_order_before_cart_contents', 1 );
-		add_filter('woocommerce_cart_item_name', [ $plugin_public, 'bh_woocommerce_cart_item_name'], 10, 3);
+		// $this->loader->add_action( 'woocommerce_order_review', $plugin_public, 'woocommerce_review_order_before_cart_contents', 1 );
+		// add_filter('woocommerce_cart_item_name', [ $plugin_public, 'bh_woocommerce_cart_item_name'], 10, 3);
 
 		add_filter('woocommerce_add_to_cart_redirect', [ $plugin_public, 'bh_woocommerce_add_to_cart_redirect']);
 
-		add_filter('woocommerce_states', [ $plugin_public, 'restrict_us_states']);
-		add_filter('gettext', [ $plugin_public, 'change_ship_to_different_address_text'], 20, 3);
+		// add_filter('woocommerce_states', [ $plugin_public, 'restrict_us_states']);
+		// add_filter('gettext', [ $plugin_public, 'change_ship_to_different_address_text'], 20, 3);
 		
 		add_shortcode('modal_single_product', [ $plugin_public, 'hb_modal_single_product']);
-
-		add_action('woocommerce_before_checkout_process', [ $plugin_public, 'associate_existing_customer_checkout'], 20);
-		add_action('woocommerce_checkout_process', [ $plugin_public, 'validate_logged_in_user_restrictions']);
-
-		add_action('woocommerce_checkout_process', [ $plugin_public, 'restrict_one_product_per_email']);
-		add_action('woocommerce_checkout_process', [ $plugin_public, 'restrict_one_product_per_phone']);
-		add_action('woocommerce_after_checkout_validation', [ $plugin_public, 'restrict_po_boxes_in_checkout'], 10, 2);
 
 		add_action( 'woocommerce_product_after_variable_attributes', [ $plugin_public, 'variation_settings'], 10, 3 );
 		add_action( 'woocommerce_save_product_variation', [ $plugin_public, 'save_variation_settings'], 10, 2 );
@@ -330,7 +325,7 @@ class Bh_Features {
 		add_filter('woocommerce_is_sold_individually', [ $plugin_public, 'force_individual_products_cart'], 10, 2);
 
 		add_action('woocommerce_after_checkout_validation', [ $plugin_public, 'restrict_shipping_states'], 10, 2);
-		add_action('wp_enqueue_scripts', [ $plugin_public, 'enqueue_google_places_and_states']);
+		// add_action('wp_enqueue_scripts', [ $plugin_public, 'enqueue_google_places_and_states']);
 
 		add_action('wp_footer', [ $plugin_public, 'enqueue_quiz_styles']);
 		add_shortcode('print_graphic', [ $plugin_public, 'print_graphic_shortcode']);
@@ -340,12 +335,10 @@ class Bh_Features {
 		add_action('woocommerce_process_shop_order_meta', [ $plugin_public, 'save_pause_subscription_status']);
 		add_action('woocommerce_order_status_completed', [ $plugin_public, 'remove_status_pause_subscription_renewal_payment_completed'], 10, 2);
 		
-		add_filter('woocommerce_checkout_fields', [ $plugin_public, 'bh_woocommerce_checkout_fields_phone_validation']);
+		// add_filter('woocommerce_checkout_fields', [ $plugin_public, 'bh_woocommerce_checkout_fields_phone_validation']);
 		add_action('woocommerce_checkout_process', [ $plugin_public, 'bh_woocommerce_checkout_process_field_phone_validation']);
 
-		add_action('woocommerce_order_status_changed', [ $plugin_public, 'order_renewal_payment_completed_send_to_telegram'], 10, 4);
-
-		add_filter('woocommerce_checkout_fields', [ $plugin_public, 'bh_woocommerce_checkout_fields_kl_newsletter_checkbox'], 99999);
+		// add_filter('woocommerce_checkout_fields', [ $plugin_public, 'bh_woocommerce_checkout_fields_kl_newsletter_checkbox'], 99999);
 
 		$this->loader->add_action( 'woocommerce_subscription_renewal_payment_failed', $plugin_public, 'woocommerce_subscription_renewal_payment_failed', 10, 2 );
 		
@@ -361,13 +354,13 @@ class Bh_Features {
 		/**
 		 * Remove the Error Messages from top of checkout pages
 		 */
-		add_action('init', [ $plugin_public, 'hb_init_remove_wc_hooks'], 999999);
+		// add_action('init', [ $plugin_public, 'hb_init_remove_wc_hooks'], 999999);
 
 		/**
 		 * Add Terms & Conditions to Tab Checkout
 		 */
-		add_filter('arg-mc-init-options', [ $plugin_public, 'bh_arg_mc_init_options_add_step_terms_conditions']);
-		add_action('arg-mc-checkout-step', [ $plugin_public, 'bh_arg_mc_checkout_step_add_content_terms_conditions']);
+		// add_filter('arg-mc-init-options', [ $plugin_public, 'bh_arg_mc_init_options_add_step_terms_conditions']);
+		// add_action('arg-mc-checkout-step', [ $plugin_public, 'bh_arg_mc_checkout_step_add_content_terms_conditions']);
 		add_action('woocommerce_checkout_process', [ $plugin_public, 'bh_woocommerce_checkout_process_field_accept_terms']);
 		
 		/**
@@ -375,14 +368,14 @@ class Bh_Features {
 		 */
 		add_filter( 'woovr_variation_get_name', [$plugin_public, 'hb_woovr_variation_get_name'], 100 );
 		
-		add_action('admin_enqueue_scripts', [ $plugin_public, 'custom_script_order_edit']);
-		add_action('woocommerce_admin_order_data_after_billing_address', [ $plugin_public, 'admin_warning_if_billing_state_restricted']);
+		// add_action('admin_enqueue_scripts', [ $plugin_public, 'custom_script_order_edit']);
+		// add_action('woocommerce_admin_order_data_after_billing_address', [ $plugin_public, 'admin_warning_if_billing_state_restricted']);
 		
 		/**
 		 * Allow Free Orders when use a coupon
 		 */
 		add_filter( 'woocommerce_cart_needs_payment', [ $plugin_public, 'disable_payment_for_free_orders'], 10000, 2 );
-		add_action('woocommerce_order_status_changed', [ $plugin_public, 'change_to_on_hold_free_orders'], 10, 3);
+		// add_action('woocommerce_order_status_changed', [ $plugin_public, 'change_to_on_hold_free_orders'], 10, 3);
 			
 		/**
 		 * Rename the Product name of a new Order 
@@ -449,7 +442,10 @@ class Bh_Features {
 		 *	Add tracking code vibeq to Thankyou Page
 		 */
 		$this->loader->add_action('wp_footer', $plugin_public, 'insert_vibe_pixel_tracking', 100);
-		
+		/**
+		 *	Add tracking code Northbeam to Thankyou Page
+		 */
+		//$this->loader->add_action('wp_footer', $plugin_public, 'insert_northbeam_pixel_tracking', 100);
 
 		/*
 		*	Rules Add To Cart
@@ -459,8 +455,8 @@ class Bh_Features {
 		/*
 		*	Print Custom Text depend of Subscription Variation
 		*/
-		$this->loader->add_filter( 'arg-mc-init-options', $plugin_public, 'arg_mc_init_options' );
-		add_shortcode('_bh_disclaimer_plan_selected', [ $plugin_public, 'disclaimer_plan_selected_shortcode']);
+		// $this->loader->add_filter( 'arg-mc-init-options', $plugin_public, 'arg_mc_init_options' );
+		// add_shortcode('_bh_disclaimer_plan_selected', [ $plugin_public, 'disclaimer_plan_selected_shortcode']);
 
 		/*
 		*	Updates the status of an upsell order to "processing" when its associated parent order is marked as "completed." 
@@ -498,6 +494,13 @@ class Bh_Features {
 		add_shortcode('bh_product_variations', [ $plugin_public, 'brello_product_variations_form_shortcode']);
 
 		/**
+		 * Northbeam
+		 * */
+		// $this->loader->add_action( 'init', $plugin_public, 'bh_action_send_order_to_northbean' );
+		// $this->loader->add_action( 'init', $plugin_public, 'bh_action_send_orders_batch_callback' );
+		//$this->loader->add_action( 'woocommerce_order_status_changed', $plugin_public, 'nb_order_status_changed_send_to_northbeam', 10, 4 );
+
+		/**
 		 *	Add tracking code Northbeam to Thankyou Page
 		 */
 		$this->loader->add_action('wp_head', $plugin_public, 'insert_friendbuy_tracking_customer', 999);
@@ -507,29 +510,6 @@ class Bh_Features {
 		 * Page Restriction for non-logged-in users
 		 * */
 		$this->loader->add_action('template_redirect', $plugin_public, 'check_page_access');
-
-		/**
-		 * US Phone Number Standardization
-		 * */
-		/*
-		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts_phone_validations');
-        $this->loader->add_filter('woocommerce_billing_fields', $plugin_public, 'modify_billing_phone_field');
-        $this->loader->add_action('woocommerce_checkout_process', $plugin_public, 'validate_phone_number');
-        $this->loader->add_filter('woocommerce_process_myaccount_field_billing_phone', $plugin_public, 'format_phone_before_save');
-        $this->loader->add_action('woocommerce_after_checkout_validation', $plugin_public, 'validate_checkout_phone', 10, 2);
-
-
-		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts_mobile_phone_validation');
-        $this->loader->add_filter('woocommerce_billing_fields', $plugin_public, 'modify_billing_mobile_phone_field');
-        $this->loader->add_filter('woocommerce_checkout_fields', $plugin_public, 'add_mobile_phone_to_checkout');
-        $this->loader->add_action('woocommerce_checkout_process', $plugin_public, 'validate_mobile_phone_number');
-        $this->loader->add_action('woocommerce_after_checkout_validation', $plugin_public, 'validate_checkout_mobile_phone', 10, 2);
-        $this->loader->add_action('woocommerce_checkout_update_order_meta', $plugin_public, 'save_mobile_phone_field');
-        $this->loader->add_action('woocommerce_customer_save_address', $plugin_public, 'save_mobile_phone_customer', 10, 2);
-        
-        // Mostrar campo en admin
-        $this->loader->add_action('woocommerce_admin_order_data_after_billing_address', $plugin_public, 'display_mobile_phone_in_admin', 10, 1);
-		*/
 
 	}
 

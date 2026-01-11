@@ -31,7 +31,7 @@ class Bh_Checkout_Validations {
 
         add_action('woocommerce_before_checkout_process', [ $this, 'associate_existing_customer_checkout' ], 20);
 
-        add_action('woocommerce_checkout_process', [ $this, 'test_checkout_validations'], 50);
+        //add_action('woocommerce_checkout_process', [ $this, 'test_checkout_validations'], 50);
     }
 
     /**
