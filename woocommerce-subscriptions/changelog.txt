@@ -1,5 +1,92 @@
 *** WooCommerce Subscriptions Changelog ***
 
+2026-01-12 - version 8.3.1
+* Fix: Resolved an issue that was preventing limited subscription renewals.
+* Fix: Resolved a React-error that may occur when loading the spotlight welcome announcement for gifting.
+* Fix: Updated WooCommerce's CSV product importer to correctly update subscription product prices.
+
+2026-01-06 - version 8.3.0
+* Add: Support for ajax add-to-cart flows from the single product page, when upgrading or downgrading subscriptions.
+* Add: Enhanced functionality from the WooCommerce Subscription Downloads plugin has now been integrated directly into WooCommerce Subscriptions.
+* Fix: Ensured the subject line for the "Customer Renewal Invoice" email correctly updates.
+
+2025-12-22 - version 8.2.1
+* Fix: Subscription pricing strings now correctly display singular and plural billing intervals like "$10 / month" and "$10 every 3 months" in cart and checkout totals.
+* Fix: Display all recurring coupon names in the totals section of classic cart and checkout when multiple recurring coupons are applied.
+* Fix: Payment method selector options on Subscriptions list page are now properly displaying the payment method name for gateways providing multiple payment methods.
+* Fix: PayPal Standard plugin IPN renewal orders not being created for failed payment retries.
+* Fix: Prevent fatal errors on shop pages when special characters like % are used in a product name.
+* Fix: Prevent an email validation error from briefly and inadvertently flashing on the screen when the "this is a gift" checkbox is used.
+
+2025-12-10 - version 8.2.0
+* Fix: Various accessibility issues.
+    * Added button roles.
+    * Added labels to remove product links.
+    * Adding missing header labels on related orders table.
+    * Prevented various hidden elements from being exposed to screen readers.
+    * Fixed focus problems for the renewal dialog.
+    * Fixed focus when closing modals.
+    * Fixed toggle state change using spacebar.
+    * Fixed label for sign up now button.
+    * Fixed toggle aria-label text to reflect state.
+    * Added aria-haspopup attribute to buttons that open modals.
+    * Fixed link for view order aria-label.
+    * Fixed renew now button text and aria-label.
+    * Added aria-modal and role attributes to modals and dialogs.
+* Fix: Resubscribe button now appears correctly for cancelled limited subscriptions.
+* Fix: Missing translation for pricing string on languages without plural form.
+* Fix: Customized subscriptions links in WooCommerce emails now work correctly.
+* Fix: Possible fatal errors when switching grouped subscriptions.
+* Fix: Prevent unnecessary log entries related to gifted subscriptions.
+* Fix: Make it easier for translation plugins to respect individual customer language preferences when sending subscription emails.
+* Fix: Prevent recurring local pickup options from displaying for virtual subscriptions when the cart contains physical products.
+* Fix: Prevent shipping summary from displaying on Blocks Checkout for virtual subscriptions.
+* Fix: Item price in blocks checkout is correctly displayed without "due today" words for items with zero sign up fee.
+
+2025-11-13 - version 8.1.0
+* Fix: Prevent a fatal error that can occur when previewing emails in WooCommerce email settings.
+* Fix: Prevent technical subscription-specific discount types from appearing in the coupon edit UI.
+* Fix: Add admin notice and debug tool to recreate the payment retry database table when it's missing.
+* Fix: Prevent resubscribe and reactivate buttons from showing for subscriptions containing disabled, deleted, draft, or limited products.
+* Fix: Prevent error that blocks the subscriptions list from loading when gifted subscriptions are purchased with certain payment methods.
+* Fix: Ensure gift recipient email address is displayed in the order confirmation email sent to the purchaser.
+* Fix: Prevent pickup location options from displaying incorrectly alongside shipping methods on the Blocks Checkout page.
+* Fix: Fix invalid HTML tags that cause fatal errors when using themes with WordPress Interactivity API.
+* Fix: Add password reset links to the new account email template for gifted subscription recipients.
+* Tweak: Improve the gift recipient email input field on Blocks Cart and Mini Cart to match the style of other checkout fields.
+* Dev: Improve housekeeping of output buffers when handling requests to change subscription payment methods.
+* Dev: Improve type safety in relation to the `wcs_get_subscription()` function.
+
+2025-10-15 - version 8.0.0
+* Add: Blocks Checkout now displays a single shipping method selection for both initial and recurring carts, similar to Classic Checkout. This can be disabled using the `wcs_cart_totals_shipping_html_price_only` filter.
+* Fix: Resubscribing to a limited subscription from the product page will now reactivate the existing subscription.
+* Fix: "New initial order - Recipient" email template preview no longer causes critical error.
+* Fix: Shipping value on blocks checkout no longer shows as "Free" when no shipping method is available.
+* Dev: Improved data telemetry which is sent to WooCommerce:
+    * WooCommerce Subscriptions setting values
+    * Order totals of subscription-related orders by order type and payment gateway, aggregated by month
+    * Number of subscription-related orders by order type and payment gateway, aggregated by month
+    * Number of products in parent subscription orders, aggregated by month
+    * Number of non-zero value parent subscription orders, aggregated by month
+    * Number of subscription products by billing interval
+    * Number of giftable subscription products
+    * Number of subscriptions by payment method, billing period, and renewal type
+    * Number of gifted subscriptions
+    * Number of subscribers
+    * Purchase event for subscription products
+    * Exclude orders with a "processing" status from the "subscription_orders" telemetry data.
+
+2025-09-16 - version 7.9.0
+* Add: REST API endpoint to retrieve subscriptions associated with a specific order ID.
+* Fix: Keep subscription with successful renewals active when parent order fails.
+* Fix: Error when renewing subscriptions with downloadable gifts.
+* Fix: Improve performance by loading assets only when necessary.
+* Fix: "Update cart" button being always enabled.
+* Fix: Gifting recipient email layout issues when using a long e-mail address.
+* Fix: Gifting checkbox not showing up on blocks cart when using WooCommerce 10.2+.
+* Fix: Deleting a gifted subscription recipient will not delete their subscriptions, they will be moved to the subscription purchaser instead.
+* Dev: The `wcs_get_subscriptions()` and `wcs_get_subscriptions_for_order()` functions are now stricter, and only return instances of `WC_Subscription`.
+
 2025-09-02 - version 7.8.2
 * Fix: Error when updating/renewing subscriptions containing a pseudo coupon.
 * Fix: Fix gifting recipient notice being shown for non gifting orders.
@@ -22,7 +109,7 @@
 2025-07-09 - version 7.7.0
 * Fix: Restores normal behavior for the report caching updates scheduled action, which was failing due to a bad filepath.
 * Fix: Fix error when placing an order with a valid card after using a declined one.
-* Fix: Fix order renewal errors when using some plugins. 
+* Fix: Fix order renewal errors when using some plugins.
 * Fix: Prevent fatal errors when loading or deleting subscriptions with corrupted date values stored in a database.
 * Fix: Prevent fatal errors when trying to save invalid date values and display better error messages instead.
 * Fix: Fix broken blocks and javascript translations.

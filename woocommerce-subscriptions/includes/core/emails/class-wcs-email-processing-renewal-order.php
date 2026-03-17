@@ -11,7 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.0.0
  * @package WooCommerce/Classes/Emails
  * @author Prospress
- * @extends WC_Email
  */
 class WCS_Email_Processing_Renewal_Order extends WC_Email_Customer_Processing_Order {
 
@@ -24,9 +23,6 @@ class WCS_Email_Processing_Renewal_Order extends WC_Email_Customer_Processing_Or
 		$this->title          = __( 'Processing Renewal order', 'woocommerce-subscriptions' );
 		$this->description    = __( 'This is an order notification sent to the customer after payment for a subscription renewal order is completed. It contains the renewal order details.', 'woocommerce-subscriptions' );
 		$this->customer_email = true;
-
-		$this->heading = __( 'Thank you for your order', 'woocommerce-subscriptions' );
-		$this->subject = __( 'Your {site_title} renewal order receipt from {order_date}', 'woocommerce-subscriptions' );
 
 		$this->template_html  = 'emails/customer-processing-renewal-order.php';
 		$this->template_plain = 'emails/plain/customer-processing-renewal-order.php';
@@ -49,7 +45,7 @@ class WCS_Email_Processing_Renewal_Order extends WC_Email_Customer_Processing_Or
 	 * @return string
 	 */
 	public function get_default_subject() {
-		return $this->subject;
+		return __( 'Your {site_title} renewal order receipt from {order_date}', 'woocommerce-subscriptions' );
 	}
 
 	/**
@@ -59,7 +55,7 @@ class WCS_Email_Processing_Renewal_Order extends WC_Email_Customer_Processing_Or
 	 * @return string
 	 */
 	public function get_default_heading() {
-		return $this->heading;
+		return __( 'Thank you for your order', 'woocommerce-subscriptions' );
 	}
 
 	/**

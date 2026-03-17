@@ -1736,6 +1736,8 @@ class WC_Subscriptions_Admin {
 	/**
 	 * Adds Subscriptions specific details to the WooCommerce System Status report.
 	 *
+	 * @deprecated 2.2.2 Use WC_Subscriptions_Admin::render_system_status_items() instead.
+	 *
 	 * @param array $debug_data
 	 * @return array
 	 */
@@ -2141,6 +2143,8 @@ class WC_Subscriptions_Admin {
 
 	/**
 	 * Renders the Subscription information in the WC status page
+	 *
+	 * @deprecated 2.3 Use WCS_Admin_System_Status::render_system_status_items() instead.
 	 */
 	public static function render_system_status_items() {
 		_deprecated_function( __METHOD__, '2.3', 'WCS_Admin_System_Status::render_system_status_items()' );
@@ -2149,6 +2153,8 @@ class WC_Subscriptions_Admin {
 
 	/**
 	 * Outputs the contents of the "Renewal Orders" meta box.
+	 *
+	 * @deprecated 2.0 Use WCS_Meta_Box_Related_Orders::output() instead.
 	 *
 	 * @param object $post Current post data.
 	 */
@@ -2160,6 +2166,8 @@ class WC_Subscriptions_Admin {
 	/**
 	 * Add users with subscriptions to the "Customers" report in WooCommerce -> Reports.
 	 *
+	 * @deprecated 2.0
+	 *
 	 * @param WP_User_Query $user_query
 	 */
 	public static function add_subscribers_to_customers( $user_query ) {
@@ -2169,6 +2177,7 @@ class WC_Subscriptions_Admin {
 	/**
 	 * Set a translation safe screen ID for Subscriptions
 	 *
+	 * @deprecated 2.0
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.3.3
 	 */
 	public static function set_admin_screen_id() {
@@ -2178,6 +2187,7 @@ class WC_Subscriptions_Admin {
 	/**
 	 * Once we have set a correct admin page screen ID, we can use it for adding the Manage Subscriptions table's columns.
 	 *
+	 * @deprecated 2.0
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.3.3
 	 */
 	public static function add_subscriptions_table_column_filter() {
@@ -2186,6 +2196,8 @@ class WC_Subscriptions_Admin {
 
 	/**
 	 * Filter the "Orders" list to show only renewal orders associated with a specific parent order.
+	 *
+	 * @deprecated 2.0
 	 *
 	 * @param array $request
 	 * @return array
@@ -2205,6 +2217,8 @@ class WC_Subscriptions_Admin {
 
 	/**
 	 * Output the metabox
+	 *
+	 * @deprecated 2.0
 	 */
 	public static function recurring_totals_meta_box( $post ) {
 		_deprecated_function( __METHOD__, '2.0' );

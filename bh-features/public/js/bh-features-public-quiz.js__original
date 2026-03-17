@@ -1,0 +1,368 @@
+(function( $ ) {
+	'use strict';
+	var weight_chart;
+	var graphic_page;
+	var currentContainerCheckboxes;
+	
+	var yourHeight,currentWeight,idealWeight =0;
+	function calculateValues(){
+		updateData();
+		let val1	=	Math.round(currentWeight-7);
+		let val2	=	idealWeight + Math.round(7);
+		let data	=	[currentWeight, val1, val2, idealWeight];
+		return data;
+	}
+	function init_chart(){	
+		if(weight_chart){
+			weight_chart.destroy();
+		}
+
+		let labels  	=	['Today', '', '', 'Goal'];
+		let values  	=	calculateValues();
+		const minValue	=	Math.min(...values);
+		const maxValue	=	Math.max(...values);
+
+		const newValues	=	[values[0]+1, ...values, values[values.length-1]-1];
+		const newLabels	=	['', ...labels, ''];
+
+		const ctx		=	document.getElementById('graph_canvas').getContext('2d');
+		const gradient 	=	ctx.createLinearGradient(0, 0, 700, 0);
+		gradient.addColorStop(0, '#1d005d');
+		gradient.addColorStop(0.5, '#1d005d');
+		gradient.addColorStop(1, '#b4add3');
+
+        const data = {
+            labels: newLabels,
+            datasets: [{
+                label: 'Dataset 1',
+                data: newValues,
+                borderColor: '#967CFF',
+                backgroundColor: gradient,
+				tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#967CFF',
+                pointBorderWidth: 3,
+                pointRadius: (ctx) => (
+					ctx.dataIndex === 0 || ctx.dataIndex === newValues.length - 1 
+					? 0
+					: 10
+				),
+            }]
+        };
+
+        const options = {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    enabled: false
+                },
+                legend: {
+                    display: false
+                },
+                datalabels: {
+                    anchor: 'end', // Posición del valor respecto al punto
+                    align: 'right', // Alinear encima del punto
+                    backgroundColor: '#ffffff', // Fondo blanco con opacidad
+                    borderColor: '#967CFF', // Borde similar al color del gráfico
+                    borderWidth:  (value) => {
+						if(value.dataIndex === 0 || value.dataIndex === newValues.length-1){
+							return 0;
+						}
+						return 1;
+					},
+                    borderRadius: 5,
+                    color: '#000000',
+                    font: {
+                        /*weight: 'bold',*/
+                        size: 14
+                    },
+                    padding: (value) => {
+						if(value.dataIndex === 0 || value.dataIndex === newValues.length-1){
+							return 0;
+						}
+						return 5;
+					},
+                    formatter: (value, ctx) => {
+						if(ctx.dataIndex === 0 || ctx.dataIndex === newValues.length-1){
+							return '';
+						}
+						return value + ' lbs.';
+					},
+                    offset: 20
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+					ticks: {
+						color: '#ffffff',
+						font: {
+							size: 14
+						}
+					}
+					/*offset: true*/
+                },
+                y: {
+                    beginAtZero: true,
+					min: minValue - 10,
+					max: maxValue + 10,
+					ticks: {
+						display:false,
+						color: '#ffffff',
+						font: {
+							size: 14
+						}
+					}
+                }
+            }
+        };
+
+        Chart.register(ChartDataLabels);		
+
+        weight_chart = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: options,
+            plugins: [ChartDataLabels]
+        });
+
+	}
+
+	function updateData(){
+		currentWeight	=	parseInt($('.qsm-page.current-weight input').val() || 0);
+		idealWeight		=	parseInt($('.qsm-page.ideal-weight input').val() || 0);
+	}
+	
+	jQuery(document).on('qsm_init_progressbar_before', function(event, quizID, qmn_quiz_data) {
+		jQuery.each(qmn_quiz_data[quizID].qpages, function (numberQpage, qpage) {
+			jQuery('.qsm-page-' + numberQpage).addClass(qpage.pagekey);
+			if(qpage.pagekey=='page-with-graphic')
+				graphic_page	=	numberQpage;
+		});
+	});
+
+	
+
+	jQuery(document).on('qsm_go_to_page_before', function(event, quizID, pageNumber) {
+		var $quizForm = QSM.getQuizForm(quizID);
+		var $pages = $quizForm.children('.qsm-page');
+		var $currentPage = $quizForm.children('.qsm-page:nth-of-type(' + pageNumber + ')');
+			$pages.removeClass('fade-in');
+			//$currentPage.addClass('fade-in');
+	});
+
+	jQuery(document).on('qsm_go_to_page_after', function(event, quizID, pageNumber) {
+		let current_page = jQuery('#quizForm' + quizID).find('.current_page_hidden').val();
+		if(graphic_page==current_page){
+			jQuery('body').addClass('quiz-display-graph');
+			setTimeout(() => {
+				init_chart();	
+			}, 100);
+			
+		}else{
+			jQuery('body').removeClass('quiz-display-graph');
+		}
+
+		const section = document.querySelector('section[data-qpid="' + pageNumber + '"]');
+		const is_section_radio = Boolean(section && section.querySelector('.qmn_radio_answers'));
+		const btn_continue	=	jQuery('.qsm-btn.mlw_custom_next');
+		if (is_section_radio) {
+			btn_continue.hide();
+		} else {
+			btn_continue.show();
+		}
+	});
+	jQuery(document).on('qsm_next_button_click_before', function (event, quizID) {
+		var quiz_form_id = '#quizForm' + quizID;
+		var $container			=	jQuery(quiz_form_id).closest('.qmn_quiz_container');
+		var page_number 		=	$container.find('.current_page_hidden').val();
+		
+		var qmn_total_questions = jQuery('#quizForm' + quizID).find('#qmn_all_questions_count').val();
+		var total_questions = jQuery('#quizForm' + quizID).find('#total_questions').val();
+		
+		let page_number_current = parseInt(page_number) + 1;
+		if(page_number_current==total_questions){
+			setTimeout(function () {			
+				jQuery('.qsm-btn.mlw_next.mlw_custom_next').hide();
+			},100);
+		}
+	});
+
+	$('body').on('change', '.qmn_quiz_container select, .qmn_quiz_container textarea, .qmn_quiz_container input', function () {
+		try {
+			updateData();
+		} catch (error) {
+			console.error("Error actualizando en tiempo real:", error);
+		}
+	});
+	
+	jQuery(document).on('qsm_before_display_result', function(event,results, quiz_form_id, $container){
+		try{
+			if(typeof hb_custom_redirect!=='undefined' && hb_custom_redirect !== null && hb_custom_redirect.trim() !== '' ){
+				console.log('document', hb_custom_redirect);
+				results.redirect	=	hb_custom_redirect;		
+			}
+		} catch (error) {
+			console.error("Error redirect URL:", error);
+		}
+		
+
+	});
+	
+	document.body.addEventListener('click', function (e) {
+		if (e.target.matches('label.qsm-input-label')) {
+		const inputId = e.target.getAttribute('for');
+		const input = document.getElementById(inputId);
+		
+		if (
+			input &&
+			input.type === 'radio' &&
+			input.style.display !== 'none' &&
+			input.id !== 'question1_none'
+		) {
+			setTimeout(function () {
+			
+				const nextBtn = document.querySelector('.qsm-btn.mlw_custom_next');
+				if (nextBtn) nextBtn.click();
+			}, 200);
+		}
+		}
+	});
+
+	document.body.addEventListener('change', function (e) {
+		if (!e.target.matches('input[type="checkbox"].qsm-multiple-response-input')) return;
+
+		const clickedInput = e.target;
+		const container = clickedInput.closest('.qmn_check_answers');
+		if (!container) return;
+
+		currentContainerCheckboxes	=	container;
+
+		const label = container.querySelector('label[for="' + clickedInput.id + '"]');
+		if (!label) return;
+
+		const allCheckboxes = container.querySelectorAll('input[type="checkbox"].qsm-multiple-response-input');
+		const noneCheckbox = Array.from(allCheckboxes).find(cb => {
+			const lbl = container.querySelector('label[for="' + cb.id + '"]');
+			return lbl && lbl.textContent.trim().toLowerCase() === 'none';
+		});
+
+		if (clickedInput === noneCheckbox && clickedInput.checked) {
+			allCheckboxes.forEach(cb => {
+				if (cb !== noneCheckbox) {
+					cb.checked = false;
+					cb.disabled = true;
+				}
+			});
+			jQuery('html, body').animate({
+				scrollTop: currentContainerCheckboxes.scrollHeight / 2
+			}, 500);
+		}
+		if (clickedInput === noneCheckbox && !clickedInput.checked) {
+			allCheckboxes.forEach(cb => {
+				if (cb !== noneCheckbox) {
+					cb.disabled = false;
+				}
+			});
+		}
+
+		if (clickedInput !== noneCheckbox && clickedInput.checked) {
+			if (noneCheckbox) {
+				noneCheckbox.checked = false;
+				noneCheckbox.disabled = false;
+			}
+		}
+	});
+
+	document.addEventListener('change', function (e) {
+		if (e.target.matches('input[type="checkbox"]')) {
+			const clickedInput = e.target;
+			const label = clickedInput.nextElementSibling;
+
+			if (label && label.textContent.trim().toLowerCase() === 'all of the above') {
+				const container = clickedInput.closest('.qmn_check_answers');
+				if (!container) return;
+
+				currentContainerCheckboxes	=	container;
+
+				const checkboxes = container.querySelectorAll('input[type="checkbox"]:not([id="' + clickedInput.id + '"])');
+
+				checkboxes.forEach(cb => {
+					cb.checked = clickedInput.checked;
+				});
+
+				jQuery('html, body').animate({
+					scrollTop: currentContainerCheckboxes.scrollHeight / 2
+				}, 500);
+			}
+		}
+	});
+
+
+	const waitForSection = setInterval(() => {
+		const section = document.querySelector('section.qsm-page.qsm-question-page.gender-box');
+		if (section) {
+			const options = section.querySelectorAll('.mrq_checkbox_class');
+			options.forEach(container => {
+				const label = container.querySelector('label');
+				if (label && !container.querySelector('.gender-label')) {
+					const text = label.innerText.trim().toLowerCase();
+					label.className="qsm-input-label " + text;
+				}
+			});
+
+			// Detener el intervalo para que no siga corriendo
+			clearInterval(waitForSection);
+		}
+	}, 300); // Verifica cada 300ms
+
+
+	document.addEventListener('DOMContentLoaded', function () {
+		const pages = document.querySelectorAll('.qsm-page');
+
+		pages.forEach(page => {
+			// Inicialmente quitamos la clase fade-in
+			page.classList.remove('fade-in');
+
+			// Usamos un observer para detectar cambios en estilo (ej: display)
+			const observer = new MutationObserver(() => {
+			const isVisible = window.getComputedStyle(page).display !== 'none';
+			if (isVisible) {
+				// Forzar reinicio de animación
+				page.classList.remove('fade-in');
+				void page.offsetWidth; // trigger reflow
+				page.classList.add('fade-in');
+			}
+			});
+
+			observer.observe(page, { attributes: true, attributeFilter: ['style'] });
+		});
+	});
+
+	
+	(function() {
+		const observer = new MutationObserver(mutations => {
+			mutations.forEach(mutation => {
+			mutation.addedNodes.forEach(node => {
+				if (
+				node.classList &&
+				node.classList.contains('qsm-page')
+				) {
+				// Reinicia animación
+				node.classList.remove('fade-in');
+				// Forzar reflow para reiniciar la animación
+				void node.offsetWidth;
+				node.classList.add('fade-in');
+				}
+			});
+			});
+		});
+
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true
+		});
+		})();
+
+})( jQuery );

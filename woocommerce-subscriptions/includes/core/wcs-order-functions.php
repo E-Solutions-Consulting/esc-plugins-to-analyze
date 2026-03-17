@@ -28,6 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    'order_type' Get subscriptions for the any order type in this array. Can include 'any', 'parent', 'renewal', 'resubscribe' or 'switch', defaults to 'parent'.
  * @return WC_Subscription[] Subscription details in post_id => WC_Subscription form.
  * @since  1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+ * @since  7.9.0 Only instances of WC_Subscriptions will be returned by this function (prior to this, other values including false were occassionally part of the result).
  */
 function wcs_get_subscriptions_for_order( $order, $args = array() ) {
 
@@ -72,7 +73,13 @@ function wcs_get_subscriptions_for_order( $order, $args = array() ) {
 
 	foreach ( $subscription_ids as $subscription_id ) {
 		if ( wcs_is_subscription( $subscription_id ) ) {
-			$subscriptions[ $subscription_id ] = wcs_get_subscription( $subscription_id );
+			$subscription = wcs_get_subscription( $subscription_id );
+
+			// This additional check ensures we meet our promise of returning WC_Subscription[], in part by guarding
+			// a against race condition that could lead to $subscription being false.
+			if ( is_a( $subscription, WC_Subscription::class ) ) {
+				$subscriptions[ $subscription_id ] = $subscription;
+			}
 		}
 	}
 
@@ -302,7 +309,10 @@ function wcs_create_order_from_subscription( $subscription, $type ) {
  * Function to create a post title based on the type and the current date and time for new orders. By
  * default it's either renewal or resubscribe orders.
  *
+ * @deprecated 2.2.0
+ *
  * @param  string $type type of new order. By default 'renewal_order'|'resubscribe_order'
+ *
  * @return string       new title for a post
  */
 function wcs_get_new_order_title( $type ) {
@@ -632,10 +642,13 @@ function wcs_update_order_item_type( $item_id, $new_type, $order_or_subscription
 /**
  * Get an instance of WC_Order_Item_Meta for an order item
  *
+ * @since      1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+ * @deprecated 2.2.9
+ *
  * @param  WC_Order_Item $item
  * @param  WC_Product $product
+ *
  * @return WC_Order_Item_Meta
- * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
  */
 function wcs_get_order_item_meta( $item, $product = null ) {
 	if ( false === wcs_is_woocommerce_pre( '3.0' ) ) {
@@ -780,8 +793,11 @@ function wcs_display_item_meta( $item, $order ) {
  * Display item download links in a version compatible way.
  *
  * @since  1.0.0 - Migrated from WooCommerce Subscriptions v2.2.0
+ * @deprecated 2.5.0
+ *
  * @param  WC_Order_Item $item
  * @param  WC_Order $order
+ *
  * @return void
  */
 function wcs_display_item_downloads( $item, $order ) {

@@ -112,51 +112,6 @@ class Bh_Features_Admin {
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/bh-features-admin.js', array( 'jquery' ), $this->version, false );
 
 	}
-	
-	/**
-	 * Reorders the WooCommerce order status filter links 
-	 * in the admin orders list for a custom display sequence.
-	 */
-	function custom_reorder_wc_order_statuses( $order_statuses ) {
-		$new_order = array(
-			'all' => 'All',
-			'pending' => 'Pending payment',
-			'processing' => 'Processing',
-			'on-hold' => 'On hold',
-			'waiting_room' => 'Waiting Room',
-			'prerequisites' => 'Require Prerequisites',
-			'provider_review' => 'Provider Review',
-			'error_review' => 'Error - Review',
-			'admin_review' => 'Admin Review',
-			'collect_payment' => 'Collect Payment',
-			'completed' => 'Completed',
-			'cancelled' => 'Cancelled',
-			'refunded' => 'Refunded',
-			'failed' => 'Failed',
-		);
-
-		$reordered_statuses = array();
-		foreach ( $new_order as $key => $label ) {
-			$wc_key = ( $key === 'all' ) ? 'all' : 'wc-' . $key;
-
-			if ( $wc_key === 'all' ) {
-				continue;
-			}
-
-			if ( isset( $order_statuses[ $wc_key ] ) ) {
-				$reordered_statuses[ $wc_key ] = $order_statuses[ $wc_key ];
-				unset( $order_statuses[ $wc_key ] ); // lo eliminamos para no repetir después
-			}
-		}
-
-		if ( ! empty( $order_statuses ) ) {
-			foreach ( $order_statuses as $key => $label ) {
-				$reordered_statuses[ $key ] = $label;
-			}
-		}
-
-		return $reordered_statuses;
-	}
 
 	/*
 	*	Add Role Customer Service
@@ -547,28 +502,6 @@ class Bh_Features_Admin {
 	}
 
 	/**
-	 * Add Custom Field Checkbox: Apply for Subscription Renewals
-	 * This coupon will be used for apply in subscription renewals
-	 */
-	function add_custom_field_coupon_apply_to_renewal_subscription($coupon_id, $coupon){
-		woocommerce_wp_checkbox([
-			'id'			=>	'_apply_to_subscriptions',
-			'label'			=>	'Apply for Subscription Renewals',
-			'description'	=>	'Check this box if the coupon will be applied to subscription renewals.',
-			'value'			=>	get_post_meta($coupon_id, '_apply_to_subscriptions', true)
-		]);
-	}
-
-	/**
-	 * Store Custom Field: Apply for Subscription Renewals
-	 * 
-	 */
-	function add_custom_field_coupon_apply_to_renewal_subscription_save($post_id, $coupon){
-		$apply	=	isset($_POST['_apply_to_subscriptions']) ? 'yes' : 'no';
-		update_post_meta($post_id, '_apply_to_subscriptions', $apply);
-	}
-	
-	/**
 	 * Add Filter by State
 	 */
 	function state_filter_for_subscriptions($order_type) {
@@ -729,34 +662,6 @@ class Bh_Features_Admin {
 			$query['date_query'] = array($date_query);
 		}
 		return $query;
-	}
-
-	/*
-	*	Add Widget Telegra Info
-	*/
-	function add_widget_telegra_metabox() {
-		$order_screen_id = wcs_get_page_screen_id( 'shop_order' );
-	    $screen = get_current_screen();
-	    if ($screen && $screen->post_type === 'shop_order') {
-	        $post_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-            add_meta_box(
-                'telegra_info_metabox',
-                'Telegra Info',
-                [$this, 'display_widget_telegra'],
-                $order_screen_id,
-                'side',
-                'default'
-            );
-	    }
-	}
-	function display_widget_telegra($order) {
-		$order_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-		if(empty($order_id)){
-			echo 'No Info Available';
-			return ;
-		}
-	    $entity_id = get_post_meta($order_id, 'telemdnow_entity_id', true);
-	    echo '<p><a href="https://affiliate-admin.telegramd.com/orders/' . esc_html($entity_id) . '" target="_blank">Click to view order details at Telegra</a></p>';
 	}
 
 	/**
@@ -961,89 +866,6 @@ class Bh_Features_Admin {
 		}
 	}
 
-	/*
-	* Order Action for send email for Switch the subscription
-	*/
-	function hb_woocommerce_order_actions($actions) {
-		global $theorder;
-	
-		if (is_a($theorder, 'WC_Subscription')) {
-			$actions['send_switch_product_email'] = __('Send switch product email', 'text-domain');
-		}
-		/*
-		if (is_a($theorder, 'WC_Order') && !is_a($theorder, 'WC_Subscription') && function_exists('send_order_to_telegra')) {
-			$actions['resend_to_telegra'] = __('Resend order to Telegra', 'text-domain');
-		}*/
-
-		return $actions;
-	}
-	function hb_woocommerce_order_action_send_switch_product_email($subscription) {
-		if (is_a($subscription, 'WC_Subscription')) {
-			$customer_email	=	$subscription->get_billing_email();
-			$args = array(
-				'category' => array('optional-tirzepatide'),
-			);
-			
-			$products = wc_get_products($args);
-			$links = array_map(function ($product) use ($subscription) {
-				$product_id = $product->get_id();			
-				if ($product->is_type('variable')) {
-					$variations = wc_get_products(array(
-						'type'        => 'variation',
-						'parent'      => $product_id,
-						'return'      => 'objects',
-						'status'      => 'publish',
-					));
-					$variation_links = array_map(function ($variation) use ($subscription, $product) {
-						$variation_id = $variation->get_id();
-						$variation_name = implode(', ', $variation->get_variation_attributes());
-						$link	=	$this->generate_product_switch_link($subscription->get_id(), ['product_id'=>$product->get_id(), 'variation_id'=> $variation_id] );
-						return '<a href="' . esc_url($link) . '">Select ' . $product->get_name() . ' - ' . $variation_name . '</a>';
-					}, $variations);
-
-
-					$output	= '';
-					foreach ($variations as $variation) {
-						$variation_id	=	$variation->get_id();
-						$variation_name =	implode(', ', $variation->get_variation_attributes());
-
-						$link	=	$this->generate_product_switch_link($subscription->get_id(), ['product_id'=>$product->get_id(), 'variation_id'=> $variation_id] );
-						$output .= '<li><a href="' . esc_url($link) . '">' . $product->get_name() . ' - ' . $variation_name . '</a></li>';
-					}
-					//$output	.= '</ul>';
-					return $output;
-				}
-			}, $products);
-
-			$message	=	'<p>Hi</p>';
-			$message	.=	'<p>Pellentesque mollis risus non diam aliquam volutpat. Vestibulum vitae lorem tortor. Morbi vehicula nunc vitae elementum pulvinar. Maecenas convallis libero in magna dignissim accumsan. Curabitur est lectus, pellentesque lobortis odio in, tempor pulvinar ligula. Vestibulum euismod velit eros, quis malesuada enim placerat a. Ut dui dolor, hendrerit ut dolor aliquam, suscipit vestibulum metus. Integer quis maximus massa.</p>';
-			$message	.=	'<br>';
-			$message	.=	'<p>You can change your current product to one of the following:</p>';
-			$message	.=	'<br>';
-			$message	.=	'<ul>' . implode('', $links) . '</ul>';
-			$message	.=	'<br></br>';
-			$message	.=	'<p>Thanks.</p>';
-
-			wp_mail(
-				$customer_email,
-				'Attention, it is necessary to change the product of your subscription',
-				$message,
-				[
-					'Content-Type: text/html; charset=UTF-8',
-					'From: Brello Health <info@brellohealth.com>',
-				]
-			);
-	
-			// Notificar al administrador.
-			wp_admin_notice( 'Email Sent successfully!', array( 'type' => 'success' ) );
-		}
-	}
-	function hb_woocommerce_order_action_resend_to_telegra($order) {
-		if (is_a($order, 'WC_Order') && !is_a($order, 'WC_Subscription') && function_exists('send_order_to_telegra')) {
-			$order_id = $order->get_id();
-			send_order_to_telegra($order_id);
-		}
-	}
 	/*
 	 *	Order Limit
 	 */
@@ -1459,45 +1281,6 @@ class Bh_Features_Admin {
 	}
 
 	/**
-	 * Add metabox Access Restriction to pages
-	 * */
-	function add_logged_in_only_metabox() {
-	    add_meta_box(
-	        'logged_in_only_metabox',
-	        'User Access Restriction',
-	        [$this, 'display_logged_in_only_metabox'],
-	        'page',
-	        'side',
-	        'high'
-	    );
-	}
-	// Display the checkbox in metabox
-	function display_logged_in_only_metabox($post) {
-	    $logged_in_only = get_post_meta($post->ID, '_logged_in_only', true);
-	    wp_nonce_field('save_logged_in_only', 'logged_in_only_nonce');
-	    ?>
-	    <label>
-	        <input type="checkbox" name="logged_in_only" value="1" <?php checked($logged_in_only, '1'); ?> />
-	        Show only for logged-in users
-	    </label>
-	    <p class="description">If checked, non-logged-in users will be redirected to home page.</p>
-	    <?php
-	}
-	// Save the checkbox value
-	function save_logged_in_only_metabox($post_id) {
-	    if (!isset($_POST['logged_in_only_nonce']) || !wp_verify_nonce($_POST['logged_in_only_nonce'], 'save_logged_in_only')) {
-	        return;
-	    }
-	    if (!current_user_can('edit_post', $post_id)) {
-	        return;
-	    }
-	    if (isset($_POST['logged_in_only']) && $_POST['logged_in_only'] == '1') {
-	        update_post_meta($post_id, '_logged_in_only', '1');
-	    } else {
-	        delete_post_meta($post_id, '_logged_in_only');
-	    }
-	}
-	/**
 	 * Show App Tracking Fields in User Profile
 	 * */
 	function show_app_tracking_profile_fields($user) {
@@ -1661,6 +1444,43 @@ class Bh_Features_Admin {
 	        case 'ND':
 	            $window_end_ts = strtotime( '2025-12-18 23:59:59' );
 	            break;
+
+	        case 'KY':
+	            $window_end_ts = strtotime( '2026-01-29 23:59:59' );
+	            break;
+
+	        case 'MN':
+	            $window_end_ts = strtotime( '2026-01-29 23:59:59' );
+	            break;
+
+	        case 'MT':
+	            $window_end_ts = strtotime( '2026-02-02 15:40:59' );
+	            break;
+
+	        case 'OH':
+	            $window_end_ts = strtotime( '2026-02-04 14:34:59' );
+	            break;
+
+	        case 'OR':
+	            $window_end_ts = strtotime( '2026-02-19 18:30:59' );
+	            break;
+
+	        case 'GA':
+	            $window_end_ts = strtotime( '2026-03-03 13:00:00' );
+	            break;
+
+	        case 'RI':
+	            $window_end_ts = strtotime( '2026-03-04 15:00:00' );
+	            break;
+
+	        case 'VT':
+	            $window_end_ts = strtotime( '2026-03-09 12:10:00' );
+	            break;
+
+	        case 'WI':
+	            $window_end_ts = strtotime( '2026-03-10 17:30:00' );
+	            break;
+
 	    }
 
 	    if ( $next_payment_ts < $window_start_ts || $next_payment_ts > $window_end_ts ) {

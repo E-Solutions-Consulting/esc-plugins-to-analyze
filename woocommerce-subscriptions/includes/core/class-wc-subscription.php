@@ -45,6 +45,14 @@ class WC_Subscription extends WC_Order {
 	private $editable;
 
 	/**
+	 * Stores if the subscription is in the payment completed flow.
+	 * Allowing subscriptions to be renewed even if they have limited products.
+	 *
+	 * @var bool
+	 */
+	private $is_payment_completed_flow = false;
+
+	/**
 	 * Extra data for this object. Name value pairs (name + default value). Used to add additional information to parent.
 	 *
 	 * WC 3.0+ property.
@@ -340,7 +348,9 @@ class WC_Subscription extends WC_Order {
 				break;
 			case 'completed': // core WC order status mapped internally to avoid exceptions
 			case 'active':
-				if ( $this->payment_method_supports( 'subscription_reactivation' ) && $this->has_status( 'on-hold' ) ) {
+				if ( ! $this->is_payment_completed_flow && $this->contains_unavailable_product() ) {
+					$can_be_updated = false;
+				} elseif ( $this->payment_method_supports( 'subscription_reactivation' ) && $this->has_status( 'on-hold' ) ) {
 					// If the subscription's end date is in the past, it cannot be reactivated.
 					$end_time = $this->get_time( 'end' );
 					if ( 0 !== $end_time && $end_time < gmdate( 'U' ) ) {
@@ -413,6 +423,48 @@ class WC_Subscription extends WC_Order {
 		}
 
 		return apply_filters( 'woocommerce_can_subscription_be_updated_to_' . $new_status, $can_be_updated, $this );
+	}
+
+	/**
+	 * Checks if the subscription contains an unavailable product.
+	 *
+	 * A product is considered unavailable if it is:
+	 * - Deleted (not found)
+	 * - Not published (draft, trash, private, etc.)
+	 *
+	 * Note: This method intentionally does NOT use is_purchasable() to avoid incorrectly
+	 * flagging limited products as unavailable. Limited products return is_purchasable() = false
+	 * for users with existing subscriptions, but they should still be available for resubscribe.
+	 * Functions like wcs_can_user_resubscribe_to() have specific logic to handle limited products
+	 * by checking if the user has an active subscription.
+	 *
+	 * @return bool
+	 */
+	public function contains_unavailable_product() {
+		/** @var WC_Order_Item_Product $line_item */
+		foreach ( $this->get_items() as $line_item ) {
+			$product = $line_item->get_product();
+
+			// Product doesn't exist (deleted).
+			if ( ! $product instanceof WC_Product ) {
+				return true;
+			}
+
+			// If the product is a subscription variation, use the parent product.
+			if ( $product->is_type( 'subscription_variation' ) ) {
+				$parent_product_id = $product->get_parent_id();
+				$product           = wc_get_product( $parent_product_id );
+			}
+
+			// Check if product is published. Products with other statuses (draft, trash, private)
+			// are not available for purchase or resubscribe.
+			$product_status = $product->get_status();
+			if ( 'publish' !== $product_status ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -1996,6 +2048,7 @@ class WC_Subscription extends WC_Order {
 	 * @param WC_Order $last_order
 	 */
 	public function payment_complete_for_order( $last_order ) {
+		$this->is_payment_completed_flow = true;
 
 		// Clear the cached renewal payment counts
 		if ( isset( $this->cached_payment_count['completed'] ) ) {
@@ -2028,30 +2081,49 @@ class WC_Subscription extends WC_Order {
 	}
 
 	/**
-	 * When a payment fails, either for the original purchase or a renewal payment, this function processes it.
+	 * When related order fails, update the status of the related order and the subscription.
+	 * Related order can fail because of payment failure or because of other reasons.
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+	 * @param string $new_status The new status to set for the subscription.
+	 * @param WC_Order|bool $related_order The related order that failed payment. False if no related order is found.
+	 * @since 7.9.0 Replaces payment_failed() method.
 	 */
-	public function payment_failed( $new_status = 'on-hold' ) {
-
-		// Make sure the last order's status is set to failed
-		$last_order = $this->get_last_order( 'all', 'any' );
-
-		if ( false !== $last_order ) {
-			$last_order->update_meta_data( self::RENEWAL_FAILED_META_KEY, wc_bool_to_string( true ) );
-
-			if ( false === $last_order->has_status( 'failed' ) ) {
-				remove_filter( 'woocommerce_order_status_changed', 'WC_Subscriptions_Renewal_Order::maybe_record_subscription_payment' );
-				$last_order->update_status( 'failed' );
-				add_filter( 'woocommerce_order_status_changed', 'WC_Subscriptions_Renewal_Order::maybe_record_subscription_payment', 10, 3 );
-			} else {
-				// If we didn't update the status, save the order to make sure our self::RENEWAL_FAILED_META_KEY meta data is saved.
-				$last_order->save();
+	public function payment_failed_for_related_order( $new_status = 'on-hold', $related_order = false ) {
+		if ( is_a( $related_order, 'WC_Order' ) ) {
+			$related_order_was_modified = false;
+			if ( wcs_order_contains_renewal( $related_order ) ) {
+				$related_order->update_meta_data( self::RENEWAL_FAILED_META_KEY, wc_bool_to_string( true ) );
+				$related_order_was_modified = true;
 			}
-		}
 
-		// Log payment failure on order
-		$this->add_order_note( __( 'Payment failed.', 'woocommerce-subscriptions' ) );
+			if ( false === $related_order->has_status( 'failed' ) ) {
+				remove_filter( 'woocommerce_order_status_changed', 'WC_Subscriptions_Renewal_Order::maybe_record_subscription_payment' );
+				// No need to set $related_order_was_modified to true here because update status will save the changes.
+				$related_order->update_status( 'failed' );
+				add_filter( 'woocommerce_order_status_changed', 'WC_Subscriptions_Renewal_Order::maybe_record_subscription_payment', 10, 3 );
+			} elseif ( $related_order_was_modified ) {
+				// If we didn't update the status, save the order to make sure our self::RENEWAL_FAILED_META_KEY meta data is saved.
+				$related_order->save();
+			}
+
+			$this->add_order_note(
+				sprintf(
+					// translators: %d: related order ID
+					__( 'Related order #%d failed.', 'woocommerce-subscriptions' ),
+					$related_order->get_id()
+				)
+			);
+		} else {
+			wc_get_logger()->debug(
+				'WC_Subscription::payment_failed_for_related_order is called without a related order',
+				array(
+					'subscription_id' => $this->get_id(),
+					'new_status'      => $new_status,
+					'related_order'   => $related_order,
+					'backtrace'       => true,
+				)
+			);
+		}
 
 		// Allow a short circuit for plugins & payment gateways to force max failed payments exceeded
 		// This also forces the new status to be 'cancelled' if the filter is applied or the subscription is pending-cancel
@@ -2068,9 +2140,21 @@ class WC_Subscription extends WC_Order {
 
 		do_action( 'woocommerce_subscription_payment_failed', $this, $new_status );
 
-		if ( false !== $last_order && wcs_order_contains_renewal( $last_order ) ) {
-			do_action( 'woocommerce_subscription_renewal_payment_failed', $this, $last_order );
+		if ( false !== $related_order && wcs_order_contains_renewal( $related_order ) ) {
+			do_action( 'woocommerce_subscription_renewal_payment_failed', $this, $related_order );
 		}
+	}
+
+	/**
+	 * When a payment fails, either for the original purchase or a renewal payment, this function processes it.
+	 *
+	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+	 * @deprecated 7.9.0 - The method incorrectly assumes that the last order failed, and sometimes causes side effects.Use payment_failed_for_related_order instead.
+	 */
+	public function payment_failed( $new_status = 'on-hold' ) {
+		// Make sure the last order's status is set to failed
+		$last_order = $this->get_last_order( 'all', 'any' );
+		$this->payment_failed_for_related_order( $new_status, $last_order );
 	}
 
 	/*** Refund related functions are required for the Edit Order/Subscription screen, but they aren't used on a subscription ************/

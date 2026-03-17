@@ -72,6 +72,8 @@ class BH_Checkout_UI {
 
 		add_filter( 'woocommerce_add_error', [ $this, 'sanitize_state_validation_error' ], 10, 1 );
 
+		add_action('wp_footer', [$this, 'inject_checkout_coupon_sync_script'], 999);
+
 	}
 
     /**
@@ -177,7 +179,7 @@ class BH_Checkout_UI {
 		echo $output;
 	}
 
-	public function bh_woocommerce_cart_item_name($product_name, $cart_item, $cart_item_key){	
+	public function bh_woocommerce_cart_item_name__original($product_name, $cart_item, $cart_item_key){	
 		$product = $cart_item['data'];
 		$price = wc_price($product->get_price());
 		$product_name .= '<p style="font-size: 14px; color: #777;">Price: ' . $price . '</p>';
@@ -232,6 +234,110 @@ class BH_Checkout_UI {
 		$output		.=	'<strong>' . $price . '</strong>';
 		$output		.=	'</div>';
 		$output		.=	'</div>';
+
+		return $output;
+	}
+
+	public function bh_woocommerce_cart_item_name( $product_name, $cart_item, $cart_item_key ) {
+
+		$product      = $cart_item['data'];
+		$product_id   = $cart_item['product_id'];
+		$quantity     = $cart_item['quantity'];
+
+		$regular_price = wc_price( $product->get_price() );
+
+		$cart_total_raw = WC()->cart->get_total( 'edit' );
+		$cart_total     = wc_price( $cart_total_raw );
+
+		$applied_coupons = WC()->cart->get_applied_coupons();
+
+		$bh_checkout_text_supply    = get_post_meta( $product_id, 'bh_checkout_text_supply', true );
+		$bh_checkout_text_due_today = get_post_meta( $product_id, 'bh_checkout_text_due_today', true );
+
+		$output  = '<div class="hb-product-info">';
+		$output .= '<h3>' . esc_html( $product->get_name() ) . '</h3>';
+		$output .= '<div class="hb-columns">';
+		$output .= '<ul class="info-purchase-product">';
+
+		if ( ! empty( $bh_checkout_text_supply ) ) {
+			$output .= '<li class="day-supply">' . esc_html( $bh_checkout_text_supply ) . '</li>';
+		}
+
+		$output .= '<li class="refund">Full Refund if Not Qualified</li>';
+		$output .= '</ul>';
+
+		$output .= '<figure class="product-thumbnail">';
+		$output .= apply_filters(
+			'woocommerce_in_cart_product_thumbnail',
+			$product->get_image('large'),
+			$cart_item,
+			$cart_item_key
+		);
+		$output .= '</figure>';
+		$output .= '</div>';
+
+		$output .= do_shortcode('[deadlinefunnel type="inline"]');
+
+		$discount_total = WC()->cart->get_discount_total();
+		$fees           = WC()->cart->get_fees();
+
+		if ( ! empty( $applied_coupons ) || ( $discount_total > 0 ) || ( ! empty( $fees ) ) ) {
+			$output .= '<hr>';
+			$output .= '<div class="hb-due">';
+			$output .= '<div>Price</div>';
+			$output .= '<span>' . $regular_price . '</span>';
+			$output .= '</div><!--hb-due-->';
+		}
+
+		if ( $discount_total > 0 ) {
+			
+			$output .= '<div class="hb-due discount">';
+			$output .= '<div>Discount:</div>';
+			$output .= '<span>-' . wc_price( $discount_total ) . '</span>';
+			$output .= '</div><!--hb-due-->';
+		}
+
+		if ( ! empty( $applied_coupons ) ) {
+			$output .= '<div class="hb-due">';
+			$output .= '<div>Coupon: ';
+			foreach ( $applied_coupons as $coupon_code ) {
+
+				$output .= '<small>' . esc_html( strtoupper( $coupon_code ) ) . '</small>';
+			}
+			$output .= '</div>';
+			$output .= '</div><!--hb-due-->';
+		}
+
+		if ( ! empty( $fees ) ) {
+			foreach ( $fees as $fee ) {
+
+				if ( $fee->total < 0 ) {
+					$output .= '<div class="hb-due discount">';
+					$output .= '<div>' . esc_html( $fee->name ) . '</div>';
+					$output .= '<span>' . wc_price( $fee->total ) . '</span>';
+					$output .= '</div><!--hb-due-->';
+				}
+			}
+		}
+
+		$output .= '<hr>';
+		$output .= '<div class="hb-due">';
+		$output .= '<div><strong>Due Today</strong>';
+
+		if ( ! empty( $bh_checkout_text_due_today ) ) {
+			$output .= '<br>' . esc_html( $bh_checkout_text_due_today );
+		}
+
+		$output .= '</div>';
+
+		$output .= '<strong>' . $cart_total . '</strong>';
+		$output .= '</div><!--hb-due-->';
+		
+		$output .= '</div>';
+
+		$output	.=	'<style>';
+		$output	.=	'.hb-product-info .hb-due span {text-align: right;color: #453796;}';
+		$output	.=	'</style>';
 
 		return $output;
 	}
@@ -314,7 +420,9 @@ class BH_Checkout_UI {
 			<div class="content-terms-conditions">
 				<p><strong>Before we begin the process of finalizing your intake form please review and accept the following.</strong></p>
 				<ol>
-					<li>3 month plan: You will be charged $499 for compounded tirzepatide or $399 for compounded semaglutide today. Your subscription will automatically renew every 10 weeks at the same rate ($499 for compounded tirzepatide or $399 for compounded semaglutide). <strong>You may cancel at any time</strong>.<br>
+					<li>
+						<strong>3 month plan:</strong> You will be charged $499 for compounded tirzepatide, $399 for compounded semaglutide, $598 for Semaglutide + NAD+, $698 for Tirzepatide + NAD+, or $199 for NAD+ Only today. Your subscription will automatically renew every 10 weeks at the same rate ($499 for compounded tirzepatide, $399 for compounded semaglutide, $598 for Semaglutide + NAD+, $698 for Tirzepatide + NAD+, or $199 for NAD+ Only). You may cancel at any time. 
+						<br /><br />
 						<strong>Note:</strong> If you are not approved for renewal by the healthcare provider, you will receive a refund.
 					</li>
 					<li>In most states, the completion of your intake form may be sufficient for approval by a healthcare provider. A telephone consultation is not required in all states. If additional information is needed, the healthcare provider will contact you.</li>
@@ -545,6 +653,74 @@ class BH_Checkout_UI {
 	    unset( $fields['shipping']['shipping_company']);
 	    
 	    return $fields;
+	}
+
+	/**
+	 * Adds a JS handler on checkout to synchronize coupon AJAX responses
+	 * with checkout refresh and UI notices.
+	 */
+	function inject_checkout_coupon_sync_script() {
+	    if ( ! is_checkout() || is_order_received_page() ) return;
+	    ?>
+	    <script>
+			jQuery(function($){
+
+				$('form.checkout_coupon').on('submit', function(){
+					$('.coupon-error-notice').remove();
+					$('.coupon-success-notice').remove();
+					$('.woocommerce-error').remove();
+					$('#coupon_code')
+						.removeClass('has-error')
+						.removeClass('woocommerce-invalid');
+				});
+				$(document).ajaxComplete(function(event, xhr, settings){
+					if ( !settings.url || settings.url.indexOf('_coupon') === -1 ) {
+						return;
+					}
+					if ( xhr.status !== 200 || xhr.responseText ) {
+						return;
+					}
+					const isApply  = settings.url.indexOf('apply_coupon') !== -1;
+					const isRemove = settings.url.indexOf('remove_coupon') !== -1;
+					setTimeout(function(){
+						$(document.body).trigger('update_checkout');
+					}, 150);
+					$('.coupon-error-notice, .coupon-success-notice').remove();
+					let message = '';
+					let coupon  = '';
+					if ( isApply ) {
+						coupon = $('#coupon_code').val();
+						$('#coupon_code')
+							.val('')
+							.removeClass('has-error woocommerce-invalid')
+							.blur();
+						message = 'Coupon "' + coupon + '" applied successfully!';
+					}
+					if ( isRemove ) {
+						coupon = $('.hb-applied-coupon removing').data('coupon') || '';
+						message = 'Coupon removed successfully.';
+					}
+					const successHtml =
+						'<span class="coupon-success-notice" role="alert">' +
+						message +
+						'</span>';
+					$('.checkout_coupon .form-row-wide').append(successHtml);
+					setTimeout(function(){
+						$('.coupon-success-notice').fadeOut(300, function(){
+							$(this).remove();
+						});
+					}, 4000);
+				});
+
+				$(document).on('click', '.woocommerce-remove-coupon', function(){
+					$('.hb-applied-coupon').removeClass('removing');
+					$(this).closest('.hb-applied-coupon')
+						.addClass('removing')
+						.data('coupon', $(this).data('coupon'));
+				});
+			});
+	    </script>
+	    <?php
 	}
 	
 }

@@ -1,0 +1,144 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class AH_Friendbuy_Events {
+
+    public static function init() {
+
+        add_action(
+            'woocommerce_order_status_completed',
+            [ __CLASS__, 'schedule_purchase_event' ],
+            20,
+            1
+        );
+
+        add_action(
+            'ah_friendbuy_process_purchase',
+            [ __CLASS__, 'process_purchase_event' ],
+            10,
+            1
+        );
+    }
+
+    /**
+     * Schedule async job.
+     */
+    public static function schedule_purchase_event( $order_id ) {
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            return;
+        }
+
+        // ❌ Skip renewal orders
+        if ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order ) ) {
+            return;
+        }
+
+        // ❌ Skip resubscription orders
+        if ( function_exists( 'wcs_order_contains_resubscribe' ) && wcs_order_contains_resubscribe( $order ) ) {
+            return;
+        }
+
+        // ❌ Skip switch orders
+        if ( function_exists( 'wcs_order_contains_switch' ) && wcs_order_contains_switch( $order ) ) {
+            return;
+        }
+
+        // Idempotency guard
+        if ( $order->get_meta( '_friendbuy_scheduled' ) ) {
+            return;
+        }
+
+        $order->update_meta_data( '_friendbuy_scheduled', 1 );
+        $order->save();
+
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-friendbuy' ];
+        //$time_retry=time() + 10;
+        $current_time   =   time();
+        $time_retry     =   $current_time + 10;
+        $date_info      =   date('Y-m-d H:i:s', $current_time) . ' -> ' . date('Y-m-d H:i:s', $time_retry);
+
+        $logger->info( "Friendbuy event schedule at {$date_info}", $context );
+
+        wp_schedule_single_event(
+            $time_retry,
+            'ah_friendbuy_process_purchase',
+            [ $order_id ]
+        );
+    }
+
+
+    /**
+     * Async processor.
+     */
+    public static function process_purchase_event( $order_id ) {
+
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-friendbuy' ];
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            return;
+        }
+
+        // Idempotency guard
+        if ( $order->get_meta( '_friendbuy_sent' ) ) {
+            $logger->info( "Order {$order_id} already sent.", $context );
+            return;
+        }
+
+        $payload = self::build_payload( $order );
+
+        $result = AH_Friendbuy_API::send_purchase_event( $payload );
+
+        if ( $result ) {
+
+            $order->update_meta_data( '_friendbuy_sent', current_time( 'mysql' ) );
+            $order->save();
+
+            $logger->info( "Friendbuy event sent for order {$order_id}", $context );
+
+        } else {
+
+            $current_time   =   time();
+            // Retry in 1 minute
+            $time_retry     =   $current_time + 60;
+            $date_info      =   date('Y-m-d H:i:s', $current_time) . ' -> ' . date('Y-m-d H:i:s', $time_retry);
+
+            $logger->error( "Friendbuy failed for order {$order_id}. Retrying...{$date_info}", $context );
+            
+            wp_schedule_single_event(
+                $time_retry,
+                'ah_friendbuy_process_purchase',
+                [ $order_id ]
+            );
+        }
+    }
+
+    /**
+     * Build payload.
+     */
+    private static function build_payload( $order ) {
+
+        $payload = [
+            'orderId'    => (string) $order->get_order_number(),
+            'email'      => $order->get_billing_email(),
+            'customerId' => (string) $order->get_customer_id(),
+            'firstName'  => $order->get_billing_first_name(),
+            'lastName'   => $order->get_billing_last_name(),
+            'amount'     => (float) $order->get_total(),
+            'currency'   => $order->get_currency(),
+            'isNewCustomer' => $order->get_customer_id() ? false : true,
+            'couponCode'    =>   implode(', ', $order->get_coupon_codes()),
+        ];
+
+        return $payload;
+    }
+}
+
+AH_Friendbuy_Events::init();

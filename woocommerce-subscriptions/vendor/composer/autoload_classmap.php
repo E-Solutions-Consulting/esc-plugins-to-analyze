@@ -6,11 +6,14 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Automattic\\Jetpack\\Autoloader\\AutoloadFileWriter' => $vendorDir . '/automattic/jetpack-autoloader/src/AutoloadFileWriter.php',
-    'Automattic\\Jetpack\\Autoloader\\AutoloadGenerator' => $vendorDir . '/automattic/jetpack-autoloader/src/AutoloadGenerator.php',
-    'Automattic\\Jetpack\\Autoloader\\AutoloadProcessor' => $vendorDir . '/automattic/jetpack-autoloader/src/AutoloadProcessor.php',
-    'Automattic\\Jetpack\\Autoloader\\CustomAutoloaderPlugin' => $vendorDir . '/automattic/jetpack-autoloader/src/CustomAutoloaderPlugin.php',
-    'Automattic\\Jetpack\\Autoloader\\ManifestGenerator' => $vendorDir . '/automattic/jetpack-autoloader/src/ManifestGenerator.php',
+    'Automattic\\Jetpack\\Constants' => $vendorDir . '/automattic/jetpack-constants/src/class-constants.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Collector' => $baseDir . '/src/Internal/Telemetry/Collector.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Events' => $baseDir . '/src/Internal/Telemetry/Events.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Orders' => $baseDir . '/src/Internal/Telemetry/Orders.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Products' => $baseDir . '/src/Internal/Telemetry/Products.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Subscriptions' => $baseDir . '/src/Internal/Telemetry/Subscriptions.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Utilities\\Request' => $baseDir . '/src/Internal/Utilities/Request.php',
+    'Automattic\\WooCommerce_Subscriptions\\Internal\\Utilities\\Scheduled_Actions' => $baseDir . '/src/Internal/Utilities/Scheduled_Actions.php',
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'Composer\\Installers\\AglInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/AglInstaller.php',
     'Composer\\Installers\\AkauntingInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/AkauntingInstaller.php',
@@ -135,4 +138,11 @@ return array(
     'WCSG_Recipient_Management' => $baseDir . '/includes/gifting/class-wcsg-recipient-management.php',
     'WCSG_Template_Loader' => $baseDir . '/includes/gifting/class-wcsg-template-loader.php',
     'WCS_Gifting' => $baseDir . '/includes/gifting/class-wcs-gifting.php',
+    'WC_Subscription_Downloads' => $baseDir . '/includes/downloads/class-wc-subscription-downloads.php',
+    'WC_Subscription_Downloads_Admin_Welcome_Announcement' => $baseDir . '/includes/downloads/class-wc-subscription-downloads-admin-welcome-announcement.php',
+    'WC_Subscription_Downloads_Ajax' => $baseDir . '/includes/downloads/class-wc-subscription-downloads-ajax.php',
+    'WC_Subscription_Downloads_Install' => $baseDir . '/includes/downloads/class-wc-subscription-downloads-install.php',
+    'WC_Subscription_Downloads_Order' => $baseDir . '/includes/downloads/class-wc-subscription-downloads-order.php',
+    'WC_Subscription_Downloads_Products' => $baseDir . '/includes/downloads/class-wc-subscription-downloads-products.php',
+    'WC_Subscription_Downloads_Settings' => $baseDir . '/includes/downloads/class-wc-subscription-downloads-settings.php',
 );

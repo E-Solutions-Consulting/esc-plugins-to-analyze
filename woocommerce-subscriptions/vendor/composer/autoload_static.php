@@ -4,36 +4,39 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit32625eaf0064549a4f20b6231a37a93c
+class ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c
 {
     public static $prefixLengthsPsr4 = array (
-        'C' => 
+        'C' =>
         array (
             'Composer\\Installers\\' => 20,
         ),
-        'A' => 
+        'A' =>
         array (
-            'Automattic\\Jetpack\\Autoloader\\' => 30,
+            'Automattic\\WooCommerce_Subscriptions\\' => 37,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Composer\\Installers\\' => 
+        'Composer\\Installers\\' =>
         array (
             0 => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers',
         ),
-        'Automattic\\Jetpack\\Autoloader\\' => 
+        'Automattic\\WooCommerce_Subscriptions\\' =>
         array (
-            0 => __DIR__ . '/..' . '/automattic/jetpack-autoloader/src',
+            0 => __DIR__ . '/../..' . '/src',
         ),
     );
 
     public static $classMap = array (
-        'Automattic\\Jetpack\\Autoloader\\AutoloadFileWriter' => __DIR__ . '/..' . '/automattic/jetpack-autoloader/src/AutoloadFileWriter.php',
-        'Automattic\\Jetpack\\Autoloader\\AutoloadGenerator' => __DIR__ . '/..' . '/automattic/jetpack-autoloader/src/AutoloadGenerator.php',
-        'Automattic\\Jetpack\\Autoloader\\AutoloadProcessor' => __DIR__ . '/..' . '/automattic/jetpack-autoloader/src/AutoloadProcessor.php',
-        'Automattic\\Jetpack\\Autoloader\\CustomAutoloaderPlugin' => __DIR__ . '/..' . '/automattic/jetpack-autoloader/src/CustomAutoloaderPlugin.php',
-        'Automattic\\Jetpack\\Autoloader\\ManifestGenerator' => __DIR__ . '/..' . '/automattic/jetpack-autoloader/src/ManifestGenerator.php',
+        'Automattic\\Jetpack\\Constants' => __DIR__ . '/..' . '/automattic/jetpack-constants/src/class-constants.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Collector' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Collector.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Events' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Events.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Orders' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Orders.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Products' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Products.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Subscriptions' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Subscriptions.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Utilities\\Request' => __DIR__ . '/../..' . '/src/Internal/Utilities/Request.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Utilities\\Scheduled_Actions' => __DIR__ . '/../..' . '/src/Internal/Utilities/Scheduled_Actions.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Composer\\Installers\\AglInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/AglInstaller.php',
         'Composer\\Installers\\AkauntingInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/AkauntingInstaller.php',
@@ -158,14 +161,21 @@ class ComposerStaticInit32625eaf0064549a4f20b6231a37a93c
         'WCSG_Recipient_Management' => __DIR__ . '/../..' . '/includes/gifting/class-wcsg-recipient-management.php',
         'WCSG_Template_Loader' => __DIR__ . '/../..' . '/includes/gifting/class-wcsg-template-loader.php',
         'WCS_Gifting' => __DIR__ . '/../..' . '/includes/gifting/class-wcs-gifting.php',
+        'WC_Subscription_Downloads' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads.php',
+        'WC_Subscription_Downloads_Admin_Welcome_Announcement' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-admin-welcome-announcement.php',
+        'WC_Subscription_Downloads_Ajax' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-ajax.php',
+        'WC_Subscription_Downloads_Install' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-install.php',
+        'WC_Subscription_Downloads_Order' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-order.php',
+        'WC_Subscription_Downloads_Products' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-products.php',
+        'WC_Subscription_Downloads_Settings' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-settings.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit32625eaf0064549a4f20b6231a37a93c::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit32625eaf0064549a4f20b6231a37a93c::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit32625eaf0064549a4f20b6231a37a93c::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c::$classMap;
 
         }, null, ClassLoader::class);
     }

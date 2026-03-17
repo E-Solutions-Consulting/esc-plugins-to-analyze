@@ -1,0 +1,111 @@
+:root {
+  --link-filter-status-color: 100, 100, 100;
+  --link-filter-status-bgcolor: 230, 230, 230;
+  --link-filter-status-border: 1px solid #ccc;
+  
+  --link-filter-status-cancel-bgcolor: 255, 231, 242;
+  --link-filter-status-cancel-border: 1px solid rgba(13, 126, 183, 0.25);
+  --link-filter-status-cancel-color: 179, 6, 61;
+  
+  --link-filter-status-active-bgcolor: 198, 225, 198;
+  --link-filter-status-active-border: 1px solid #71a671;
+  --link-filter-status-active-color: 44, 71, 0;
+  
+  --link-filter-status-tlg-bgcolor: 207, 245, 246;
+  --link-filter-status-tlg-border: 1px solid rgba(13, 126, 183, 0.25);
+  --link-filter-status-tlg-color: 13, 126, 183;
+
+  --link-filter-status-tlg-send-to-telegra-bgcolor: 216, 184, 243;
+  --link-filter-status-tlg-send-to-telegra-border: 1px solid #d8b8f3;
+  --link-filter-status-tlg-send-to-telegra-color: 84, 86, 173;
+  
+  --link-filter-status-tlg-provider_review-bgcolor: 187, 239, 255;
+  --link-filter-status-tlg-provider_review-border: 1px solid #bbefff;
+  --link-filter-status-tlg-provider_review-color: 1px solid #ffa500;
+
+}
+body.wp-admin ul.subsubsub {line-height: 1.5rem;float: none;display: flex;gap: 5px 7px;flex-wrap: wrap;}
+body.wp-admin ul.subsubsub li {font-size: 0;}
+body.wp-admin ul.subsubsub li a {border: 1px solid transparent;border-radius: 4px;padding: 5px;white-space: nowrap;max-width: 100%;color: rgba(var(--link-filter-status-color), 1);font-size: 13px;position:relative}
+body.wp-admin ul.subsubsub li:not(.all) a {background-color:rgba(var(--link-filter-status-bgcolor), 1); border: var(--link-filter-status-border);}
+body.wp-admin ul.subsubsub li[class^="wc-cancel"] a{background-color: rgba(var(--link-filter-status-cancel-bgcolor),0.25);color: rgba(var(--link-filter-status-cancel-color), 1);}
+
+body.wp-admin ul.subsubsub li.wc-active a,
+body.wp-admin ul.subsubsub li.wc-processing a {background-color: rgba(var(--link-filter-status-active-bgcolor), 0.25);color: rgba(var(--link-filter-status-active-color), 1);border:var(--link-filter-status-active-border);}
+
+body.wp-admin ul.subsubsub li.wc-pending-cancel a {background:rgba(191, 191, 191, 0.35);color:#737373}
+body.wp-admin ul.subsubsub li.wc-refunded a {background-color: rgba(252, 227, 255, 0.25);color: #9f05b0;}
+body.wp-admin ul.subsubsub li.wc-expired a {background: rgba(189, 148, 175, 0.25);color: #724663;}
+body.wp-admin ul.subsubsub li.wc-completed a {background-color: rgba(200, 215, 225, 0.5);color: #003d66;border:1px solid #003d66;}
+body.wp-admin ul.subsubsub li.wc-on-hold a {background-color: rgba(248, 221, 167, 0.25);color: #573b00;border:1px solid #f7a708;}
+body.wp-admin ul.subsubsub li.wc-failed a {background-color: rgba(235, 163, 163, 0.25);color: #570000;border:1px solid #eb2f2f;}
+body.wp-admin ul.subsubsub li.trash a {background-color: rgba(235, 163, 163, 0.25);color: #550202;}
+
+body.wp-admin ul.subsubsub li.wc-waiting_room a,
+body.wp-admin ul.subsubsub li.wc-prerequisites a,
+body.wp-admin ul.subsubsub li.wc-admin_review a,
+body.wp-admin ul.subsubsub li.wc-collect_payment a,
+body.wp-admin ul.subsubsub li.wc-fulfillment a,
+body.wp-admin ul.subsubsub li.wc-error_review a {background-color: rgba(var(--link-filter-status-tlg-bgcolor), 0.25);color:rgba(var(--link-filter-status-tlg-color), 0.75);border:var(--link-filter-status-tlg-border);}
+
+span.woocommerce-order-status__indicator.is-provider_review,
+body.wp-admin ul.subsubsub li.wc-provider_review a{background-color: rgba(var(--link-filter-status-tlg-provider_review-bgcolor), 0.25);color:rgba(var(--link-filter-status-tlg-color), 0.75);border:var(--link-filter-status-tlg-provider_review-border) ;}
+body.wp-admin .order-status.status-provider_review{position: relative;background-color:rgba(var(--link-filter-status-tlg-provider_review-bgcolor), 1);border: var(--link-filter-status-tlg-provider_review-border);}
+body.wp-admin ul.subsubsub li.wc-provider_review a:after,
+body.wp-admin .order-status.status-provider_review::after{content: "🔒";position: absolute;right: -10px;font-size: 1rem;top: -15px;}
+
+body.wp-admin ul.subsubsub li.wc-send_to_telegra a{font-weight: 500;background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.25);color: rgba(var(--link-filter-status-tlg-send-to-telegra-color),0.75);border:var(--link-filter-status-tlg-send-to-telegra-border);}
+
+body.wp-admin ul.subsubsub li:not(.all) a.current {background-color: #e5e5e5;font-weight: 500}
+body.wp-admin ul.subsubsub li[class^="wc-cancel"] a.current { background-color: rgba(255, 231, 242, 1); }
+
+body.wp-admin ul.subsubsub li.wc-processing a.current,
+body.wp-admin ul.subsubsub li.wc-active a.current { background-color: rgba(var(--link-filter-status-active-bgcolor), 1); font-weight: 500;}
+
+body.wp-admin ul.subsubsub li.wc-completed a.current { background-color: rgba(200, 215, 225, 0.5); }
+body.wp-admin ul.subsubsub li.wc-on-hold a.current { background-color: rgba(248, 221, 167, 0.25); }
+body.wp-admin ul.subsubsub li.wc-failed a.current { background-color: rgba(235, 163, 163, 0.25); }
+body.wp-admin ul.subsubsub li.wc-refunded a.current { background-color: rgba(252, 227, 255, 1); }
+body.wp-admin ul.subsubsub li.trash a.current {background: rgba(235, 163, 163, 0.75);}
+body.wp-admin ul.subsubsub li.wc-trash a.current { background-color: rgba(235, 163, 163, 0.25); }
+body.wp-admin ul.subsubsub li.wc-expired a.current {background: rgba(189, 148, 175, 0.5);}
+body.wp-admin ul.subsubsub li.wc-waiting_room a.current,
+body.wp-admin ul.subsubsub li.wc-prerequisites a.current,
+body.wp-admin ul.subsubsub li.wc-admin_review a.current,
+body.wp-admin ul.subsubsub li.wc-collect_payment a.current,
+body.wp-admin ul.subsubsub li.fulfillment a.current,
+body.wp-admin ul.subsubsub li.wc-error_review a.current {background-color: rgba(207, 245, 246, 0.25);}
+body.wp-admin ul.subsubsub li.wc-provider_review a.current{background-color: #bbefff}
+body.wp-admin ul.subsubsub li.wc-send_to_telegra a{font-weight: 500;background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.25);color: rgba(var(--link-filter-status-tlg-send-to-telegra-color),0.75);border:var(--link-filter-status-tlg-send-to-telegra-border);}
+
+.woocommerce-order-status.woocommerce-orders-table__status {white-space: nowrap;}
+
+span.woocommerce-order-status__indicator.is-waiting_room,
+span.woocommerce-order-status__indicator.is-prerequisites,
+span.woocommerce-order-status__indicator.is-admin_review,
+span.woocommerce-order-status__indicator.is-collect_payment,
+span.woocommerce-order-status__indicator.is-fulfillment,
+span.woocommerce-order-status__indicator.is-error_review,
+body.wp-admin .order-status.status-waiting_room,
+body.wp-admin .order-status.status-prerequisites,
+body.wp-admin .order-status.status-admin_review,
+body.wp-admin .order-status.status-collect_payment,
+body.wp-admin .order-status.status-fulfillment,
+body.wp-admin .order-status.status-error_review{
+  background-color: rgba(var(--link-filter-status-tlg-bgcolor), 1);color:rgba(var(--link-filter-status-tlg-color), 1);border:var(--link-filter-status-tlg-border);
+}
+
+span.woocommerce-order-status__indicator.is-send_to_telegra,
+body.wp-admin .order-status.status-send_to_telegra{background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.5);color:rgba(var(--link-filter-status-tlg-send-to-telegra-color), 1);border:var(--link-filter-status-tlg-send-to-telegra-border);}
+body.wp-admin .order-status[class*="status-cancel"]{background-color: rgba(var(--link-filter-status-cancel-bgcolor), 1);color: rgba(var(--link-filter-status-cancel-color), 1);}
+
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content {background-color: rgba(215, 202, 210, 0.5);}
+#woocommerce-order-notes ul.order_notes li.customer-note .note_content {background-color: rgba(167, 206, 220, 0.5);}
+#woocommerce-order-notes ul.order_notes li .note_content .bh.error-message {font-weight: 500;}
+#woocommerce-order-notes ul.order_notes li .note_content a {font-weight: 700;}
+
+/*select#shipping_insurance_filter_hpos {display: none;}*/
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content {background-color: rgba(215, 202, 210, 0.5);}
+#woocommerce-order-notes ul.order_notes li.customer-note .note_content {background-color: rgba(167, 206, 220, 0.5);}
+#woocommerce-order-notes ul.order_notes li .note_content .bh.error-message {font-weight: 500;}
+#woocommerce-order-notes ul.order_notes li .note_content a {font-weight: 700;}

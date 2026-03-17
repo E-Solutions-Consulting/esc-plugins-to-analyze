@@ -221,7 +221,10 @@ function wcs_get_calling_function_name() {
  *
  * Handy when data cached in a transient will be valid even if the transient has expired.
  *
+ * @deprecated 2.3.3
+ *
  * @param string $transient_key The key used to set/get the transient via get_transient()/set_transient()
+ *
  * @return mixed If data exists in a transient, the value of the transient, else boolean false.
  */
 function wcs_get_transient_even_if_expired( $transient_key ) {

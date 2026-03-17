@@ -98,8 +98,13 @@ class WCS_Gifting {
 	 * Register/queue frontend scripts.
 	 */
 	public static function gifting_scripts() {
-		wp_register_script( 'woocommerce_subscriptions_gifting', plugins_url( '/assets/js/gifting/wcs-gifting.js', WC_Subscriptions::$plugin_file ), array( 'jquery' ), WC_Subscriptions::$version, true );
-		wp_enqueue_script( 'woocommerce_subscriptions_gifting' );
+		global $post;
+
+		if ( ! WCSG_Admin::is_gifting_enabled() ) {
+			return;
+		}
+
+		// We load this on all pages because of the mini-cart related styles.
 		wp_enqueue_style(
 			'woocommerce_subscriptions_gifting',
 			plugins_url( '/assets/css/gifting/shortcode-checkout.css', WC_Subscriptions::$plugin_file ),
@@ -107,6 +112,23 @@ class WCS_Gifting {
 			WC_VERSION,
 			'all'
 		);
+
+		if ( ! is_cart() && ! is_checkout() && ! is_product() ) {
+			return;
+		}
+
+		// We don't need to load the scripts on blocks pages.
+		if ( WC_Blocks_Utils::has_block_in_page( $post->ID, 'woocommerce/cart' ) || WC_Blocks_Utils::has_block_in_page( $post->ID, 'woocommerce/checkout' ) ) {
+			return;
+		}
+
+		// We don't need to load the script on product pages that are not subscriptions or not giftable subscriptions.
+		if ( is_product() && ( ! WC_Subscriptions_Product::is_subscription( $post->ID ) || ! WCSG_Product::is_giftable( $post->ID ) ) ) {
+			return;
+		}
+
+		wp_register_script( 'woocommerce_subscriptions_gifting', plugins_url( '/assets/js/gifting/wcs-gifting.js', WC_Subscriptions::$plugin_file ), array( 'jquery' ), WC_Subscriptions::$version, true );
+		wp_enqueue_script( 'woocommerce_subscriptions_gifting' );
 	}
 
 	/**
@@ -324,8 +346,8 @@ class WCS_Gifting {
 		$args = array(
 			'email'                      => $email,
 			'id'                         => $id,
-			'container_style_attributes' => apply_filters( 'wcsg_recipient_fields_style_attributes', empty( $email ) ? array( 'display: none;' ) : array(), $email ),
-			'container_css_class'        => apply_filters( 'wcsg_recipient_fields_css_class', array(), $email ),
+			'container_style_attributes' => apply_filters( 'wcsg_recipient_fields_style_attributes', array(), $email ),
+			'container_css_class'        => apply_filters( 'wcsg_recipient_fields_css_class', empty( $email ) ? array( 'hidden' ) : array(), $email ),
 			'email_field_args'           => apply_filters( 'wcsg_recipient_email_field_args', $email_field_args, $email ),
 			'checkbox_field_args'        => apply_filters( 'wcsg_recipient_checkbox_field_args', $checkbox_field_args, $email ),
 			'nonce_field'                => $nonce_field,
@@ -446,7 +468,7 @@ class WCS_Gifting {
 						<?php
 						if ( 'WooCommerce Memberships' === $plugin_name ) {
 							// translators: 1$-2$: opening and closing <strong> tags, 3$ plugin name, 4$ required plugin version, 5$-6$: opening and closing link tags, leads to plugins.php in admin, 7$: line break, 8$-9$ Opening and closing small tags.
-							printf( esc_html__( '%1$sWooCommerce Subscriptions Gifting Membership integration is inactive.%2$s In order to integrate with WooCommerce Memberships, WooCommerce Subscriptions Gifting requires %3$s %4$s or newer. %5$sPlease update &raquo;%6$s %7$s%8$sNote: All other WooCommerce Subscriptions Gifting features will remain available, however purchasing membership plans for recipients will fail to grant the membership to the gift recipient.%9$s', 'woocommerce-subscriptions' ), '<strong>', '</strong>', esc_html( $plugin_name ), esc_html( $required_version ), '<a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">', '</a>', '</br>', '<small>', '</small>' );
+							printf( esc_html__( '%1$sWooCommerce Subscriptions Gifting Membership integration is inactive.%2$s In order to integrate with WooCommerce Memberships, WooCommerce Subscriptions Gifting requires %3$s %4$s or newer. %5$sPlease update &raquo;%6$s %7$s%8$sNote: All other WooCommerce Subscriptions Gifting features will remain available, however purchasing membership plans for recipients will fail to grant the membership to the gift recipient.%9$s', 'woocommerce-subscriptions' ), '<strong>', '</strong>', esc_html( $plugin_name ), esc_html( $required_version ), '<a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">', '</a>', '<br>', '<small>', '</small>' );
 						} else {
 							// translators: 1$-2$: opening and closing <strong> tags, 3$ plugin name, 4$ required plugin version, 5$-6$: opening and closing link tags, leads to plugins.php in admin.
 							printf( esc_html__( '%1$sWooCommerce Subscriptions Gifting is inactive.%2$s This version of WooCommerce Subscriptions Gifting requires %3$s %4$s or newer. %5$sPlease update &raquo;%6$s', 'woocommerce-subscriptions' ), '<strong>', '</strong>', esc_html( $plugin_name ), esc_html( $required_version ), '<a href="' . esc_url( admin_url( 'plugins.php' ) ) . '">', '</a>' );
@@ -495,8 +517,12 @@ class WCS_Gifting {
 	public static function is_gifted_subscription( $subscription ) {
 		$is_gifted_subscription = false;
 
-		if ( ! $subscription instanceof WC_Subscription ) {
+		if ( is_int( $subscription ) ) {
 			$subscription = wcs_get_subscription( $subscription );
+		}
+
+		if ( ! $subscription ) {
+			return false;
 		}
 
 		if ( wcs_is_subscription( $subscription ) ) {
@@ -628,20 +654,17 @@ class WCS_Gifting {
 	 * Retrieve the recipient user ID from a subscription.
 	 *
 	 * @param WC_Subscription $subscription Subscription object.
+	 *
 	 * @return string The recipient's user ID. Returns an empty string if there is no recipient set.
 	 */
 	public static function get_recipient_user( $subscription ) {
-		$recipient_user_id = '';
-
-		if ( method_exists( $subscription, 'get_meta' ) ) {
-			if ( $subscription->meta_exists( '_recipient_user' ) ) {
-				$recipient_user_id = $subscription->get_meta( '_recipient_user' );
-			}
-		} else { // WC < 3.0.
-			$recipient_user_id = $subscription->recipient_user;
+		// There may be cases, especially when emails are being previewed in the customizer, where we receive something
+		// other than a WC_Subscription object.
+		if ( $subscription instanceof WC_Subscription && $subscription->meta_exists( '_recipient_user' ) ) {
+			return $subscription->get_meta( '_recipient_user' );
 		}
 
-		return $recipient_user_id;
+		return '';
 	}
 
 	/**
@@ -651,8 +674,9 @@ class WCS_Gifting {
 	 * @param int             $user_id      The user ID of the user to set as the recipient on the subscription.
 	 * @param string          $save         Whether to save the data or not, 'save' to save the data, otherwise it won't be saved.
 	 * @param int             $meta_id      The meta ID of existing meta data if you wish to overwrite an existing recipient meta value.
+	 * @param WC_Order        $order        Order object.
 	 */
-	public static function set_recipient_user( &$subscription, $user_id, $save = 'save', $meta_id = 0 ) {
+	public static function set_recipient_user( &$subscription, $user_id, $save = 'save', $meta_id = 0, ?WC_Order $order = null ) {
 		$current_user_id              = absint( self::get_recipient_user( $subscription ) );
 		$subscription->recipient_user = $user_id;
 
@@ -664,7 +688,9 @@ class WCS_Gifting {
 			$gifting_subcription_item   = reset( $gifting_subscription_items );
 
 			if ( ! empty( $gifting_subcription_item ) ) {
-				$order = wc_get_order( $subscription->get_parent_id() );
+				if ( ! $order ) {
+					$order = wc_get_order( $subscription->get_parent_id() );
+				}
 				foreach ( $order->get_items() as $order_item ) {
 					if ( $order_item->get_meta( '_wcsg_cart_key' ) === $gifting_subcription_item->get_meta( '_wcsg_cart_key' ) ) {
 						$order_item->add_meta_data( 'wcsg_recipient', 'wcsg_recipient_id_' . $user_id, true );
@@ -777,35 +803,18 @@ class WCS_Gifting {
 	 * @since 7.8.0 - Originally implemented in WooCommerce Subscriptions Gifting 2.1.0.
 	 */
 	public static function get_gifted_subscriptions_count() {
-		global $wpdb;
-
-		if ( function_exists( 'wcs_is_custom_order_tables_usage_enabled' ) && wcs_is_custom_order_tables_usage_enabled() ) {
-			$count = $wpdb->get_var(
-				"
-				SELECT COUNT(DISTINCT o.id) FROM {$wpdb->prefix}wc_orders o
-				INNER JOIN {$wpdb->prefix}wc_orders_meta om ON (o.id = om.order_id)
-				WHERE o.type = 'shop_subscription'
-				AND o.status NOT IN ( 'auto-draft', 'trash' )
-				AND om.meta_key = '_recipient_user'
-				"
-			);
-		} else {
-			$count = $wpdb->get_var(
-				"
-				SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p
-				INNER JOIN {$wpdb->postmeta} pm ON (p.ID = pm.post_id)
-				WHERE p.post_type = 'shop_subscription'
-				AND p.post_status NOT IN ( 'auto-draft', 'trash' )
-				AND pm.meta_key = '_recipient_user'
-				"
-			);
+		if ( ! class_exists( \Automattic\WooCommerce_Subscriptions\Internal\Telemetry\Subscriptions::class ) ) {
+			return 0;
 		}
 
-		return absint( $count );
+		$telemetry = new \Automattic\WooCommerce_Subscriptions\Internal\Telemetry\Subscriptions();
+		return $telemetry->get_gifted_subscriptions_count();
 	}
 
 	/**
 	 * Register/queue admin scripts.
+	 *
+	 * @deprecated 2.0.0 Use WCSG_Admin::enqueue_scripts() instead.
 	 */
 	public static function admin_scripts() {
 		_deprecated_function( __METHOD__, '2.0.0', 'WCSG_Admin::enqueue_scripts()' );
@@ -813,6 +822,8 @@ class WCS_Gifting {
 
 	/**
 	 * Install wcsg
+	 *
+	 * @deprecated 2.0.0 Use WCS_Gifting::maybe_activate() instead.
 	 */
 	public static function wcsg_install() {
 		_deprecated_function( __METHOD__, '2.0.0', 'WCS_Gifting::maybe_activate()' );
@@ -820,6 +831,8 @@ class WCS_Gifting {
 
 	/**
 	 * Flush rewrite rules if they haven't been flushed since plugin activation
+	 *
+	 * @deprecated 2.0.0 Use flush_rewrite_rules() instead.
 	 */
 	public static function maybe_flush_rewrite_rules() {
 		_deprecated_function( __METHOD__, '2.0.0', 'flush_rewrite_rules()' );
@@ -827,6 +840,8 @@ class WCS_Gifting {
 
 	/**
 	 * Overrides the default recent order template for gifted subscriptions
+	 *
+	 * @deprecated 2.0.0 Use WCSG_Template_Loader::get_recent_orders_template() instead.
 	 *
 	 * @param string $located       Path to template.
 	 * @param string $template_name Template name.
@@ -868,6 +883,11 @@ class WCS_Gifting {
 		if ( ! class_exists( 'Automattic\WooCommerce\Blocks\Package' ) || ! version_compare( \Automattic\WooCommerce\Blocks\Package::get_version(), '4.4.0', '>' ) ) {
 			return;
 		}
+
+		if ( ! WCSG_Admin::is_gifting_enabled() ) {
+			return;
+		}
+
 		/**
 		 * Filter the compatible blocks for WooCommerce Subscriptions.
 		 * @since 7.8.2

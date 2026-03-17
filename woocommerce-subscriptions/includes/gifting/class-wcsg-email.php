@@ -54,6 +54,7 @@ class WCSG_Email {
 	 */
 	public static function init() {
 		add_filter( 'woocommerce_email_classes', __CLASS__ . '::add_new_recipient_customer_email', 11, 1 );
+		add_filter( 'wcs_email_classes', __CLASS__ . '::add_new_recipient_customer_email', 11, 1 );
 		add_action( 'woocommerce_init', __CLASS__ . '::hook_email' );
 		add_action( 'wcs_gifting_email_order_details', array( __CLASS__, 'order_details' ), 10, 4 );
 		add_action( 'woocommerce_subscriptions_gifting_recipient_email_details', array( __CLASS__, 'get_related_subscriptions_table' ), 10, 3 );
@@ -66,12 +67,6 @@ class WCSG_Email {
 	 * @param WC_Email[] $email_classes E-mail classes.
 	 */
 	public static function add_new_recipient_customer_email( $email_classes ) {
-
-		require_once 'emails/class-wcsg-email-customer-new-account.php';
-		require_once 'emails/class-wcsg-email-completed-renewal-order.php';
-		require_once 'emails/class-wcsg-email-processing-renewal-order.php';
-		require_once 'emails/class-wcsg-email-recipient-new-initial-order.php';
-
 		$email_classes['WCSG_Email_Customer_New_Account']        = new WCSG_Email_Customer_New_Account();
 		$email_classes['WCSG_Email_Completed_Renewal_Order']     = new WCSG_Email_Completed_Renewal_Order();
 		$email_classes['WCSG_Email_Processing_Renewal_Order']    = new WCSG_Email_Processing_Renewal_Order();
@@ -84,11 +79,6 @@ class WCSG_Email {
 	 * Hooks up all of WCS Gifting emails after the WooCommerce object is constructed.
 	 */
 	public static function hook_email() {
-
-		add_action( 'woocommerce_created_customer', __CLASS__ . '::maybe_remove_wc_new_customer_email', 9, 2 );
-		add_action( 'woocommerce_created_customer', __CLASS__ . '::send_new_recipient_user_email', 10, 3 );
-		add_action( 'woocommerce_created_customer', __CLASS__ . '::maybe_reattach_wc_new_customer_email', 11, 2 );
-
 		add_action( 'subscriptions_activated_for_order', __CLASS__ . '::maybe_send_recipient_order_emails', 11, 1 );
 
 		$renewal_notification_actions = array(
@@ -160,50 +150,6 @@ class WCSG_Email {
 	}
 
 	/**
-	 * If a cart item contains recipient data matching the new customer, dont send the core WooCommerce new customer email.
-	 *
-	 * @param int   $customer_id       The ID of the new customer being created.
-	 * @param array $new_customer_data Array of data associated to the new customer.
-	 */
-	public static function maybe_remove_wc_new_customer_email( $customer_id, $new_customer_data ) {
-
-		if ( ! WC()->cart || ! WC()->cart->cart_contents ) {
-			return;
-		}
-
-		foreach ( WC()->cart->cart_contents as $key => $item ) {
-			if ( ! empty( $item['wcsg_gift_recipients_email'] ) ) {
-				if ( $item['wcsg_gift_recipients_email'] == $new_customer_data['user_email'] ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison
-					remove_action( current_filter(), array( 'WC_Emails', 'send_transactional_email' ) );
-					break;
-				}
-			}
-		}
-	}
-
-	/**
-	 * If a cart item contains recipient data matching the new customer, reattach the core WooCommerce new customer email.
-	 *
-	 * @param int   $customer_id       The ID of the new customer being created.
-	 * @param array $new_customer_data Array of data associated to the new customer.
-	 */
-	public static function maybe_reattach_wc_new_customer_email( $customer_id, $new_customer_data ) {
-
-		if ( ! WC()->cart || ! WC()->cart->cart_contents ) {
-			return;
-		}
-
-		foreach ( WC()->cart->cart_contents as $key => $item ) {
-			if ( ! empty( $item['wcsg_gift_recipients_email'] ) ) {
-				if ( $item['wcsg_gift_recipients_email'] == $new_customer_data['user_email'] ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison
-					add_action( current_filter(), array( 'WC_Emails', 'send_transactional_email' ) );
-					break;
-				}
-			}
-		}
-	}
-
-	/**
 	 * Generates purchaser new recipient user email.
 	 *
 	 * @param int $purchaser_user_id Subscription purchaser user id.
@@ -219,28 +165,6 @@ class WCSG_Email {
 
 			WC()->mailer();
 			do_action( 'wcsg_created_customer_notification', $recipient_user_id, $key, $subscription_purchaser_name );
-		}
-	}
-
-	/**
-	 * If a cart item contains recipient data matching the new customer, init the mailer and call the notification for new recipient customers.
-	 *
-	 * @param int   $customer_id        The ID of the new customer being created.
-	 * @param array $new_customer_data  Recipient's user data.
-	 * @param bool  $password_generated Whether the password has been generated for the customer.
-	 */
-	public static function send_new_recipient_user_email( $customer_id, $new_customer_data, $password_generated ) {
-		if ( ! WC()->cart || ! WC()->cart->cart_contents ) {
-			return;
-		}
-
-		foreach ( WC()->cart->cart_contents as $key => $item ) {
-			if ( isset( $item['wcsg_gift_recipients_email'] ) ) {
-				if ( $item['wcsg_gift_recipients_email'] === $new_customer_data['user_email'] ) {
-					self::generate_new_recipient_user_email( get_current_user_id(), $customer_id );
-					break;
-				}
-			}
 		}
 	}
 
@@ -462,15 +386,34 @@ class WCSG_Email {
 	}
 
 	/**
-	 * If a cart item contains recipient data matching the new customer, init the mailer and call the notification for new recipient customers.
-	 *
-	 * @param int   $customer_id        The ID of the new customer being created.
-	 * @param array $new_customer_data  Customer data.
-	 * @param bool  $password_generated Whether the password has been generated for the customer.
-	 * @deprecated 2.0
+	 * Hooks into the WooCommerce created customer action to prevent sending the core WooCommerce new customer email and send the Gifting new recipient user email instead.
 	 */
-	public static function send_new_recient_user_email( $customer_id, $new_customer_data, $password_generated ) {
-		_deprecated_function( __METHOD__, '2.0.0', __CLASS__ . '::send_new_recipient_user_email()' );
-		self::send_new_recipient_user_email( $customer_id, $new_customer_data, $password_generated );
+	public static function use_gifting_new_account_email() {
+		add_action( 'woocommerce_created_customer', __CLASS__ . '::remove_wc_new_customer_email', 9, 0 );
+		add_action( 'woocommerce_created_customer', __CLASS__ . '::send_new_recipient_user_email', 10, 1 );
+		add_action( 'woocommerce_created_customer', __CLASS__ . '::reattach_wc_new_customer_email', 11, 0 );
+	}
+
+	/**
+	 * Prevent sending the core WooCommerce new customer email.
+	 */
+	public static function remove_wc_new_customer_email() {
+		remove_action( current_filter(), array( 'WC_Emails', 'send_transactional_email' ) );
+	}
+
+	/**
+	 * Sends the Gifting new recipient user email. Overriding the core WooCommerce new customer email.
+	 *
+	 * @param int $customer_id The ID of the new customer being created.
+	 */
+	public static function send_new_recipient_user_email( $customer_id ) {
+		self::generate_new_recipient_user_email( get_current_user_id(), $customer_id );
+	}
+
+	/**
+	 * Reattaches the core WooCommerce new customer email after sending the gifting new account email.
+	 */
+	public static function reattach_wc_new_customer_email() {
+		add_action( current_filter(), array( 'WC_Emails', 'send_transactional_email' ) );
 	}
 }

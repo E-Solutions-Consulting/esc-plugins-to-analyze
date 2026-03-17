@@ -50,8 +50,8 @@ class WCSG_Recipient_Management {
 		add_action( 'woocommerce_subscription_status_updated', __CLASS__ . '::maybe_update_recipient_role', 10, 2 );
 
 		// Hooked onto priority 8 for compatibility with WooCommerce Memberships.
-		add_action( 'woocommerce_order_status_completed',  __CLASS__ . '::maybe_create_recipient', 8 );
-		add_action( 'woocommerce_order_status_processing', __CLASS__ . '::maybe_create_recipient', 8 );
+		add_action( 'woocommerce_order_status_completed', __CLASS__ . '::maybe_create_recipient', 8, 2 );
+		add_action( 'woocommerce_order_status_processing', __CLASS__ . '::maybe_create_recipient', 8, 2 );
 
 		if ( wcsg_is_woocommerce_pre( '3.0' ) ) {
 			add_action( 'woocommerce_add_order_item_meta', __CLASS__ . '::maybe_add_recipient_order_item_meta', 10, 2 );
@@ -489,15 +489,9 @@ class WCSG_Recipient_Management {
 	 */
 	public static function maybe_remove_recipient( $user_id ) {
 
-		$gifted_subscriptions = self::get_recipient_subscriptions( $user_id );
-		$gifted_items         = WCS_Gifting::get_recipient_order_items( $user_id );
+		$gifted_items = WCS_Gifting::get_recipient_order_items( $user_id );
 
-		if ( ! empty( $gifted_subscriptions ) ) {
-			foreach ( $gifted_subscriptions as $subscription_id ) {
-				WCS_Gifting::set_recipient_user( $subscription, 'deleted_recipient' );
-			}
-
-			$recipient      = get_user_by( 'id', $user_id );
+		if ( ! empty( $gifted_items ) ) {
 			$recipient_data = wp_json_encode(
 				array_merge(
 					array( 'display_name' => addslashes( WCS_Gifting::get_user_display_name( $user_id ) ) ),
@@ -625,12 +619,13 @@ class WCSG_Recipient_Management {
 	 * When orders are processed/completed, create new recipients and attach shipping information to gifted subscriptions.
 	 *
 	 * @param int $order_id Order ID.
+	 * @param WC_Order $order Order object.
 	 */
-	public static function maybe_create_recipient( $order_id ) {
+	public static function maybe_create_recipient( $order_id, ?WC_Order $order = null ) {
 		$subscriptions = wcs_get_subscriptions_for_order( $order_id );
 
 		foreach( $subscriptions as $subscription ) {
-			self::maybe_create_recipient_and_attach_shipping_information( $subscription );
+			self::maybe_create_recipient_and_attach_shipping_information( $subscription, $order );
 		}
 	}
 
@@ -638,8 +633,9 @@ class WCSG_Recipient_Management {
 	 * Maybe create a recipient user and attach shipping information to a subscription.
 	 *
 	 * @param WC_Subscription $subscription The subscription object.
+	 * @param WC_Order $order Order object.
 	 */
-	public static function maybe_create_recipient_and_attach_shipping_information( $subscription ) {
+	public static function maybe_create_recipient_and_attach_shipping_information( $subscription, ?WC_Order $order = null ) {
 		$recipient_user_email_address = $subscription->get_meta( '_recipient_user_email_address' );
 
 		if ( ! $recipient_user_email_address ) {
@@ -650,6 +646,7 @@ class WCSG_Recipient_Management {
 
 		// Create a new user if the recipient's email doesn't already exist.
 		if ( ! $recipient_user_id ) {
+			WCSG_Email::use_gifting_new_account_email();
 			$recipient_user_id = WCS_Gifting::create_recipient_user( $recipient_user_email_address );
 		}
 
@@ -657,7 +654,7 @@ class WCSG_Recipient_Management {
 			return;
 		}
 
-		WCS_Gifting::set_recipient_user( $subscription, $recipient_user_id );
+		WCS_Gifting::set_recipient_user( $subscription, $recipient_user_id, 'save', 0, $order );
 
 		$subscription->set_shipping_first_name( get_user_meta( $recipient_user_id, 'shipping_first_name', true ) );
 		$subscription->set_shipping_last_name( get_user_meta( $recipient_user_id, 'shipping_last_name', true ) );
@@ -670,15 +667,5 @@ class WCSG_Recipient_Management {
 		$subscription->set_shipping_country( get_user_meta( $recipient_user_id, 'shipping_country', true ) );
 
 		$subscription->save();
-	}
-
-	/**
-	 * Attach WooCommerce version dependent hooks
-	 *
-	 * @since 7.8.0 - Originally implemented in WooCommerce Subscriptions Gifting 1.0.1.
-	 * @deprecated 2.0.0
-	 */
-	public static function attach_dependant_hooks() {
-		_deprecated_function( __METHOD__, '2.0.0', __CLASS__ . '::init()' );
 	}
 }

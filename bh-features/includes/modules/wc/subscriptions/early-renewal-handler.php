@@ -75,22 +75,22 @@ class AH_Subscriptions_Early_Renewal_Handler {
 	 */
 	protected function maybe_force_immediate_capture( $data, $order, $context ) {
 
-	    $logger  = wc_get_logger();
+	    //$logger  = wc_get_logger();
 	    $log_ctx = array( 'source' => 'ah_subscriptions_renewal' );
 
-	    $logger->info( "--- AH Early Renewal [$context] START ---", $log_ctx );
+	    //$logger->info( "--- AH Early Renewal [$context] START ---", $log_ctx );
 
 	    // Basic sanity check.
 	    if ( ! $order instanceof WC_Order ) {
-	        $logger->warning( "[$context] Invalid order object. Aborting.", $log_ctx );
+	        //$logger->warning( "[$context] Invalid order object. Aborting.", $log_ctx );
 	        return $data;
 	    }
 
 	    $order_id       = $order->get_id();
 	    $payment_method = $order->get_payment_method();
 
-	    $logger->info( "[$context] Order ID: {$order_id}", $log_ctx );
-	    $logger->info( "[$context] Payment method: {$payment_method}", $log_ctx );
+	    //$logger->info( "[$context] Order ID: {$order_id}", $log_ctx );
+	    //$logger->info( "[$context] Payment method: {$payment_method}", $log_ctx );
 
 	    // Only target Stripe gateway. Allow override via filter if needed.
 	    $allowed_gateways = apply_filters(
@@ -99,17 +99,17 @@ class AH_Subscriptions_Early_Renewal_Handler {
 	    );
 
 	    if ( ! in_array( $payment_method, $allowed_gateways, true ) ) {
-	        $logger->info( "[$context] Payment method not allowed. Skipping.", $log_ctx );
+	        //$logger->info( "[$context] Payment method not allowed. Skipping.", $log_ctx );
 	        return $data;
 	    }
 
 	    // Check this is a renewal order.
 	    $is_renewal = function_exists( 'wcs_order_contains_renewal' ) ? wcs_order_contains_renewal( $order ) : false;
-	    $logger->info( "[$context] Is renewal order: " . ( $is_renewal ? 'YES' : 'NO' ), $log_ctx );
+	    //$logger->info( "[$context] Is renewal order: " . ( $is_renewal ? 'YES' : 'NO' ), $log_ctx );
 
 	    if ( ! $is_renewal ) {
-	        $logger->info( "[$context] Not a renewal order. Skipping.", $log_ctx );
-	        $logger->info( "--- AH Early Renewal [$context] END (not renewal) ---", $log_ctx );
+	        //$logger->info( "[$context] Not a renewal order. Skipping.", $log_ctx );
+	        //$logger->info( "--- AH Early Renewal [$context] END (not renewal) ---", $log_ctx );
 	        return $data;
 	    }
 
@@ -117,14 +117,14 @@ class AH_Subscriptions_Early_Renewal_Handler {
 	    $early_meta_value = $order->get_meta( '_subscription_renewal_early', true );
 	    $is_early         = ! empty( $early_meta_value );
 	    
-	    $logger->info(
-	        "[$context] Is EARLY renewal: " . ( $is_early ? 'YES' : 'NO' ),
-	        $log_ctx
-	    );
+	    // $logger->info(
+	    //     "[$context] Is EARLY renewal: " . ( $is_early ? 'YES' : 'NO' ),
+	    //     $log_ctx
+	    // );
 
 	    if ( ! $is_early ) {
-	        $logger->info( "[$context] Renewal but not EARLY. Skipping.", $log_ctx );
-	        $logger->info( "--- AH Early Renewal [$context] END (not early) ---", $log_ctx );
+	        //$logger->info( "[$context] Renewal but not EARLY. Skipping.", $log_ctx );
+	        //$logger->info( "--- AH Early Renewal [$context] END (not early) ---", $log_ctx );
 	        return $data;
 	    }
 
@@ -137,7 +137,7 @@ class AH_Subscriptions_Early_Renewal_Handler {
 
 	    if ( isset( $data['capture'] ) ) {
 	        unset( $data['capture'] );
-	        $logger->info( "[$context] Removed deprecated 'capture' param from payload.", $log_ctx );
+	        //$logger->info( "[$context] Removed deprecated 'capture' param from payload.", $log_ctx );
 	    }
 
 	    // Force automatic capture for early renewals.
@@ -146,7 +146,7 @@ class AH_Subscriptions_Early_Renewal_Handler {
 		$order->add_order_note(
 	        'Attention: Early Renewal detected.'
 	    );
-	    $logger->info( "--- AH Early Renewal [$context] END (modified) ---", $log_ctx );
+	    //$logger->info( "--- AH Early Renewal [$context] END (modified) ---", $log_ctx );
 
 	    return $data;
 	}

@@ -65,6 +65,8 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	/**
 	 * Clearing cache when a post is deleted
 	 *
+	 * @deprecated 2.3.0
+	 *
 	 * @param int     $post_id The ID of a post
 	 * @param WP_Post $post    The post object (on certain hooks).
 	 */
@@ -164,6 +166,8 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	/**
 	 * If the log is bigger than a threshold it will be
 	 * truncated to 0 bytes.
+	 *
+	 * @deprecated 6.0.0
 	 */
 	public static function cleanup_logs() {
 		wcs_deprecated_function( __METHOD__, '6.0.0' );
@@ -195,7 +199,8 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	/**
 	 * Check once each week if the log file has exceeded the limits.
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.2.9
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v2.2.9
+	 * @deprecated 6.0.0
 	 */
 	public function initialize_cron_check_size() {
 		wcs_deprecated_function( __METHOD__, '6.0.0' );
@@ -237,7 +242,12 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	protected function purge_subscription_user_cache( $subscription_id ) {
 		wcs_deprecated_argument( __METHOD__, '2.3.0', sprintf( __( 'Customer subscription caching is now handled by %1$s and %2$s.', 'woocommerce-subscriptions' ), 'WCS_Customer_Store_Cached_CPT', 'WCS_Post_Meta_Cache_Manager' ) ); // phpcs:ignore WordPress.WP.I18n.MissingTranslatorsComment
 
-		$subscription         = wcs_get_subscription( $subscription_id );
+		$subscription = wcs_get_subscription( $subscription_id );
+
+		if ( ! $subscription ) {
+			return;
+		}
+
 		$subscription_user_id = $subscription->get_user_id();
 		$this->log( sprintf(
 			'Clearing cache for user ID %1$s on %2$s hook.',

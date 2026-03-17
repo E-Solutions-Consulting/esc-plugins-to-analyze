@@ -33,32 +33,8 @@ class WCSG_Admin_Welcome_Announcement {
 
 		$screen = get_current_screen();
 
-		$script_asset_path = \WC_Subscriptions_Plugin::instance()->get_plugin_directory( 'build/gifting-welcome-announcement.asset.php' );
-		$script_asset      = file_exists( $script_asset_path )
-			? require $script_asset_path
-			: array(
-				'dependencies' => array(
-					'react',
-					'wc-blocks-checkout',
-					'wc-price-format',
-					'wc-settings',
-					'wp-element',
-					'wp-i18n',
-					'wp-plugins',
-				),
-				'version'      => WC_Subscriptions::$version,
-			);
-
-		wp_enqueue_script(
-			'wcs-gifting-welcome-announcement',
-			plugins_url( '/build/gifting-welcome-announcement.js', WC_Subscriptions::$plugin_file ),
-			$script_asset['dependencies'],
-			$script_asset['version'],
-			true
-		);
-
 		wp_localize_script(
-			'wcs-gifting-welcome-announcement',
+			'wcs-admin',
 			'wcsGiftingSettings',
 			array(
 				'imagesPath'                 => plugins_url( '/assets/images', WC_Subscriptions::$plugin_file ),
@@ -67,19 +43,6 @@ class WCSG_Admin_Welcome_Announcement {
 				'isStandaloneGiftingEnabled' => is_plugin_active( 'woocommerce-subscriptions-gifting/woocommerce-subscriptions-gifting.php' ),
 				'isSubscriptionsListing'     => 'woocommerce_page_wc-orders--shop_subscription' === $screen->id,
 			)
-		);
-
-		wp_enqueue_style(
-			'wcs-gifting-welcome-announcement',
-			plugins_url( '/build/style-gifting-welcome-announcement.css', WC_Subscriptions::$plugin_file ),
-			array( 'wp-components' ),
-			$script_asset['version']
-		);
-
-		wp_set_script_translations(
-			'wcs-gifting-welcome-announcement',
-			'woocommerce-subscriptions',
-			plugin_dir_path( WC_Subscriptions::$plugin_file ) . 'languages'
 		);
 	}
 

@@ -51,6 +51,7 @@ class WCS_Early_Renewal_Modal_Handler {
 
 		if ( wc_wp_theme_get_element_class_name( 'button' ) ) {
 			$place_order_action['attributes']['class'] .= ' ' . wc_wp_theme_get_element_class_name( 'button' );
+			$place_order_action['attributes']['role']   = 'button';
 		}
 
 		$callback_args = array(
@@ -59,6 +60,8 @@ class WCS_Early_Renewal_Modal_Handler {
 		);
 
 		$modal = new WCS_Modal( $callback_args, '.subscription_renewal_early', 'callback', __( 'Renew early', 'woocommerce-subscriptions' ) );
+		// Set the modal ID to match the predictable value used for aria-controls in subscription-details.php
+		$modal->set_id( 'wcs-early-renewal-modal-' . $subscription->get_id() );
 		$modal->add_action( $place_order_action );
 		$modal->print_html();
 	}
@@ -177,6 +180,10 @@ class WCS_Early_Renewal_Modal_Handler {
 	public static function can_user_renew_early_via_modal( $subscription, $user_id = 0 ) {
 		$user_id      = ! empty( $user_id ) ? absint( $user_id ) : get_current_user_id();
 		$subscription = wcs_get_subscription( $subscription );
+
+		if ( ! $subscription ) {
+			return false;
+		}
 
 		if ( ! WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() || ! wcs_can_user_renew_early( $subscription, $user_id ) ) {
 			return false;

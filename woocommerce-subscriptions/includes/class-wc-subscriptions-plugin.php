@@ -8,6 +8,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+use Automattic\WooCommerce_Subscriptions\Internal\Telemetry\Events as WC_Tracks_Events;
+
 /**
  * @method static WC_Subscriptions_Plugin instance()
  */
@@ -32,6 +34,10 @@ class WC_Subscriptions_Plugin extends WC_Subscriptions_Core_Plugin {
 		WCS_Call_To_Action_Button_Text_Manager::init();
 		WCS_Subscriber_Role_Manager::init();
 		WCS_Upgrade_Notice_Manager::init();
+		WCS_Admin_Assets::init();
+
+		$tracks_events = new WC_Tracks_Events();
+		$tracks_events->setup();
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			new WC_Subscriptions_CLI();
@@ -39,6 +45,8 @@ class WC_Subscriptions_Plugin extends WC_Subscriptions_Core_Plugin {
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'maybe_show_welcome_message' ) );
 		add_action( 'plugins_loaded', array( $this, 'init_gifting' ) );
+		add_action( 'plugins_loaded', array( $this, 'init_downloads' ) );
+		add_action( 'admin_notices', array( WC_Subscription_Downloads_Settings::class, 'add_notice_about_bundled_feature' ) );
 	}
 
 	/**
@@ -279,6 +287,34 @@ class WC_Subscriptions_Plugin extends WC_Subscriptions_Core_Plugin {
 		);
 
 		WCS_Gifting::init();
+	}
+
+	/**
+	 * Attempts to initialize additional downloads functionality.
+	 *
+	 * This functionality makes it possible to link downloadable products with a subscription
+	 * product. Purchasers of the subscription product then automatically get access to the files associated with downloadable product.
+	 *
+	 * Previously, this functionality existed as a standalone plugin (WooCommerce Subscription Downnloads) and so,
+	 * before initializing, we try to determine if the standalone plugin is active and has already loaded (if it is
+	 * active, we do not proceed).
+	 */
+	public function init_downloads() {
+		if (
+			$this->is_plugin_being_activated( 'woocommerce-subscription-downloads' )
+			|| class_exists( WC_Subscription_Downloads::class, false )
+		) {
+			if ( class_exists( WC_Subscription_Downloads::class, false ) ) {
+				// Will show the welcome announcement if the standalone plugin is active and the welcome announcement has not been dismissed.
+				if ( ! WC_Subscription_Downloads_Admin_Welcome_Announcement::is_welcome_announcement_dismissed() ) {
+					WC_Subscription_Downloads_Admin_Welcome_Announcement::init();
+				}
+			}
+
+			return;
+		}
+
+		WC_Subscription_Downloads::setup();
 	}
 
 	/**

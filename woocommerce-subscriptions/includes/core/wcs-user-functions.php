@@ -204,6 +204,7 @@ function wcs_get_users_subscriptions( $user_id = 0 ) {
  * Get subscription IDs for the given user.
  *
  * @author Jeremy Pry
+ * @deprecated 2.3.0 Use WCS_Customer_Store::instance()->get_users_subscription_ids()
  *
  * @param int $user_id The ID of the user whose subscriptions you want.
  *
@@ -218,6 +219,7 @@ function wcs_get_users_subscription_ids( $user_id ) {
  * Get subscription IDs for a user using caching.
  *
  * @author Jeremy Pry
+ * @deprecated 2.3.0 Use WCS_Customer_Store::instance()->get_users_subscription_ids()
  *
  * @param int $user_id The ID of the user whose subscriptions you want.
  *
@@ -310,6 +312,7 @@ function wcs_get_all_user_actions_for_subscription( $subscription, $user_id ) {
 				'url'      => wcs_get_users_change_status_link( $subscription->get_id(), 'active', $current_status ),
 				'name'     => __( 'Reactivate', 'woocommerce-subscriptions' ),
 				'block_ui' => true,
+				'role'     => 'button',
 			);
 		}
 
@@ -318,6 +321,7 @@ function wcs_get_all_user_actions_for_subscription( $subscription, $user_id ) {
 				'url'      => wcs_get_users_resubscribe_link( $subscription ),
 				'name'     => __( 'Resubscribe', 'woocommerce-subscriptions' ),
 				'block_ui' => true,
+				'role'     => 'button',
 			);
 		}
 
@@ -328,6 +332,7 @@ function wcs_get_all_user_actions_for_subscription( $subscription, $user_id ) {
 				'url'      => wcs_get_users_change_status_link( $subscription->get_id(), 'cancelled', $current_status ),
 				'name'     => _x( 'Cancel', 'an action on a subscription', 'woocommerce-subscriptions' ),
 				'block_ui' => true,
+				'role'     => 'button',
 			);
 		}
 	}
@@ -359,7 +364,7 @@ function wcs_user_has_capability( $allcaps, $caps, $args ) {
 				$user_id  = $args[1];
 				$subscription = wcs_get_subscription( $args[2] );
 
-				if ( $user_id === $subscription->get_user_id() ) {
+				if ( $subscription && $user_id === $subscription->get_user_id() ) {
 					$allcaps['edit_shop_subscription_status'] = true;
 				}
 			break;
@@ -367,7 +372,7 @@ function wcs_user_has_capability( $allcaps, $caps, $args ) {
 				$user_id  = $args[1];
 				$subscription = wcs_get_subscription( $args[2] );
 
-				if ( $user_id === $subscription->get_user_id() ) {
+				if ( $subscription && $user_id === $subscription->get_user_id() ) {
 					$allcaps['edit_shop_subscription_line_items'] = true;
 				}
 			break;
@@ -375,7 +380,7 @@ function wcs_user_has_capability( $allcaps, $caps, $args ) {
 				$user_id  = $args[1];
 				$subscription = wcs_get_subscription( $args[2] );
 
-				if ( $user_id === $subscription->get_user_id() ) {
+				if ( $subscription && $user_id === $subscription->get_user_id() ) {
 					$allcaps['switch_shop_subscription'] = true;
 				}
 			break;
@@ -383,7 +388,7 @@ function wcs_user_has_capability( $allcaps, $caps, $args ) {
 				$user_id  = $args[1];
 				$subscription = wcs_get_subscription( $args[2] );
 
-				if ( $user_id === $subscription->get_user_id() ) {
+				if ( $subscription && $user_id === $subscription->get_user_id() ) {
 					$allcaps['subscribe_again'] = true;
 				}
 			break;

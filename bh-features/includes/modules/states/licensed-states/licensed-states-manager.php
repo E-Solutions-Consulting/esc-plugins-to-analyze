@@ -273,9 +273,9 @@ class AH_Licensed_States_Manager {
             self::maybe_fire_state_change_events( $old_config, $validated );
         }
 
-        if ( $updated && class_exists( 'AH_MapData_Generator' ) ) {
-            AH_MapData_Generator::generate();
-        }
+        // if ( $updated && class_exists( 'AH_MapData_Generator' ) ) {
+        //     AH_MapData_Generator::generate();
+        // }
 
         return $updated;
     }

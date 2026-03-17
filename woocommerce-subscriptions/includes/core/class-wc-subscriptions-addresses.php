@@ -64,6 +64,7 @@ class WC_Subscriptions_Addresses {
 			$actions['change_address'] = array(
 				'url'  => esc_url( add_query_arg( array( 'subscription' => $subscription->get_id() ), wc_get_endpoint_url( 'edit-address', 'shipping' ) ) ),
 				'name' => __( 'Change address', 'woocommerce-subscriptions' ),
+				'role' => 'link',
 			);
 		}
 
@@ -312,9 +313,11 @@ class WC_Subscriptions_Addresses {
 	/**
 	 * Update the address fields on an order
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.3
+	 * @deprecated 2.2.0 Use WC_Order::set_address() or WC_Subscription::set_address()
+	 *
 	 * @param array $subscription A WooCommerce Subscription array
 	 * @param array $address_fields Locale aware address fields of the form returned by WC_Countries->get_address_fields() for a given country
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.3
 	 */
 	public static function maybe_update_order_address( $subscription, $address_fields ) {
 		_deprecated_function( __METHOD__, '2.0', 'WC_Order::set_address() or WC_Subscription::set_address()' );

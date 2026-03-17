@@ -81,10 +81,12 @@ class WC_Subscriptions_Renewal_Order {
 	 * subscriptions are updated even if payment is processed by a manual payment gateways (which would never trigger the
 	 * 'woocommerce_payment_complete' hook) or by some other means that circumvents that hook.
 	 *
+	 * This hook will be skipped for early renewal orders transitioning to statuses other than cancelled or refunded.
+	 * @see WCS_Cart_Early_Renewal::maybe_record_subscription_payment().
+	 *
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
 	 */
 	public static function maybe_record_subscription_payment( $order_id, $orders_old_status, $orders_new_status ) {
-
 		if ( ! wcs_order_contains_renewal( $order_id ) ) {
 			return;
 		}
@@ -469,11 +471,16 @@ class WC_Subscriptions_Renewal_Order {
 	/**
 	 * Check if a given order is a subscription renewal order and optionally, if it is a renewal order of a certain role.
 	 *
+	 * @since      1.2
+	 * @deprecated 2.0 Use wcs_order_contains_resubscribe() and wcs_order_contains_renewal() instead.
+	 *
 	 * @param WC_Order|int $order The WC_Order object or ID of a WC_Order order.
-	 * @param array $args (optional) An array of name => value flags:
-	 *         'order_role' string (optional) A specific role to check the order against. Either 'parent' or 'child'.
-	 *         'via_checkout' Indicates whether to check if the renewal order was via the cart/checkout process.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @param array        $args  {
+	 *     An optional array of name => value flags.
+	 *
+	 *     @type string $order_role   A specific role to check the order against. Either 'parent' or 'child'. Optional.
+	 *     @type bool   $via_checkout Indicates whether to check if the renewal order was via the cart/checkout process.
+	 * }
 	 */
 	public static function is_renewal( $order, $args = array() ) {
 
@@ -558,9 +565,10 @@ class WC_Subscriptions_Renewal_Order {
 	 * @see WC_Subscriptions_Manager::process_subscription_payments_on_order() function would
 	 * never be called. This function makes sure it is called.
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0
+	 *
 	 * @param int $order_id The ID of a WC_Order object.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
-	 * @deprecated 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
 	 */
 	public static function process_failed_renewal_order_payment( $order_id ) {
 		_deprecated_function( __METHOD__, '2.0' );
@@ -578,9 +586,10 @@ class WC_Subscriptions_Renewal_Order {
 	/**
 	 * Records manual payment of a renewal order against a subscription.
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0
+	 *
 	 * @param int $order_id The ID of a WC_Order object.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
-	 * @deprecated 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
 	 */
 	public static function maybe_record_renewal_order_payment( $order_id ) {
 		_deprecated_function( __METHOD__, '2.0' );
@@ -661,7 +670,8 @@ class WC_Subscriptions_Renewal_Order {
 	/**
 	 * Trigger a hook when a subscription suspended due to a failed renewal payment is reactivated
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.3
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.3
+	 * @deprecated 2.0 Use WC_Subscriptions_Renewal_Order::maybe_record_subscription_payment() instead.
 	 */
 	public static function trigger_processed_failed_renewal_order_payment_hook( $user_id, $subscription_key ) {
 		_deprecated_function( __METHOD__, '2.0', __CLASS__ . '::maybe_record_subscription_payment( $order_id, $orders_old_status, $orders_new_status )' );

@@ -168,13 +168,6 @@ class Bh_Features {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 
-		/**
-		 * Reorders the WooCommerce order status filter links 
-		 */
-		$this->loader->add_filter( 'wc_order_statuses', $plugin_admin, 'custom_reorder_wc_order_statuses', 100);
-
-		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_widget_telegra_metabox' );
-
 		$this->loader->add_action( 'init', $plugin_admin, 'add_customer_services_role' );
 		$this->loader->add_action( 'init', $plugin_admin, 'add_tracking_master_role' );
 
@@ -193,13 +186,6 @@ class Bh_Features {
 		*	My Account Menu - remove downloads menu
 		*/
 		$this->loader->add_action( 'woocommerce_account_menu_items', $plugin_admin, 'hide_menu_downloads_my_account' );
-
-		/**
-		 * Add Custom Field Checkbox: Apply for Subscription Renewals
-		 * 
-		 */
-		$this->loader->add_action( 'woocommerce_coupon_options', $plugin_admin, 'add_custom_field_coupon_apply_to_renewal_subscription', 10, 2 );
-		$this->loader->add_action( 'woocommerce_coupon_options_save', $plugin_admin, 'add_custom_field_coupon_apply_to_renewal_subscription_save', 10, 2 );
 
 		/**
 		 * Add Subscription Filter by State
@@ -228,14 +214,6 @@ class Bh_Features {
 		add_action('init', [$plugin_admin, 'hb_init_switch_product_subscription']);
 		add_action('woocommerce_admin_order_data_after_order_details', [$plugin_admin, 'hb_woocommerce_admin_order_data_after_order_details']);
 		add_action( 'current_screen',[$plugin_admin, 'hb_current_screen'] );
-		/*
-		 * Add Option to Subscription Actions to 
-		 * Send email notification to customer
-		 * to select a new product for their subscription
-	 	 */
-		add_filter('woocommerce_order_actions', [$plugin_admin, 'hb_woocommerce_order_actions']);
-		add_action('woocommerce_order_action_send_switch_product_email', [$plugin_admin, 'hb_woocommerce_order_action_send_switch_product_email']);
-		add_action('woocommerce_order_action_resend_to_telegra', [$plugin_admin, 'hb_woocommerce_order_action_resend_to_telegra']);
 
 		/**
 		 * Change the text of Interval Renewals
@@ -254,23 +232,11 @@ class Bh_Features {
 		$this->loader->add_action('update_option_start_time', $plugin_admin, 'handle_schedule_settings_update', 10, 3);
     	$this->loader->add_action('update_option_end_time', $plugin_admin, 'handle_schedule_settings_update', 10, 3);
 
-		/**
-		 * Add custom Column to ListTable Coupon
-		 */
-		$this->loader->add_filter('manage_edit-shop_coupon_columns', $plugin_admin, 'custom_coupon_add_column');
-		$this->loader->add_action('manage_shop_coupon_posts_custom_column', $plugin_admin, 'custom_coupon_show_column_value', 10, 2);
-		
 		/*	
 		 * Ajax for send Shipping Address Update Request
 		 */
 		$this->loader->add_action('wp_ajax_send_shipping_request', $plugin_admin, 'send_shipping_request_ajax');
 
-		/**
-		 * Add Metabox for display page only for logged in
-		 * */
-		$this->loader->add_action('add_meta_boxes', $plugin_admin, 'add_logged_in_only_metabox');
-		$this->loader->add_action('save_post', $plugin_admin, 'save_logged_in_only_metabox');
-		
 		/**
 		 * Show App Tracking Fields in User Profile
 		 * */
@@ -322,7 +288,7 @@ class Bh_Features {
 		add_action( 'woocommerce_product_after_variable_attributes', [ $plugin_public, 'variation_settings'], 10, 3 );
 		add_action( 'woocommerce_save_product_variation', [ $plugin_public, 'save_variation_settings'], 10, 2 );
 
-		add_filter('woocommerce_is_sold_individually', [ $plugin_public, 'force_individual_products_cart'], 10, 2);
+		//add_filter('woocommerce_is_sold_individually', [ $plugin_public, 'force_individual_products_cart'], 10, 2);
 
 		add_action('woocommerce_after_checkout_validation', [ $plugin_public, 'restrict_shipping_states'], 10, 2);
 		// add_action('wp_enqueue_scripts', [ $plugin_public, 'enqueue_google_places_and_states']);
@@ -345,16 +311,6 @@ class Bh_Features {
 		add_filter('wcs_renewal_order_created', [$plugin_public, 'validate_previous_order_status_before_renewal'], 10, 2);
 
 		add_filter( 'woocommerce_order_item_name', [$plugin_public, 'hb_woocommerce_order_item_name'], 10, 3 );
-		add_filter( 'woocommerce_display_item_meta', [$plugin_public, 'hb_woocommerce_display_item_meta'], 10, 3 );
-		/**
-		 * Add product categories to order line items in the admin order view.
-		 */
-		$this->loader->add_action( 'woocommerce_after_order_itemmeta', $plugin_public, 'add_product_category_to_order_item_meta', 10, 2 );
-
-		/**
-		 * Remove the Error Messages from top of checkout pages
-		 */
-		// add_action('init', [ $plugin_public, 'hb_init_remove_wc_hooks'], 999999);
 
 		/**
 		 * Add Terms & Conditions to Tab Checkout
@@ -389,24 +345,17 @@ class Bh_Features {
 		add_action('woocommerce_order_status_completed', [ $plugin_public, 'edited_product_item_name_in_subscription_renewal_payment_completed']);
 
 		/**
-		 * Add webhook for listen events
-		 * - /wp-json/bh/stripe/webhook
-		 * 
-		 */
-		add_action('rest_api_init', [$plugin_public, 'register_api_routes'], 15);
-
-		/**
 		 *	Remove Notice about success add to cart product
 		 */
-		add_filter( 'woocommerce_notice_types', [$plugin_public, 'woocommerce_notice_types'], 100);
-		
+		//add_filter( 'woocommerce_notice_types', [$plugin_public, 'woocommerce_notice_types'], 100);
+
 		/**
 		 *	Add tracking code to Thankyou Page
 		 */
-		//add_filter('telemd_thankyou_redirect_enabled', '__return_false');
-		add_filter('telemd_thankyou_redirect_enabled', [$plugin_public, 'disable_thankyou_redirect'], 10, 2);
 		add_action('woocommerce_thankyou', [$plugin_public, 'execute_tracking_and_redirect'], 999);
+		add_action('wp_footer', [$plugin_public, 'print_tracking_data'], 998);
 		add_action('wp_footer', [$plugin_public, 'insert_katalys_tracking_script_footer'], 999);
+		add_action('wp_footer', [$plugin_public, 'redirect_tracking_script_footer'], 1000);
 
 		/*
 		*	Print Tracking Order Number
@@ -418,8 +367,8 @@ class Bh_Features {
 		*	- Set coupon for Renewal Order Created
 		*	- Apply coupon for Renewal Order
 		*/
-		$this->loader->add_action( 'woocommerce_checkout_subscription_created', $plugin_public, 'set_coupon_for_subscription_renewal_created', 10, 2 );
-		$this->loader->add_filter( 'wcs_renewal_order_created', $plugin_public, 'apply_coupon_for_subscription_renewal_order_created', 10, 2 );
+		//$this->loader->add_action( 'woocommerce_checkout_subscription_created', $plugin_public, 'set_coupon_for_subscription_renewal_created', 10, 2 );
+		//$this->loader->add_filter( 'wcs_renewal_order_created', $plugin_public, 'apply_coupon_for_subscription_renewal_order_created', 10, 2 );
 
 		/**
 		 * Next Payment Date
@@ -450,7 +399,7 @@ class Bh_Features {
 		/*
 		*	Rules Add To Cart
 		*/
-		$this->loader->add_filter( 'woocommerce_add_to_cart_validation', $plugin_public, 'strict_cart_restrictions', 30, 6);
+		//$this->loader->add_filter( 'woocommerce_add_to_cart_validation', $plugin_public, 'strict_cart_restrictions', 30, 6);
 
 		/*
 		*	Print Custom Text depend of Subscription Variation
@@ -462,12 +411,6 @@ class Bh_Features {
 		*	Updates the status of an upsell order to "processing" when its associated parent order is marked as "completed." 
 		*/
 		$this->loader->add_action('woocommerce_order_status_completed', $plugin_public, 'process_upsell_when_main_order_completed');
-
-		/**
-		 * Filters the formatted line subtotal in WooCommerce orders to append custom renewal text 
-		 * for subscription products based on their billing interval.
-		 */
-		$this->loader->add_filter( 'woocommerce_order_formatted_line_subtotal', $plugin_public, 'woocommerce_order_formatted_line_subtotal', 10, 3 );
 
 		/**
 		 * Close session after purchase
@@ -504,12 +447,7 @@ class Bh_Features {
 		 *	Add tracking code Northbeam to Thankyou Page
 		 */
 		$this->loader->add_action('wp_head', $plugin_public, 'insert_friendbuy_tracking_customer', 999);
-		$this->loader->add_action('wp_footer', $plugin_public, 'insert_friendbuy_tracking', 100);
-		
-		/**
-		 * Page Restriction for non-logged-in users
-		 * */
-		$this->loader->add_action('template_redirect', $plugin_public, 'check_page_access');
+		//$this->loader->add_action('wp_footer', $plugin_public, 'insert_friendbuy_tracking', 100);
 
 	}
 

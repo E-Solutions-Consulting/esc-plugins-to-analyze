@@ -1,0 +1,128 @@
+<?php
+defined('ABSPATH') || exit;
+
+do_action('woocommerce_before_checkout_form', $checkout);
+
+/*if (!is_user_logged_in() && $checkout->is_registration_enabled()) {
+    echo apply_filters('woocommerce_checkout_must_be_logged_in_message', __('You must be logged in to checkout.', 'woocommerce'));
+    return;
+}
+*/
+?>
+<form name="checkout" method="post" class="checkout woocommerce-checkout multistep-checkout" action="<?php echo esc_url(wc_get_checkout_url()); ?>" enctype="multipart/form-data">
+<div id="checkout-global-errors" class="checkout-global-errors"></div>
+
+    <!-- Tabs Navigation -->
+    <div class="container-checkout-tabs">
+        <ul class="checkout-tabs">
+            <li class="tab-profile active"><a href="#step-profile"><?php esc_html_e('Profile', 'woocommerce'); ?></a></li>
+            <li class="tab-shipping"><a href="#step-shipping"><?php esc_html_e('Shipping', 'woocommerce'); ?></a></li>
+            <li class="tab-finish"><a href="#step-finish"><?php esc_html_e('Finish', 'woocommerce'); ?></a></li>
+        </ul>
+    </div>
+    <div class="container-tab-content">
+
+        <!-- Step 1: Profile -->
+        <div id="step-profile" class="checkout-step active">
+            <!--<h3><?php esc_html_e('Profile Information', 'woocommerce'); ?></h3>-->
+            <div class="woocommerce-bh-fields__field-wrapper">
+                <div class="form-row">What's your name?</div>
+                <p class="form-row form-row-first validate-required" id="bh_first_name_field" data-priority="10">
+                    <span class="woocommerce-input-wrapper">
+                        <span class="input-floating-wrap">
+                            <input type="text" class="input-text validate[required]" name="bh_first_name" id="bh_first_name" placeholder="First name *" value="" aria-required="true" autocomplete="given-name">
+                            <span class="floating-placeholder">First name *</span>
+                        </span>
+                    </span>
+                    <label class="error">This field is required</label>
+                </p>
+                <p class="form-row form-row-last validate-required" id="bh_last_name_field" data-priority="20">
+                    <span class="woocommerce-input-wrapper">
+                        <span class="input-floating-wrap">
+                            <input type="text" class="input-text validate[required]" name="bh_last_name" id="bh_last_name" placeholder="Last name *" value="" aria-required="true" autocomplete="family-name">
+                            <span class="floating-placeholder">Last name *</span>
+                        </span>
+                    </span>
+                </p>
+            </div>            
+
+            <div class="woocommerce-bh-fields__field-wrapper">
+                <div class="form-row">What’s your phone number? So your doctor can contact you about your program</div>
+                <p class="form-row validate-required validate-phone" id="bh_phone_field" data-priority="90">
+                    <span class="woocommerce-input-wrapper">
+                        <span class="input-floating-wrap">
+                            <input type="tel" class="input-text validate[required] validate[custom[phone]" name="bh_phone" id="bh_phone" placeholder="Phone *" value="" aria-required="true" autocomplete="tel">
+                            <span class="floating-placeholder">Phone *</span>
+                        </span>
+                    </span>
+                    <label class="error">This field is required</label>
+                </p>
+            </div>
+            <div class="woocommerce-bh-fields__field-wrapper">
+                <p class="form-row validate-required" id="bh_phone_field" data-priority="90">
+                    <label for="bh_terms" class="woocommerce-input-wrapper">
+                        <input type="checkbox" class="input-checkbox" name="bh_terms" id="bh_terms" checked>
+                        <span>Yes, I agree to the <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.</span>
+                    </label>
+                </p>
+                <p class="form-row" id="bh_phone_field" data-priority="90">
+                    <label for="bh_consent" class="woocommerce-input-wrapper">
+                        <input type="checkbox" class="input-checkbox" name="bh_consent" id="bh_consent">
+                        <span>Yes, l expressly consent to receive text messages about my support interactions (i.e. Order, Prescription, etc.) in accordance with ICPA terms.</span>
+                    </label>
+                </p>
+            </div>
+            <button type="button" class="button next-step"><?php esc_html_e('Next', 'woocommerce'); ?></button>
+        </div>
+
+        <!-- Step 2: Shipping -->
+        <div id="step-shipping" class="checkout-step">
+            <h3><?php esc_html_e('Shipping Information', 'woocommerce'); ?></h3>
+            <?php //do_action('woocommerce_checkout_shipping'); ?>
+
+            <?php if ( $checkout->get_checkout_fields() ) : ?>
+
+
+
+            <div class="col2-set" id="customer_details">
+                <div class="col-1a">
+                    <div>What's your shipping address?</div>
+                    
+                    <?php do_action( 'woocommerce_checkout_shipping' ); ?>
+                    
+                    <?php do_action( 'woocommerce_checkout_billing' ); ?>
+                
+                </div>
+            </div>
+
+            <?php endif; ?>
+
+
+            <button type="button" class="button prev-step"><?php esc_html_e('Back', 'woocommerce'); ?></button>
+            <button type="button" class="button next-step"><?php esc_html_e('Next', 'woocommerce'); ?></button>
+        </div>
+
+        <!-- Step 3: Finish -->
+        <div id="step-finish" class="checkout-step">
+            <h3><?php esc_html_e('JOHN´S WEIGHT LOSS PLAN', 'woocommerce'); ?></h3>
+            <div class="order-review">
+
+                <?php do_action('woocommerce_checkout_order_review'); ?>
+            </div>
+
+            <button type="submit" class="button pay-now"><?php esc_html_e('Pay Now', 'woocommerce'); ?></button>
+
+            <div class="disclaimer">
+            <p><strong>Important:</strong> By clicking ‘Pay Now’ you agree that:</p>
+
+            <ul>
+                <li>if prescribed Semaglutide injection 1.25mg (monthly), you are purchasing an automatically-renewing subscription and will be charge $297 for your first 30-day supply and $297 every 30 days thereafter until you cancel. Ongoing shipments may be charged and shipped up to 2 days early to accommodate holidays or other operational reasons to support treatment continuity.</li>
+                <li>Your subscription(s) will renew unless you cancel at least 2 days before the next processing date. You can view your processing date and cancel your subscription(s) through your online account or by contacting customer support at <a href="mailto:support@mdexam.care" title="support@mdexam.care">support@mdexam.care</a> or <a href="tel:18332104080" title="1-833-210-4080">1-833-210-4080</a></li>
+            </ul>
+                    </div>
+            
+        </div>
+    </div>
+</form>
+
+<?php do_action('woocommerce_after_checkout_form', $checkout); ?>

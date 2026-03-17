@@ -519,7 +519,7 @@ class WCS_Admin_Post_Types {
 				'wcs-unknown-order-info-wrapper',
 				esc_url( 'https://woocommerce.com/document/subscriptions/store-manager-guide/#section-19' ),
 				// translators: Placeholder is a <br> HTML tag.
-				wcs_help_tip( sprintf( __( "This subscription couldn't be loaded from the database. %s Click to learn more.", 'woocommerce-subscriptions' ), '</br>' ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				wcs_help_tip( sprintf( __( "This subscription couldn't be loaded from the database. %s Click to learn more.", 'woocommerce-subscriptions' ), '<br>' ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			);
 			return;
 		}
@@ -711,12 +711,12 @@ class WCS_Admin_Post_Types {
 			$tooltip_classes = 'woocommerce-help-tip';
 
 			if ( $datetime->getTimestamp() < time() ) {
-				$tooltip_message .= __( '<b>Subscription payment overdue.</b></br>', 'woocommerce-subscriptions' );
+				$tooltip_message .= '<b>' . esc_html__( 'Subscription payment overdue.', 'woocommerce-subscriptions' ) . '</b><br>';
 				$tooltip_classes .= ' wcs-payment-overdue';
 			}
 
 			if ( $subscription->payment_method_supports( 'gateway_scheduled_payments' ) && ! $subscription->is_manual() ) {
-				$tooltip_message .= __( 'This date should be treated as an estimate only. The payment gateway for this subscription controls when payments are processed.</br>', 'woocommerce-subscriptions' );
+				$tooltip_message .= esc_html__( 'This date should be treated as an estimate only. The payment gateway for this subscription controls when payments are processed.', 'woocommerce-subscriptions' ) . '<br>';
 				$tooltip_classes .= ' wcs-offsite-renewal';
 			}
 
@@ -1171,7 +1171,7 @@ class WCS_Admin_Post_Types {
 
 		// @phpstan-ignore property.notFound
 		foreach ( WC()->payment_gateways->get_available_payment_gateways() as $gateway_id => $gateway ) {
-			echo '<option value="' . esc_attr( $gateway_id ) . '"' . ( $selected_gateway_id === $gateway_id ? 'selected' : '' ) . '>' . esc_html( $gateway->title ) . '</option>';
+			echo '<option value="' . esc_attr( $gateway_id ) . '"' . ( $selected_gateway_id === $gateway_id ? 'selected' : '' ) . '>' . esc_html( method_exists( $gateway, 'get_title' ) ? $gateway->get_title() : $gateway->title ) . '</option>';
 		}
 		echo '<option value="_manual_renewal">' . esc_html__( 'Manual Renewal', 'woocommerce-subscriptions' ) . '</option>';
 		?>
@@ -1503,9 +1503,20 @@ class WCS_Admin_Post_Types {
 
 		foreach ( $subscription_ids as $subscription_id ) {
 			$subscription = wcs_get_subscription( $subscription_id );
-			$note         = _x( 'Subscription status changed by bulk edit:', 'Used in order note. Reason why status changed.', 'woocommerce-subscriptions' );
+
+			$note = _x( 'Subscription status changed by bulk edit:', 'Used in order note. Reason why status changed.', 'woocommerce-subscriptions' );
 
 			try {
+				if ( ! $subscription ) {
+					throw new Exception(
+						sprintf(
+							// Translators: 1: subscription ID.
+							__( 'Subscription with ID %1$d does not exist and could not be updated.', 'woocommerce-subscriptions' ),
+							$subscription_id
+						)
+					);
+				}
+
 				if ( 'cancelled' === $new_status ) {
 					$subscription->cancel_order( $note );
 				} else {
@@ -1542,6 +1553,11 @@ class WCS_Admin_Post_Types {
 
 		foreach ( $subscription_ids as $id ) {
 			$subscription = wcs_get_subscription( $id );
+
+			if ( ! $subscription ) {
+				continue;
+			}
+
 			$subscription->delete( $force_delete );
 			$updated_subscription = wcs_get_subscription( $id );
 
@@ -1571,7 +1587,13 @@ class WCS_Admin_Post_Types {
 
 		foreach ( $subscription_ids as $id ) {
 			if ( $use_crud_method ) {
-				$data_store->untrash_order( wcs_get_subscription( $id ) );
+				$subscription = wcs_get_subscription( $id );
+
+				if ( ! $subscription ) {
+					continue;
+				}
+
+				$data_store->untrash_order( $subscription );
 			} else {
 				wp_untrash_post( $id );
 			}
@@ -1868,7 +1890,6 @@ class WCS_Admin_Post_Types {
 	 * @return string[] $pieces Updated associative array of clauses for the query.
 	 */
 	private function orders_table_clauses_low_performance( $pieces ) {
-		// @phpstan-ignore-next-line
 		$order_datastore = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore::class );
 		$order_table     = $order_datastore::get_orders_table_name();
 		$meta_table      = $order_datastore::get_meta_table_name();
@@ -1899,7 +1920,6 @@ class WCS_Admin_Post_Types {
 	private function orders_table_clauses_high_performance( $pieces ) {
 		global $wpdb;
 
-		// @phpstan-ignore-next-line
 		$order_datastore = wc_get_container()->get( \Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore::class );
 		$order_table     = $order_datastore::get_orders_table_name();
 		$meta_table      = $order_datastore::get_meta_table_name();

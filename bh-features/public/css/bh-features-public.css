@@ -394,6 +394,16 @@ input#bh_phone {
 .woocommerce form.checkout_coupon .coupon-error-notice:not(:last-of-type) {
     display: none !important;
 }
+.coupon-success-notice{
+    color: #0f5132;
+    position: absolute;
+    bottom: -1.75rem;
+    font-size: small;
+    font-style: italic;
+}
+.hb-product-info .hb-due {font-size: 14px;}
+.hb-product-info .hb-due.discount > span,
+.hb-product-info .hb-due.discount > span *{color: #4ab866;}
 
 
 input::-webkit-input-placeholder { /* Chrome/Opera/Safari */

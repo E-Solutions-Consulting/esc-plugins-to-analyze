@@ -36,7 +36,7 @@ class BH_Modules_Loader {
          * COMMON (Utilities, shared state, helpers)
          * ============================================================
          */
-        //$this->safe_require( $base . 'common/bh-common-states.php' );
+        $this->safe_require( $base . 'common/constants.php' );
 
 
         /**
@@ -52,7 +52,7 @@ class BH_Modules_Loader {
          * API (REST Endpoints)
          * ============================================================
          */
-        //$this->safe_require( $base . 'api/bh-rest-api.php' );
+        $this->safe_require( $base . 'api/rest-api.php' );
 
 
         /**
@@ -85,14 +85,27 @@ class BH_Modules_Loader {
         // TripleWhale
         $this->safe_require( $base . 'integrations/triplewhale/loader.php' );
 
+        // Podscribe
+        $this->safe_require( $base . 'integrations/podscribe/loader.php' );
 
+        // Attentive
+        $this->safe_require( $base . 'integrations/attentive/loader.php' );
+
+        // Uscreen
+        $this->safe_require( $base . 'integrations/uscreen/loader.php' );
+
+        // Friendbuy
+        $this->safe_require( $base . 'integrations/friendbuy/loader.php' );
+
+        // Everflow
+        $this->safe_require( $base . 'integrations/everflow/loader.php' );
 
         /**
          * ============================================================
          * ADMIN (Roles & Permissions)
          * ============================================================
          */
-        //$this->safe_require( $base . 'admin/bh-roles-and-permissions.php' );
+        $this->safe_require( $base . 'admin/roles-and-permissions.php' );
 
 
         /**
@@ -100,7 +113,7 @@ class BH_Modules_Loader {
          * PAGE RESTRICTIONS (Access control for pages)
          * ============================================================
          */
-        //$this->safe_require( $base . 'pages/bh-restrictions.php' );
+        $this->safe_require( $base . 'pages/restrictions.php' );
 
 
         /**
@@ -114,7 +127,14 @@ class BH_Modules_Loader {
          * WC Test Mode
          * --------------------------------
          */
-        //$this->safe_require( $base . 'wc/bh-test-mode.php' );
+        $this->safe_require( $base . 'testing/test-mode.php' );
+
+        /**
+         * --------------------------------
+         * COUPONS
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/coupons/coupons.php' );
 
 
         /**
@@ -131,7 +151,7 @@ class BH_Modules_Loader {
          * CART
          * --------------------------------
          */
-        //$this->safe_require( $base . 'wc/cart/bh-cart.php' );
+        $this->safe_require( $base . 'wc/cart/cart.php' );
 
 
         /**
@@ -151,10 +171,14 @@ class BH_Modules_Loader {
          * ORDERS
          * --------------------------------
          */
-        //$this->safe_require( $base . 'wc/orders/bh-orders.php' );
-        //$this->safe_require( $base . 'wc/orders/bh-orders-admin.php' );
+        $this->safe_require( $base . 'wc/orders/orders.php' );
+        $this->safe_require( $base . 'wc/orders/orders-admin.php' );
 
         // Telegra integration
+        $this->safe_require( $base . 'wc/orders/telegra/orders-telegra-admin.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/orders-telegra.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/orders-telegra-workflow.php' );
+
         $this->safe_require( $base . 'wc/orders/telegra/renewal-handler.php' );
         $this->safe_require( $base . 'wc/orders/telegra/renewal-blocker.php' );
 
@@ -196,6 +220,13 @@ class BH_Modules_Loader {
          * --------------------------------
          */
         $this->safe_require( $base . 'wc/admin/admin.php' );
+
+        /**
+         * --------------------------------
+         * PERFORMANCE
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'performance/loader.php' );
 
 
         } catch ( Exception $e ) {

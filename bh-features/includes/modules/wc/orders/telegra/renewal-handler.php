@@ -68,7 +68,7 @@ class AH_Orders_Telegra_Renewal_Handler {
 		// 
 		add_action(
 			'woocommerce_order_status_changed',
-			[ $this, 'change_to_on_hold_free_orders' ],
+			[ $this, 'change_free_orders_to_telemdnow_status' ],
 			10,
 			3
 		);
@@ -183,14 +183,15 @@ class AH_Orders_Telegra_Renewal_Handler {
 	}
 
 	/**
-	 * Handle free orders (total = 0) by setting them to on-hold
+	 * Handle free orders (total = 0) by setting them to the status
+	 * configured in Telemdnow plugin (telemdnow_trigger_action option)
 	 * when they include a subscription.
 	 *
 	 * @param int    $order_id
 	 * @param string $old_status
 	 * @param string $new_status
 	 */
-	function change_to_on_hold_free_orders( $order_id, $old_status, $new_status ) {
+	function change_free_orders_to_telemdnow_status( $order_id, $old_status, $new_status ) {
 
 		// Only run when order moves into processing
 		if ( $new_status !== 'processing' ) {
@@ -244,10 +245,13 @@ class AH_Orders_Telegra_Renewal_Handler {
 		// Update status
 		// ---------------------------
 		try {
-			$order->update_status( 'on-hold', 'Order total is 0 → moved to on-hold by free-order handler.' );
+			$order_status = get_option( 'telemdnow_trigger_action' );
+			if ( ! empty( $order_status ) ) {
+				$order->update_status( $order_status, 'Order total is 0 → moved to '. $order_status .' by free-order handler.' );
+			}
 
 			wc_get_logger()->info(
-				"Order #{$order_id} moved to on-hold (free total + subscription).",
+				"Order #{$order_id} moved to {$order_status} (free total + subscription).",
 				[ 'source' => 'ah-free-orders' ]
 			);
 
@@ -332,45 +336,13 @@ class AH_Orders_Telegra_Renewal_Handler {
 	    return $should_process;
 	}
 
-	function disable_free_order_processing_during_blackout_period__old( $should_process, $order ) {
-
-		// Current WP datetime
-		$now = new DateTimeImmutable( 'now', wp_timezone() );
-		$current_ts = $now->getTimestamp();
-
-		// Blackout range
-		$range_start = DateTime::createFromFormat(
-			'Y-m-d H:i:s',
-			'2025-12-09 00:00:00',
-			wp_timezone()
-		)->getTimestamp();
-
-		$range_end = DateTime::createFromFormat(
-			'Y-m-d H:i:s',
-			'2026-01-15 23:59:59',
-			wp_timezone()
-		)->getTimestamp();
-
-		// If today is inside the blackout window → disable processing
-		if ( $current_ts >= $range_start && $current_ts <= $range_end ) {
-
-			wc_get_logger()->info(
-				"Free-order processing disabled for order #{$order->get_id()} (blackout period).",
-				[ 'source' => 'ah-free-orders' ]
-			);
-
-			return false;
-		}
-
-		return $should_process;
-	}
-
 	/* -------------------------------------------------------------------------
 	 *  CORE LOGIC
 	 * ---------------------------------------------------------------------- */
 
 	/**
-	 * Route renewal order to Telegra by switching it to on-hold.
+	 * Route renewal order to Telegra by switching it to Status 
+	 * configured in Telemdnow plugin (telemdnow_trigger_action option)
 	 *
 	 * @param WC_Order $order
 	 * @param string   $context
@@ -378,19 +350,19 @@ class AH_Orders_Telegra_Renewal_Handler {
 	protected function route_to_telegra( WC_Order $order, $context ) {
 
 		$current_status = $order->get_status();
+		$order_status	= get_option( 'telemdnow_trigger_action' );
 
 		// Skip if already routed
-		if ( $current_status === 'on-hold' ) {
+		if ( $current_status === $order_status ) {
 			return;
 		}
 
 		/**
 		 * Developers may customize the routing status.
-		 * Default: "on-hold"
 		 */
 		$target_status = apply_filters(
 			'ah_telegra_renewal_target_status',
-			'on-hold',
+			$order_status,
 			$order,
 			$context
 		);

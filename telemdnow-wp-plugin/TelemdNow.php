@@ -904,10 +904,10 @@ function telemdnow_redirect_after_purchase($order_id) {
     /**
      *  Filter for Disable the redirect in ThankYou page 
      *  Use mode:
-     *    1)  add_filter('telemd_thankyou_redirect_enabled', '__return_false');
-     *    2)  add_filter('telemd_thankyou_redirect_enabled', 'function_name'], 10, 2);
+     *    1)  add_filter('telemdnow_thankyou_redirect_enabled', '__return_false');
+     *    2)  add_filter('telemdnow_thankyou_redirect_enabled', 'function_name'], 10, 2);
      */
-    $is_thankyou_redirect_enabled = apply_filters('telemd_thankyou_redirect_enabled', $is_thankyou_redirect_enabled, $visit_link);
+    $is_thankyou_redirect_enabled = apply_filters('telemdnow_thankyou_redirect_enabled', $is_thankyou_redirect_enabled, $visit_link);
     if($is_thankyou_redirect_enabled){
       wp_redirect($visit_link);
       exit;
@@ -1305,6 +1305,9 @@ function telemdnow_api_error($status, $url, $type, $data_sent, $data_received) {
   } catch (Exception $e) {
     plugin_log('error in telemdnow_api_error' . $e->getMessage());
   }
+
+  do_action('telemdnow_critical_api_error', $status, $url, $type, $data_sent, $data_received, $inserted_id);
+
   return $inserted_id;
 }
 

@@ -1,0 +1,900 @@
+<?php
+
+if ( ! defined( 'WPINC' ) ) {
+    die;
+}
+
+class Bh_Features_Emails {
+    private $common;
+    const BATCH_SIZE = 100;
+    const TRANSIENT_KEY = 'bh_reminders_processing';
+
+    public function __construct($common) {
+        $this->common = $common;
+        add_filter('woocommerce_email_classes', function($emails) {
+            require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/emails/wc-subscription-reminder-email-2.php';
+            require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/emails/wc-subscription-reminder-email-7.php';
+            $emails['WC_Subscription_Reminder_Email_2'] = new WC_Subscription_Reminder_Email_2();
+            $emails['WC_Subscription_Reminder_Email_7'] = new WC_Subscription_Reminder_Email_7();
+            return $emails;
+        });
+        add_filter('woocommerce_locate_template', function($template, $template_name, $template_path) {
+            $plugin_path = trailingslashit(dirname(__DIR__, 1)) . 'templates/';
+            if (file_exists($plugin_path . $template_name)) {
+                return $plugin_path . $template_name;
+            }
+            
+            return $template;
+        }, 10, 3);
+        $this->init();
+    }
+
+    public function init() {
+        add_action('admin_init', [$this, 'send_subscription_reminders']);
+        add_action('admin_init', [$this, 'send_subscription_reminders_retry']);
+
+        add_action('wp_mail_smtp_mailcatcher_send_after', [$this, 'wp_mail_smtp_mailcatcher_send_after'], 10, 2);
+
+        //add_action('bh_send_subscription_reminders_7', [$this, 'process_batch_7']);
+        //add_action('admin_init', [$this, 'maybe_schedule_event']);
+    }
+
+    public function maybe_schedule_event() {
+        if (!wp_next_scheduled('bh_send_subscription_reminders_7')) {
+            wp_schedule_event(
+                strtotime('tomorrow 1:00 AM'), // Hora de bajo tráfico
+                'hourly', // Intervalo
+                'bh_send_subscription_reminders_7'
+            );
+        }
+    }
+
+    public function process_batch_7() {
+        if (get_transient(self::TRANSIENT_KEY)) {
+            return; // Evita solapamientos
+        }
+
+        set_transient(self::TRANSIENT_KEY, true, 15 * MINUTE_IN_SECONDS);
+
+        $email = WC()->mailer()->emails['WC_Subscription_Reminder_Email'];
+        if (!$email || !$email->is_enabled()) {
+            return;
+        }
+
+        $subscriptions = $this->get_due_subscriptions();
+        foreach ($subscriptions as $subscription_id) {
+            $email->trigger($subscription_id);
+            usleep(50000); // Pequeña pausa para reducir carga
+        }
+
+        delete_transient(self::TRANSIENT_KEY);
+    }
+    
+    public function send_subscription_reminders__() {
+        if (!isset($_GET['bh_action']) || $_GET['bh_action'] !== 'send_subscription_reminders')
+            return;
+        
+        if (!isset($_GET['days']) || !in_array($_GET['days'], ['2', '7']))
+            die('Invalid days parameter. Use 2 or 7.');
+
+        try {
+            $days = intval($_GET['days']);
+            $class_name =   'WC_Subscription_Reminder_Email_' . $days;
+            $file_path  =   plugin_dir_path(dirname(__FILE__)) . 'includes/emails/wc-subscription-reminder-email-' . $days . '.php';
+            if (!class_exists($class_name)) {
+                require_once $file_path;
+            }
+
+            $email = WC()->mailer()->emails[$class_name];
+            if (!$email || !$email->is_enabled())
+                die('Email class not found or not enabled');
+
+            $batch_size             = 3;
+            $sleep_between_batches  = 5; // segundos
+            $sleep_between_emails   = 200000; // microsegundos (0.05 segundos)
+            // Iniciar buffer de salida
+            ob_start();
+            echo "<pre>Starting reminder process for $days days before payment\n";
+            echo "==========================================\n";
+            ob_flush();
+            flush();
+            
+            $total_processed= 0;
+            $total_success  = 0;
+            $total_errors   = 0;
+            $batch_count    = 0;
+            $bh_log         = [];
+            
+            do {
+                $batch_count++;
+                $offset = ($batch_count - 1) * $batch_size;
+                
+                echo "\nProcesing batch #$batch_count...\n";
+                ob_flush();
+                flush();
+                
+                // Obtener suscripciones para este lote
+                $subscriptions = $this->get_due_subscriptions($days, $batch_size, $offset);
+                //bh_plugins_log($subscriptions);
+                if (empty($subscriptions)) {
+                    echo "No subscriptions.\n";
+                    break;
+                }
+                
+                // Procesar cada suscripción en el lote actual
+                $batch_success = 0;
+                $batch_errors = 0;
+                
+                foreach ($subscriptions as $subscription) {
+                    try {
+                        $row =   [
+                            'id'            =>  $subscription->id,
+                            'billing_email' =>  $subscription->billing_email,
+                            'status'        =>  'Success',
+                        ];
+                        $subscription_id = $subscription->id;
+                        global $current_subscription_id;
+                        $current_subscription_id    =   $subscription_id;
+                        $start_time = microtime(true);
+
+                        $return = $email->trigger($subscription_id);
+
+                        global $bh_email_status;
+                        $row['status'] = $bh_email_status;
+                        
+                        $process_time = round(microtime(true) - $start_time, 4);
+                        $batch_success++;
+
+                        echo "✓ Suscription #$subscription_id  notified ($process_time s)\n";
+                        ob_flush();
+                        flush();
+                        
+                        usleep($sleep_between_emails);
+                        
+                    } catch (Exception $e) {
+                        $row['status'] = 'Failed: ' . $e->getMessage();
+                        $batch_errors++;
+                        echo "✗ Error suscripción #$subscription_id: " . $e->getMessage() . "\n";
+                        ob_flush();
+                        flush();
+                    }
+                    $bh_log[] = $row;
+                }
+                
+                // Actualizar totales
+                $total_processed += count($subscriptions);
+                $total_success += $batch_success;
+                $total_errors += $batch_errors;
+                
+                echo "Batch #$batch_count completed: ";
+                echo count($subscriptions) . " processed, $batch_success successfully, $batch_errors errors\n";
+                
+                if (!empty($subscriptions) && count($subscriptions) === $batch_size) {
+                    echo "\nPause of $sleep_between_batches seconds before next batch...\n";
+                    ob_flush();
+                    flush();
+                    sleep($sleep_between_batches);
+                }
+                
+            } while (!empty($subscriptions) && count($subscriptions) === $batch_size);
+            
+            // Resumen final
+            echo "\n==========================================\n";
+            echo "PROCESS COMPLETED\n";
+            echo "Total batches procesed: $batch_count\n";
+            echo "Total subscriptions: $total_processed\n";
+            echo "Sent successfully: $total_success\n";
+            echo "Errors: $total_errors\n";
+            echo "==========================================\n";
+            
+            // Registrar finalización
+            $this->save_final_log($days, [
+            'total_batches'         =>  $batch_count,
+                'total_processed'   =>  $total_processed,
+                'total_success'     =>  $total_success,
+                'total_errors'      =>  $total_errors,
+                'execution_time'    =>  round(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2),
+                'log'              =>  $bh_log
+            ]);
+            
+            ob_end_flush();
+
+            echo "Reminder process complete. Check logs for details..\n";
+            die('Process completed successfully.');
+            //code...
+        } catch (\Throwable $th) {
+            //throw $th;
+            _print('Error processing reminders: ' . $th->getMessage());
+        }
+    }
+
+
+    public function send_subscription_reminders__1() {
+        if (!isset($_GET['bh_action']) || $_GET['bh_action'] !== 'send_subscription_reminders')
+            return;
+        
+        if (!isset($_GET['days']) || !in_array($_GET['days'], ['2', '7']))
+            die('Invalid days parameter. Use 2 or 7.');
+
+        try {
+            $days = intval($_GET['days']);
+            $class_name =   'WC_Subscription_Reminder_Email_' . $days;
+            $file_path  =   plugin_dir_path(dirname(__FILE__)) . 'includes/emails/wc-subscription-reminder-email-' . $days . '.php';
+            if (!class_exists($class_name)) {
+                require_once $file_path;
+            }
+
+            $email = WC()->mailer()->emails[$class_name];
+            if (!$email || !$email->is_enabled())
+                die('Email class not found or not enabled');
+
+            flush();
+            ob_flush();
+            ob_end_flush();
+
+            $batch_size             = isset($_GET['batch'])? intval($_GET['batch']):3;
+            $sleep_between_batches  = 5; // segundos
+            $sleep_between_emails   = 200000; // microsegundos (0.05 segundos)
+            // Iniciar buffer de salida
+            ob_start();
+            echo "<pre>Starting reminder process for $days days before payment\n";
+            echo "==========================================\n";
+            flush();
+            ob_flush();
+            
+            $total_processed= 0;
+            $total_success  = 0;
+            $total_errors   = 0;
+            $batch_count    = 0;
+            $bh_log         = [];
+
+            $continue_sending = true;
+            
+            do {
+                $batch_count++;
+                $offset = ($batch_count - 1) * $batch_size;
+                
+                echo "<h3>Procesing batch #$batch_count...</h3>";
+                echo '<ol>';
+                ob_flush();
+                flush();
+                
+                // Obtener suscripciones para este lote
+                $subscriptions = $this->get_due_subscriptions($days, $batch_size, $offset);
+                //bh_plugins_log($subscriptions);
+                if (empty($subscriptions)) {
+                    echo "No subscriptions.\n";
+                    break;
+                }
+                _print($subscriptions, 'Subscriptions in batch');
+                
+                // Procesar cada suscripción en el lote actual
+                $batch_success = 0;
+                $batch_errors = 0;
+                foreach ($subscriptions as $subscription) {
+                    if(!$continue_sending) {
+                        break; // Detener si se ha alcanzado el límite de envíos
+                    }
+                    echo '<li>';
+                    try {
+                        $row =   [
+                            'id'            =>  $subscription->id,
+                            'billing_email' =>  $subscription->billing_email,
+                            'status'        =>  'Success',
+                        ];
+                        $subscription_id = $subscription->id;
+                        global $current_subscription_id;
+                        $current_subscription_id    =   $subscription_id;
+                        $start_time = microtime(true);
+
+                        $return = $email->trigger($subscription_id);
+                        echo 'sending email to ' . $subscription->billing_email . "\n";
+
+                        global $bh_email_status;
+                        $row['status']  =   $bh_email_status['is_sent'] ? 'sent' : 'failed: ' . $bh_email_status['error'];
+                        
+                        $process_time = round(microtime(true) - $start_time, 4);
+                        $batch_success++;
+
+                        echo "✓ Suscription #$subscription_id  notified ($process_time s)\n";
+                        flush();
+                        ob_flush();
+                        
+                        usleep($sleep_between_emails);
+                        
+                    } catch (Exception $e) {
+                        $row['status'] = 'Failed: ' . $e->getMessage();
+                        $batch_errors++;
+                        echo "✗ Error suscripción #$subscription_id: " . $e->getMessage() . "\n";
+                        ob_flush();
+                        flush();
+                    }
+                    $bh_log[] = $row;
+                    echo '</li>';
+                    $continue_sending = $continue_sending && $bh_email_status['is_sent'];
+                }
+                echo '</ol>';
+                // Actualizar totales
+                $total_processed += count($subscriptions);
+                $total_success += $batch_success;
+                $total_errors += $batch_errors;
+                
+                echo "Batch #$batch_count completed: ";
+                echo count($subscriptions) . " processed, $batch_success successfully, $batch_errors errors\n";
+                
+                if (!empty($subscriptions) && count($subscriptions) === $batch_size) {
+                    echo "\nPause of $sleep_between_batches seconds before next batch...\n";
+                    ob_flush();
+                    flush();
+                    sleep($sleep_between_batches);
+                }
+                
+            } while (!empty($subscriptions) && count($subscriptions) === $batch_size && $continue_sending);
+            
+            // Resumen final
+            echo "\n==========================================\n";
+            echo "PROCESS COMPLETED\n";
+            echo "Total batches procesed: $batch_count\n";
+            echo "Total subscriptions: $total_processed\n";
+            echo "Sent successfully: $total_success\n";
+            echo "Errors: $total_errors\n";
+            echo "==========================================\n";
+            
+            // Registrar finalización
+            $this->save_final_log($days, [
+            'total_batches'         =>  $batch_count,
+                'total_processed'   =>  $total_processed,
+                'total_success'     =>  $total_success,
+                'total_errors'      =>  $total_errors,
+                'execution_time'    =>  round(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2),
+                'log'              =>  $bh_log
+            ]);
+            
+            ob_end_flush();
+
+            echo "Reminder process complete. Check logs for details..\n";
+
+            if(!$continue_sending){
+                $errorData = json_decode($bh_email_status['error'], true);
+                if ($errorData['error']['code'] === 429) {
+                    $message = $errorData['error']['message'];
+
+                    // Buscar la fecha "Retry after ..."
+                    preg_match('/Retry after ([0-9\-T:.Z]+)/', $message, $matches);
+
+                    if (!empty($matches[1])) {
+                        $retryTimeUTC = $matches[1];
+                        $retryDate = new DateTime($retryTimeUTC, new DateTimeZone("UTC"));
+
+                        // Convertir a zona horaria local si quieres
+                        $retryDate->setTimezone(new DateTimeZone("America/Chicago"));
+
+                        echo "⛔ Error: Límite de envío alcanzado\n";
+                        echo "Debes reintentar después de: " . $retryDate->format("Y-m-d H:i:s T") . "\n";
+                    } else {
+                        echo "No se encontró información de reintento.\n";
+                    }
+                } else {
+                    echo "Error distinto: " . $errorData['error']['message'] . "\n";
+                }
+            }
+
+            die('Process completed successfully.');
+            //code...
+        } catch (\Throwable $th) {
+            //throw $th;
+            _print('Error processing reminders: ' . $th->getMessage());
+        }
+    }
+
+    public function send_subscription_reminders() {
+        if (!isset($_GET['bh_action']) || $_GET['bh_action'] !== 'send_subscription_reminders')
+            return;
+        
+        if (!isset($_GET['days']) || !in_array($_GET['days'], ['2', '7']))
+            die('Invalid days parameter. Use 2 or 7.');
+
+        try {
+            // CONFIGURACIÓN PARA OUTPUT EN TIEMPO REAL
+            if (ob_get_level()) ob_end_clean();
+            header('Content-Type: text/html; charset=utf-8');
+            header('Cache-Control: no-cache');
+            ini_set('output_buffering', 'off');
+            ini_set('zlib.output_compression', false);
+            
+            echo "<pre>Starting reminder process for $days days before payment\n";
+            echo "==========================================\n";
+            flush();
+
+            $days = intval($_GET['days']);
+            $class_name = 'WC_Subscription_Reminder_Email_' . $days;
+            $file_path = plugin_dir_path(dirname(__FILE__)) . 'includes/emails/wc-subscription-reminder-email-' . $days . '.php';
+            
+            if (!class_exists($class_name)) {
+                require_once $file_path;
+            }
+
+            $email = WC()->mailer()->emails[$class_name];
+            if (!$email || !$email->is_enabled())
+                die('Email class not found or not enabled');
+
+            // CONFIGURACIÓN OPTIMIZADA PARA 500-800 EMAILS
+            $batch_size = isset($_GET['batch']) ? intval($_GET['batch']) : 50;
+            $sleep_between_batches = 1; // segundos
+            $emails_per_second = 8; // conservador (80% del límite)
+            
+            $total_processed = 0;
+            $total_success = 0;
+            $total_errors = 0;
+            $batch_count = 0;
+            $bh_log = [];
+
+            // Variables para rate limiting
+            $emails_sent_this_second = 0;
+            $current_second = time();
+
+            echo "Configuration: Batch size = $batch_size, Emails/sec = $emails_per_second\n";
+            //echo "Expected time for 800 emails: ~2 minutes\n";
+            flush();
+
+            do {
+                $batch_count++;
+                $offset = ($batch_count - 1) * $batch_size;
+                
+                echo "<h3>Processing batch #$batch_count (offset: $offset)...</h3>";
+                echo '<ol>';
+                flush();
+                
+                $subscriptions = $this->get_due_subscriptions($days, $batch_size, $offset);
+                
+                if (empty($subscriptions)) {
+                    echo "No more subscriptions found.\n";
+                    flush();
+                    break;
+                }
+
+                $batch_success = 0;
+                $batch_errors = 0;
+                
+                foreach ($subscriptions as $subscription) {
+                    echo '<li>';
+                    
+                    // CONTROL DE RATE LIMITING
+                    $now = time();
+                    if ($now !== $current_second) {
+                        $current_second = $now;
+                        $emails_sent_this_second = 0;
+                    }
+                    
+                    if ($emails_sent_this_second >= $emails_per_second) {
+                        echo "⏳ Rate limit control: waiting 1 second...\n";
+                        flush();
+                        sleep(1);
+                        $current_second = time();
+                        $emails_sent_this_second = 0;
+                    }
+                    
+                    $max_retries = 2;
+                    $retry_count = 0;
+                    $sent_successfully = false;
+                    
+                    while ($retry_count <= $max_retries && !$sent_successfully) {
+                        try {
+                            $subscription_id = $subscription->id;
+                            $start_time = microtime(true);
+
+                            echo "#$subscription_id: Sending to " . $subscription->billing_email . "... ";
+                            flush();
+
+                            // ENVÍO CON RESEND (integrado en la clase)
+                            $return = $email->trigger($subscription_id);
+                            bh_plugins_log([$subscription->billing_email, $return], 'bh_plugins_reminder_email_' . $days . '_resend_response');
+                            $process_time = round(microtime(true) - $start_time, 4);
+                            echo "✓ Sent in {$process_time}s\n";
+                            flush();
+                            
+                            $batch_success++;
+                            $emails_sent_this_second++;
+                            $sent_successfully = true;
+                            
+                            // Rate limiting entre emails
+                            usleep(125000); // 125ms = 8 emails/segundo
+                            
+                        } catch (Exception $e) {
+                            $retry_count++;
+                            $error_message = $e->getMessage();
+                            
+                            // MANEJO DE ERRORES ESPECÍFICOS DE RESEND
+                            if (strpos($error_message, '429') !== false) {
+                                echo "🚨 Rate limit exceeded, waiting 5 seconds...\n";
+                                flush();
+                                sleep(5);
+                                $current_second = time();
+                                $emails_sent_this_second = 0;
+                                
+                            } elseif (strpos($error_message, '403') !== false) {
+                                echo "❌ ERROR: Invalid Resend API Key - STOPPING PROCESS\n";
+                                flush();
+                                die('Invalid Resend API Key');
+                                
+                            } elseif (strpos($error_message, '422') !== false) {
+                                echo "⚠️ Invalid email, skipping...\n";
+                                flush();
+                                break; // Saltar este email
+                                
+                            } elseif (strpos($error_message, '500') !== false && $retry_count <= $max_retries) {
+                                echo "🔧 Server error, retry $retry_count/$max_retries in 2s...\n";
+                                flush();
+                                sleep(2);
+                                
+                            } else {
+                                // Error no manejable
+                                echo "❌ Unrecoverable error: " . $error_message . "\n";
+                                flush();
+                                $batch_errors++;
+                                break;
+                            }
+                            
+                            if ($retry_count > $max_retries) {
+                                echo "❌ Max retries reached, skipping email...\n";
+                                flush();
+                                $batch_errors++;
+                            }
+                        }
+                    }
+                    
+                    echo '</li>';
+                    flush();
+                }
+                
+                echo '</ol>';
+                flush();
+                
+                $total_processed += count($subscriptions);
+                $total_success += $batch_success;
+                $total_errors += $batch_errors;
+                
+                echo "Batch #$batch_count completed: " . count($subscriptions) . " processed, $batch_success success, $batch_errors errors\n";
+                echo "Progress: $total_processed total emails processed\n";
+                flush();
+                
+                if (!empty($subscriptions) && count($subscriptions) === $batch_size) {
+                    echo "Pausing $sleep_between_batches seconds before next batch...\n";
+                    flush();
+                    sleep($sleep_between_batches);
+                }
+                
+            } while (!empty($subscriptions) && count($subscriptions) === $batch_size);
+            
+            // RESUMEN FINAL
+            echo "\n==========================================\n";
+            echo "PROCESS COMPLETED\n";
+            echo "Total batches: $batch_count\n";
+            echo "Total subscriptions: $total_processed\n";
+            echo "Successfully sent: $total_success\n";
+            echo "Errors: $total_errors\n";
+            echo "==========================================\n";
+            flush();
+
+            $this->save_final_log($days, [
+                'total_batches' => $batch_count,
+                'total_processed' => $total_processed,
+                'total_success' => $total_success,
+                'total_errors' => $total_errors,
+                'execution_time' => round(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2),
+                'log' => $bh_log
+            ]);
+
+            echo "Reminder process complete. Check logs for details.\n";
+            
+            // ESTIMACIÓN DE TIEMPO
+            $total_time = round(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2);
+            echo "Total execution time: {$total_time}s\n";
+            echo "Average: " . round($total_processed / $total_time, 2) . " emails/second\n";
+            
+            die('Process completed successfully.');
+
+        } catch (\Throwable $th) {
+            echo "Error: " . $th->getMessage() . "\n";
+            flush();
+        }
+    }
+    public function send_subscription_reminders_retry() {
+        if (!isset($_GET['bh_action']) || $_GET['bh_action'] !== 'send_subscription_reminders_retry')
+            return;
+        
+        if (!isset($_GET['days']) || !in_array($_GET['days'], ['2', '7']))
+            die('Invalid days parameter. Use 2 or 7.');
+
+        if (!isset($_GET['date']) || empty($_GET['date']))
+            die('Invalid date parameter.');
+
+        try {
+            $target_date = $_GET['date'];
+            $days = intval($_GET['days']);
+            $class_name =   'WC_Subscription_Reminder_Email_' . $days;
+            $file_path  =   plugin_dir_path(dirname(__FILE__)) . 'includes/emails/wc-subscription-reminder-email-' . $days . '.php';
+            if (!class_exists($class_name)) {
+                require_once $file_path;
+            }
+
+            $email = WC()->mailer()->emails[$class_name];
+            if (!$email || !$email->is_enabled())
+                die('Email class not found or not enabled');
+
+            $emails_data_not_sent = $this->get_email_log_not_sent($target_date);
+             _print($emails_data_not_sent);
+            $subscriptions  =   [];
+
+            $state_placeholders = implode(',', array_fill(0, count($this->common->restricted_states), '%s'));
+
+            global $wpdb;
+            $query = $wpdb->prepare(
+                "SELECT o.id, o.billing_email, oa.state, oa.address_type
+                FROM {$wpdb->prefix}wc_orders o 
+                INNER JOIN {$wpdb->prefix}wc_orders_meta om ON o.id = om.order_id 
+                INNER JOIN {$wpdb->prefix}wc_order_addresses oa ON oa.order_id = o.id 
+                WHERE o.type = 'shop_subscription' 
+                AND o.status = 'wc-active' 
+                AND om.meta_key = '_schedule_next_payment' 
+                AND om.meta_value NOT IN ('0', '') 
+                AND oa.state   NOT IN ($state_placeholders) 
+                AND oa.address_type = 'shipping' 
+                AND DATE(om.meta_value) = %s
+                ORDER BY o.id ASC",
+                array_merge($this->common->restricted_states, [$target_date])
+            );
+            _print('Query 10: ' . $query);
+            //$subscription_ids = $wpdb->get_col($query);
+
+            $batch_size             = 20;
+            $sleep_between_batches  = 3; // segundos
+            $sleep_between_emails   = 500000; // microsegundos (0.05 segundos)
+            // Iniciar buffer de salida
+            ob_start();
+            echo "<pre>Starting reminder process\n";
+            echo "==========================================\n";
+            ob_flush();
+            flush();
+            
+            $total_processed= 0;
+            $total_success  = 0;
+            $total_errors   = 0;
+            $batch_count    = 0;
+
+            $subscriptions=[];
+            $emails=[];
+            $subscriptions_data = $wpdb->get_results($query);
+            if ($subscriptions_data) {
+                foreach ($subscriptions_data as $subscription) {
+                    if(!in_array($subscription->billing_email, $emails_data_not_sent))
+                        continue ;
+
+                    $subscriptions[]   =   $subscription;
+                    $emails[]   =   $subscription->billing_email;
+                }
+                
+            }
+            if($subscriptions){
+                foreach ($subscriptions as $subscription) {
+                    $subscription_id = $subscription->id;
+                    $return = $email->trigger($subscription_id);
+                    _print($return);
+                    echo "✓ Suscription #$subscription_id  notified\n";
+                    ob_flush();
+                    flush();                    
+                    usleep($sleep_between_emails);
+                }
+            }
+            // _print($output);
+            $nonCommonEmails = array_diff($emails_data_not_sent, $emails);
+            _print($nonCommonEmails, '$nonCommonEmails');
+
+
+        } catch (\Throwable $th) {
+            _print('Error processing reminders: ' . $th->getMessage());
+        }
+
+        die('$emails_data_not_sent');
+            
+    }
+
+
+    private function get_email_log_not_sent($target_date) {
+        try {
+            global $wpdb;
+            $output=[];
+
+            $state_placeholders = implode(',', array_fill(0, count($this->common->restricted_states), '%s'));
+            $timestamp = strtotime($target_date); // Convertir a timestamp
+            $formatted_date = date('F j, Y', $timestamp); // 22 August 2025
+
+            //$target_date= date('j F Y', $target_date);
+            $subject    =   '%Reminder: Your Brello Plan Renews on '  . $formatted_date . '%';
+            // id, to_email, sent_date, result, error_message  
+            $query  =   "SELECT 
+                id, to_email 
+                FROM {$wpdb->prefix}email_log 
+                WHERE 
+                    subject LIKE '$subject' 
+                    AND result = 0 
+                    AND error_message IS NOT NULL";
+            _print('Query 2: ' . $query);
+            $email_log_data = $wpdb->get_results($query);
+            
+            foreach ($email_log_data as $email_log) {
+                $output[]   =   $email_log->to_email;
+            }
+            
+        } catch (\Throwable $th) {
+            //throw $th;
+            _print('Error get_email_log_not_sent: ' . $th->getMessage());
+        }
+        
+        return $output;
+    }
+
+    private function get_due_subscriptions($days, $limit = 100, $offset = 0) {
+        global $wpdb;
+        $target_date = date('Y-m-d', strtotime("+{$days} days"));
+        // _print($this->common->restricted_states);
+        $state_placeholders = implode(',', array_fill(0, count($this->common->restricted_states), '%s'));
+        // _print($state_placeholders);
+        $query = $wpdb->prepare(
+            "SELECT o.id, o.billing_email, oa.state, oa.address_type
+            FROM {$wpdb->prefix}wc_orders o 
+            INNER JOIN {$wpdb->prefix}wc_orders_meta om ON o.id = om.order_id 
+            INNER JOIN {$wpdb->prefix}wc_order_addresses oa ON oa.order_id = o.id 
+            WHERE o.type = 'shop_subscription' 
+            AND o.status = 'wc-active' 
+            AND om.meta_key = '_schedule_next_payment' 
+            AND om.meta_value NOT IN ('0', '') 
+            AND oa.state   NOT IN ($state_placeholders) 
+            AND oa.address_type = 'shipping' 
+            AND DATE(om.meta_value) = %s
+            ORDER BY o.id ASC
+            LIMIT %d OFFSET %d",
+            array_merge($this->common->restricted_states, [$target_date, $limit, $offset])
+        );
+        _print('Query: ' . $query);
+        //$subscription_ids = $wpdb->get_col($query);
+        $subscriptions = $wpdb->get_results($query);
+        return $subscriptions;
+    }
+
+    private function save_batch_log($days, $batch_number, $data) {
+        $log_entry = array(
+            'date' => current_time('mysql'),
+            'days_before' => $days,
+            'batch' => $batch_number,
+            'processed' => $data['processed'],
+            'success' => $data['success'],
+            'errors' => $data['errors'],
+            'subscriptions' => $data['subscriptions']
+        );
+        
+        // Guardar en opciones de WordPress
+        // $existing_logs = get_option('bh_reminder_logs', array());
+        // $existing_logs[] = $log_entry;
+        // update_option('bh_reminder_logs', $existing_logs, false);
+        
+        // También registrar en WC Logger
+        $logger = wc_get_logger();
+        $logger->info("Lote $batch_number procesado", array(
+            'source' => 'bh-reminders',
+            'days' => $days,
+            'batch' => $batch_number,
+            'details' => $log_entry
+        ));
+    }
+
+    private function save_final_log($days, $summary) {
+        // $log_entry = array(
+        //     'date' => current_time('mysql'),
+        //     'type' => 'summary',
+        //     'days_before' => $days,
+        //     'summary' => $summary
+        // );
+        
+        // Guardar en opciones de WordPress
+        // $existing_logs = get_option('bh_reminder_logs', array());
+        // $existing_logs[] = $log_entry;
+        // update_option('bh_reminder_logs', $existing_logs, false);
+        
+        // Registrar en WC Logger
+        $logger = wc_get_logger();
+        $logger->info('Reminder process completed', array(
+            'source' => 'bh-reminders',
+            'days' => $days,
+            'summary' => $summary
+        ));
+    }
+
+    /**
+     * Registra el resultado del envío de correos electrónicos
+     *
+     * @param \WPMailSMTP\MailCatcher $mailcatcher Instancia del mailcatcher
+     * @param bool $is_sent Si el correo fue enviado exitosamente
+     */    
+    function wp_mail_smtp_mailcatcher_send_after__($mailer, $_this) {
+        //bh_plugins_log(['wp_mail_smtp_mailcatcher_send_after', func_get_args()], 'bh_plugins_smtp_email');
+        global $current_subscription_id;
+        try {
+
+            $is_sent = $mailer->is_email_sent();
+            $log_data = [
+                'date' => current_time('mysql'),
+                'subscription_id'=>    $current_subscription_id,
+                'status' => $is_sent ? 'sent' : 'failed',
+                'error' => !$is_sent ? $mailer->get_response_error() : null,
+            ];
+            bh_plugins_log($log_data, 'bh_plugins_smtp_email');
+
+            global $bh_email_status;
+            $bh_email_status    =   $log_data['status'] . ' - ' . $log_data['error'];
+        } catch (Exception $e) {
+            bh_plugins_log('Error logging email result(' . $current_subscription_id .'): ' . $e->getMessage(), 'bh_plugins_smtp_email');
+        }
+    }
+
+    function wp_mail_smtp_mailcatcher_send_after($mailer, $_this) {
+        //bh_plugins_log(['wp_mail_smtp_mailcatcher_send_after', func_get_args()], 'bh_plugins_smtp_email');
+        global $current_subscription_id;
+        try {
+
+            $is_sent = $mailer->is_email_sent();
+            $log_data = [
+                'date' => current_time('mysql'),
+                'subscription_id'=>    $current_subscription_id,
+                'status' => $is_sent ? 'sent' : 'failed',
+                'error' => !$is_sent ? $mailer->get_response_error() : null,
+            ];
+            bh_plugins_log($log_data, 'bh_plugins_smtp_email');
+
+            global $bh_email_status;
+            $bh_email_status['is_sent']    =   $is_sent;
+            $bh_email_status['message']    =   $log_data['error'];
+        } catch (Exception $e) {
+
+            global $bh_email_status;
+            $bh_email_status['is_sent']    =   false;
+            $bh_email_status['message']    =   $e->getMessage();
+            bh_plugins_log('Error logging email result(' . $current_subscription_id .'): ' . $e->getMessage(), 'bh_plugins_smtp_email');
+        }
+    }
+    /**
+     * Formatea las direcciones de email
+     */
+    private function format_addresses($addresses) {
+        if (empty($addresses)) {
+            return [];
+        }
+        
+        $formatted = [];
+        foreach ($addresses as $address) {
+            if (is_array($address) && count($address) >= 1) {
+                $formatted[] = $address[0];
+            }
+        }
+        
+        return $formatted;
+    }
+
+    /**
+     * Formatea los headers
+     */
+    private function format_headers($headers) {
+        if (empty($headers)) {
+            return [];
+        }
+        
+        $formatted = [];
+        foreach ($headers as $header) {
+            if (is_array($header) && count($header) >= 2) {
+                $formatted[$header[0]] = $header[1];
+            }
+        }
+        
+        return $formatted;
+    }
+}

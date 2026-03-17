@@ -315,6 +315,10 @@ class Bh_Tools_Admin {
 
     public function add_admin_menu() {
 		$this->set_parent_menu();
+
+		if(!$this->current_user_can_manage_brello_tools())
+			return;
+
 		add_submenu_page(
 			PARENT_MENU_SLUG,
 			'Export',
@@ -323,9 +327,6 @@ class Bh_Tools_Admin {
 			PARENT_MENU_SLUG . '--tools-export',
 			[$this, 'export_subscriptions_page']
 		);
-
-		if(!$this->current_user_can_manage_brello_tools())
-			return;
 
 		add_submenu_page(
 			PARENT_MENU_SLUG,
@@ -336,14 +337,15 @@ class Bh_Tools_Admin {
 			[$this, 'order_inspector_page']
 		);
 
-		add_submenu_page(
-			PARENT_MENU_SLUG,
-			'Prepare Order to Northbeam',
-			'Prepare Order to Northbeam',
-			'manage_options',
-			PARENT_MENU_SLUG . '--tools-prepare-orders-to-northbeam',
-			[$this, 'prepare_order_to_northbeam_page']
-		);
+		// add_submenu_page(
+		// 	PARENT_MENU_SLUG,
+		// 	'Prepare Order to Northbeam',
+		// 	'Prepare Order to Northbeam',
+		// 	'manage_options',
+		// 	PARENT_MENU_SLUG . '--tools-prepare-orders-to-northbeam',
+		// 	[$this, 'prepare_order_to_northbeam_page']
+		// );
+		
 		add_submenu_page(
 			PARENT_MENU_SLUG,
 			'Notifications',
@@ -352,6 +354,15 @@ class Bh_Tools_Admin {
 			PARENT_MENU_SLUG . '--tools-notifications',
 			[$this, 'send_notifications_to_complete_subscription_page']
 		);
+
+		// add_submenu_page(
+		// 	PARENT_MENU_SLUG,
+		// 	'Export Gender',
+		// 	'Export Gender',
+		// 	'manage_options',
+		// 	PARENT_MENU_SLUG . '--tools-export-gender',
+		// 	[$this, 'export_gender_subscriptions_page']
+		// );
 
 		/*
 
@@ -664,8 +675,20 @@ class Bh_Tools_Admin {
 			* ========================================================== */
 			$where = [
 				"o.type = 'shop_subscription'",
-				"o.status = 'wc-active'"
 			];
+
+			/* --------------------
+			* FILTER: STATUS
+			* -------------------- */
+			if (!empty($form_data['subscription_status'])) {
+				$subscription_status = array_filter($form_data['subscription_status']);
+				if (count($subscription_status) > 0) {
+					$placeholders = implode(',', array_fill(0, count($subscription_status), '%s'));
+					$where[] = $wpdb->prepare("o.status IN ($placeholders)", ...$subscription_status);
+				}else{
+					$where[] = "o.status = 'wc-active'"; // No status filter applied
+				}
+			}
 
 			$order_by	=	'';
 
@@ -2055,7 +2078,7 @@ class Bh_Tools_Admin {
 				if (!is_wp_error($response)){
 					$jsonData		=	json_decode(wp_remote_retrieve_body($response), true);
 					$telegra_status	=	$jsonData['status'];
-					if(isset($jsonData['reminderCreationDate'])){
+					/*if(isset($jsonData['reminderCreationDate'])){
 						$telegra_reminderCreationDate	=	$jsonData['reminderCreationDate'];
 
 						$date = new DateTime($jsonData['reminderCreationDate']);
@@ -2063,7 +2086,7 @@ class Bh_Tools_Admin {
 						$readableDate = wp_date($wp_date_format . ' ' . $wp_time_format, $date->getTimestamp());
 						
 						$telegra_reminderCreationDate	=	$readableDate;
-					}
+					}*/
 				}
 
 				// $stripe_status= '';
@@ -2101,7 +2124,7 @@ class Bh_Tools_Admin {
 					$sent	=	true;
 					$rs[]	=	$jsonData;
 				}
-				bh_plugins_log($rs, 'bh_plugins_sendOrderLink');
+				//bh_plugins_log($rs, 'bh_plugins_sendOrderLink');
 
 				$rows[] = array(
 					'order'	=> [
@@ -2531,6 +2554,310 @@ class Bh_Tools_Admin {
 			wp_send_json_success(['file_url' => $file_url]);
 		} else {
 			wp_send_json_error(['message' => 'No partial file found']);
+		}
+	}
+
+	/**
+	 * Get Gender of Patient
+	 */
+	function export_gender_subscriptions_page() {
+		//delete_transient('process_export_gender_subscriptions_active');
+		$states			=	WC()->countries->get_states('US');
+		$active_process =	get_transient('process_export_gender_subscriptions_active');
+
+		wp_enqueue_script('jquery-ui-tabs');
+		wp_enqueue_style( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css' );
+		wp_enqueue_script( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), null, true );
+		wp_enqueue_script( 'checkbox-states', plugin_dir_url( __DIR__ ) . 'admin/js/bh-select2.js', array('jquery', 'hb-select2'), null, true );
+		wp_localize_script('checkbox-states', 'ajaxurl', admin_url('admin-ajax.php'));
+
+		?>
+		<div class="wrap">
+			<h1>Brello Export Gender Customers Tools</h1>
+			<?php 
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-page-export-gender.php';
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-progress-bar.php';
+			?>
+		</div>
+		<?php
+	}
+
+	function process_export_gender_subscriptions_batch() {
+		global $wpdb;
+
+		try {
+			set_transient('process_export_gender_subscriptions_active', true, 3600);
+
+			parse_str($_POST['form_data'], $form_data);
+			$offset     = intval($_POST['offset']);
+			$batch_size = intval($form_data['batch_size']);
+			$test_mode	=	boolval($form_data['test_mode']);
+
+			$upload_dir     = wp_upload_dir();
+			$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+			$file_path      = $base_file_path . 'subscriptions_export_gender_temp.csv';
+
+			/* ==========================================================
+			* CREATE CSV HEADER ON FIRST RUN
+			* ========================================================== */
+			if ($offset === 0) {
+				if (!file_exists($base_file_path)) {
+					wp_mkdir_p($base_file_path);
+				}
+
+				$headers = [
+					'Subscription ID', 'Status', 'Date Created', 
+					'Gender', 'First Name', 'Last Name', 'Customer Email', 'State',
+					'State Name', 'City'
+				];
+
+				$file = fopen($file_path, 'w');
+				fputcsv($file, $headers);
+				fclose($file);
+			}
+
+			/* ==========================================================
+			* JOINS
+			* ========================================================== */
+			$joins = [
+				// shipping address
+				"LEFT JOIN {$wpdb->prefix}wc_order_addresses a ON a.order_id=o.id AND a.address_type = 'shipping'",
+			];
+
+			/* ==========================================================
+			* WHERE CONDITIONS
+			* ========================================================== */
+			$where = [
+				"o.type = 'shop_subscription'",				
+				"o.status = 'wc-active'"
+			];
+
+			/* --------------------
+			* FILTER: STATES
+			* -------------------- */
+			if (!empty($form_data['states'])) {
+				$states = array_filter($form_data['states']);
+				if (count($states) > 0) {
+					$placeholders = implode(',', array_fill(0, count($states), '%s'));
+					$where[] = $wpdb->prepare("a.state IN ($placeholders)", ...$states);
+				}
+			}
+
+			/* --------------------
+			* FILTER: DATE RANGE
+			* -------------------- */
+			if (!empty($form_data['start_date'])) {
+				$where[] = $wpdb->prepare("o.date_created_gmt >= %s", $form_data['start_date']);
+			}
+
+			if (!empty($form_data['end_date'])) {
+				$where[] = $wpdb->prepare("o.date_created_gmt <= %s", $form_data['end_date']);
+			}
+
+			/* --------------------
+			* ALWAYS EXCLUDE: FL, CT
+			* -------------------- */
+			//$where[] = "a.state NOT IN ('FL','CT')";
+
+			/* ==========================================================
+			* TOTAL COUNT (FIRST RUN ONLY)
+			* ========================================================== */
+			if ($offset === 0) {
+				$sql_total = "
+					SELECT COUNT(DISTINCT o.id)
+					FROM {$wpdb->prefix}wc_orders o
+					" . implode(' ', $joins) . "
+					WHERE " . implode(' AND ', $where);
+
+				$total = $wpdb->get_var($sql_total);
+			} else {
+				$total = intval($_POST['total']);
+			}
+
+			/* ==========================================================
+			* SELECT FIELDS
+			* ========================================================== */
+			$select = [
+				'o.id',
+				'o.status',
+				'o.date_created_gmt',
+				'a.first_name',
+				'a.last_name',
+				'o.billing_email',
+				'a.state',
+				'a.city',
+			];
+
+			/* ==========================================================
+			* FINAL QUERY
+			* ========================================================== */
+			$sql = $wpdb->prepare(
+				"SELECT " . implode(', ', $select) . "
+				FROM {$wpdb->prefix}wc_orders o
+				" . implode(' ', $joins) . "
+				WHERE " . implode(' AND ', $where) . "
+				GROUP BY o.id
+				LIMIT %d OFFSET %d",
+				$batch_size,
+				$offset
+			);
+			bh_plugins_log('SQL Export Gender Subscriptions: ' . $sql);
+			$subscriptions = $wpdb->get_results($sql);
+
+			/* ==========================================================
+			* PROCESS ROWS
+			* ========================================================== */
+			// $file = fopen($file_path, 'a');
+			if(!$test_mode)
+				$file = fopen($file_path, 'a');
+			$processed = $offset;
+
+			$base_country  = WC()->countries->get_base_country();
+			$country_states = WC()->countries->get_states($base_country);
+
+			$telegramd_token = get_transient('telemdnow_auth_token');
+			
+			$telemdnow_rest_url	=	'https://telegramd-rest.telegramd.com';
+
+			foreach ($subscriptions as $sub) {
+
+				// ------------------------------------------
+				// FORMATO STATE NAME
+				// ------------------------------------------
+				$state_name = $sub->state;
+				if ($sub->state) {
+					$state_name = $country_states[$sub->state] ?? $sub->state;
+				}
+
+				$gender	=	'N/A';
+				$email	=	trim($sub->billing_email);
+				$api_url	=	$telemdnow_rest_url . '/patients/actions/getByEmail/' . $email . '?access_token='. $telegramd_token;
+				$response	=	wp_remote_get($api_url);
+				bh_plugins_log([$api_url, $response]);
+				/*
+				  {
+					"_id": "pat::65cf907f-636a-4468-b70f-7f11acf28296",
+					"email": "marianamaglioni@gmail.com",
+					"firstName": "Mariana",
+					"lastName": "Maglioni",
+					"patientMedications": [],
+					"medicationAllergies": [],
+					"name": "Mariana Maglioni",
+					"dateOfBirth": "2000-05-26T00:00:00.000Z",
+					"genderBiological": "female",
+					"id": "pat::65cf907f-636a-4468-b70f-7f11acf28296"
+				}
+				 */
+				if (!is_wp_error($response)){
+					$jsonData		=	json_decode(wp_remote_retrieve_body($response), true);
+					bh_plugins_log(['Subscription #' . $sub->id, $jsonData], 'bh_plugins_gender_subscriptions_export');
+					if(isset($jsonData['genderBiological'])){
+						$gender	=	$jsonData['genderBiological'];
+					}
+				}
+
+				$order_id	=	$sub->id;
+				$customer_email	=	$sub->billing_email;
+				$_row = array(
+							'link'				=> admin_url( 'admin.php?page=wc-orders--shop_subscription&action=edit&id=' . $order_id ),
+							'id'				=> $order_id,	
+							'status'			=> $sub->status,
+							'date_created'	=>	$sub->date_created_gmt,
+							'customer_email'	=>	$customer_email,
+							'gender'			=>	$gender,
+							'first_name'		=>	$sub->first_name,
+							'last_name'			=>	$sub->last_name,
+							'state'				=>	$sub->state,
+							'state_name'		=>	$state_name,
+							'city'				=>	$sub->city
+						);
+				$rows[] = $_row;
+				/* ----------------------------
+				* WRITE ROW
+				* ---------------------------- */
+				if(!$test_mode){
+					fputcsv($file, [
+						$sub->id,
+						$sub->status,
+						$sub->date_created_gmt,
+						$gender,
+						$sub->first_name,
+						$sub->last_name,
+						$sub->billing_email,
+						$sub->state,
+						$state_name,
+						$sub->city
+					]);
+				}
+
+				$processed++;
+			}
+
+			// fclose($file);
+
+			/* ==========================================================
+			* FINISH
+			* ========================================================== */
+			// $next_offset = $offset + $batch_size;
+			// $complete    = $processed >= $total;
+			if(!$test_mode){
+				fclose($file);
+				$next_offset = $offset + $batch_size;
+				$complete = $processed >= $total;
+			}else{
+				$next_offset = 0;
+				$complete = true;
+			}
+
+			if ($complete) {
+				$final_filename = 'subscriptions_export_gender_' . date('Y-m-d-His') . '.csv';
+				$final_path     = $base_file_path . $final_filename;
+
+				rename($file_path, $final_path);
+
+				$file_url = $upload_dir['baseurl'] . '/bh-exports/' . $final_filename;
+
+				delete_transient('process_export_gender_subscriptions_active');
+			}
+
+			$return = [
+				'processed'    => $processed,
+				'total'        => intval($total),
+				'next_offset'  => $next_offset,
+				'complete'     => $complete,
+				'query'        => $sql,
+				'file_url'     => $complete ? $file_url : ''
+			];
+
+			if($test_mode) {
+				$return['rows']	=	$rows;
+				$return['preview']	=	true;
+			}
+			wp_send_json_success($return);
+
+		} catch (\Throwable $th) {
+			bh_plugins_log($th);
+			delete_transient('process_export_gender_subscriptions_active');
+
+			wp_send_json_error($th->getMessage());
+		}
+	}
+
+	function process_export_gender_file() {
+
+		delete_transient('process_export_gender_subscriptions_active');
+
+		$upload_dir = wp_upload_dir();
+		$base_file_path	=	 $upload_dir['basedir'] . '/bh-exports/';
+		$file_path = $base_file_path . 'subscriptions_export_gender_temp.csv';
+		if (file_exists($file_path)) {
+			$partial_path = $base_file_path . 'subscriptions_export_gender_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			rename($file_path, $partial_path);
+			$file_url = $upload_dir['baseurl'] . '/bh-exports/subscriptions_export_gender_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			
+			wp_send_json_success(['file_url' => $file_url]);
+		} else {			
+			wp_send_json_error(['message' => 'Partial File Not Found']);
 		}
 	}
 
@@ -5142,6 +5469,58 @@ class Bh_Tools_Admin {
 			_print($response);
 		}
 		die('Development Environment');
+	}
+
+
+	function process_action_direct_by_url(){
+
+		if(!isset($_GET['bh-action']) || empty($_GET['bh-action']))
+			return ;
+
+		if($_GET['bh-action']!='send_emails_refund')
+			die('Action Not Available');
+
+		$result	=	$this->send_email_via_resend_template(
+						'jaime@alliahealth.co',
+						'635cd868-90b2-46f8-9872-e475d331c4b4',  // Tu template ID
+						[
+							'customer_name'	=> 'Test Patient',
+						]
+					);
+
+		_print($result);
+		wp_die('Process Completed');
+
+	}
+
+
+	function send_email_via_resend_template( $to, $template_id, $variables = [] ) {
+
+		$api_key = RESEND_APIKEY;
+		$payload = [
+			'from'     => 'Brello Health <info@brellohealth.com>',
+			'to'       => [ $to ],
+			'template' => [
+				'id'        => $template_id,
+				'variables' => (object) $variables,  // ✅ objeto, no array
+			],
+		];
+		_print(json_encode( $payload ));
+		 $response = wp_remote_post( 'https://api.resend.com/emails', [
+			'headers' => [
+				'Authorization' => 'Bearer ' . $api_key,
+				'Content-Type'  => 'application/json',
+			],
+			'body'    => json_encode( $payload ),
+			'timeout' => 15,
+		]);
+
+		if ( is_wp_error( $response ) ) {
+			error_log( 'Resend error: ' . $response->get_error_message() );
+			return false;
+		}
+
+		return json_decode( wp_remote_retrieve_body( $response ), true );
 	}
 
 }

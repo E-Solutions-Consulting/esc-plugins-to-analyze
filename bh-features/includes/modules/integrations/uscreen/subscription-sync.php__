@@ -1,0 +1,398 @@
+<?php
+/**
+ * Sync Woo Subscriptions with Uscreen (assignment side).
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class AH_Uscreen_Subscription_Sync {
+
+    /**
+     * Init hooks.
+     */
+    public static function init() {
+
+        // 1) Hook AUTOMÁTICO: cuando la orden inicial se completa.
+        add_action(
+            'woocommerce_order_status_completed',
+            array( __CLASS__, 'handle_order_completed' ),
+            10,
+            1
+        );
+
+        // 2) Acción MANUAL en la pantalla de la suscripción.
+        add_filter(
+            'woocommerce_order_actions',
+            array( __CLASS__, 'add_manual_sync_action' ),
+            10,
+            2
+        );
+
+        add_action(
+            'woocommerce_order_action_ah_send_to_uscreen',
+            array( __CLASS__, 'handle_manual_sync_action' ),
+            10,
+            1
+        );
+
+        // Revocación automática
+        add_action(
+            'woocommerce_subscription_status_cancelled',
+            array( __CLASS__, 'handle_subscription_revocation' ),
+            10,
+            1
+        );
+
+        add_action(
+            'woocommerce_subscription_status_expired',
+            array( __CLASS__, 'handle_subscription_revocation' ),
+            10,
+            1
+        );
+
+        // Acción manual
+        add_filter(
+            'woocommerce_order_actions',
+            array( __CLASS__, 'add_manual_revoke_action' ),
+            20,
+            2
+        );
+
+        add_action(
+            'woocommerce_order_action_ah_revoke_uscreen',
+            array( __CLASS__, 'handle_manual_revoke_action' ),
+            10,
+            1
+        );
+
+    }
+
+    /**
+     * AUTOMÁTICO:
+     * Cuando la orden llega a "completed", enviar la(s) suscripción(es) asociada(s) a Uscreen.
+     *
+     * @param int $order_id
+     */
+    public static function handle_order_completed( $order_id ) {
+
+        if ( ! $order_id ) {
+            return;
+        }
+
+        $order = wc_get_order( $order_id );
+
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+
+        // Asegurarnos de que Woo Subscriptions está disponible.
+        if ( ! function_exists( 'wcs_order_contains_subscription' ) ) {
+            return;
+        }
+
+        // Solo ordenes que contienen suscripciones.
+        if ( ! wcs_order_contains_subscription( $order ) ) {
+            return;
+        }
+
+        // Evitar disparar en órdenes de renovación.
+        if ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order ) ) {
+            AH_Uscreen_Client::log(
+                sprintf( 'Order %d is a renewal. Skipping Uscreen assignment.', $order_id ),
+                'info'
+            );
+            return;
+        }
+
+        // Obtener suscripciones asociadas a esta orden inicial.
+        $subscriptions = wcs_get_subscriptions_for_order( $order, array( 'order_type' => 'parent' ) );
+
+        if ( empty( $subscriptions ) ) {
+            return;
+        }
+
+        foreach ( $subscriptions as $subscription ) {
+            if ( $subscription instanceof WC_Subscription ) {
+                self::send_subscription_to_uscreen( $subscription, 'order_completed' );
+            }
+        }
+    }
+
+    /**
+     * Acción manual desde el backend de la suscripción.
+     *
+     * @param array            $actions
+     * @param WC_Subscription  $subscription
+     * @return array
+     */
+    public static function add_manual_sync_action( $actions, $subscription ) {
+
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return $actions;
+        }
+
+        // Puedes añadir lógica extra aquí si sólo quieres mostrar la acción
+        // para ciertos estados de suscripción.
+        $actions['ah_send_to_uscreen'] = __( 'Send to BrelloRise (Uscreen)', 'ah-uscreen' );
+
+        return $actions;
+    }
+
+    /**
+     * Procesar acción manual "Send to BrelloRise (Uscreen)".
+     *
+     * Hook: woocommerce_subscription_action_ah_send_to_uscreen
+     *
+     * @param WC_Subscription $subscription
+     */
+    public static function handle_manual_sync_action( $subscription ) {
+
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return;
+        }
+
+        self::send_subscription_to_uscreen( $subscription, 'manual_action' );
+    }
+
+    /**
+     * Core logic: enviar una suscripción específica a Uscreen.
+     *
+     * @param WC_Subscription $subscription
+     * @param string          $context  order_completed|manual_action|other
+     */
+    protected static function send_subscription_to_uscreen( WC_Subscription $subscription, $context = 'unknown' ) {
+
+        // Mapear datos de la suscripción.
+        $mapper_data = AH_Uscreen_Subscription_Mapper::map_subscription( $subscription );
+
+        if ( is_wp_error( $mapper_data ) ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Uscreen mapper error (context: %s): %s',
+                    $context,
+                    $mapper_data->get_error_message()
+                ),
+                'error'
+            );
+            return;
+        }
+
+        if ( empty( $mapper_data['offer_id'] ) ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Subscription %d does not have an Uscreen offer_id configured. Skipping.',
+                    $subscription->get_id()
+                ),
+                'warning'
+            );
+            return;
+        }
+
+        // Asegurar que el customer existe en Uscreen.
+        $customer_id = AH_Uscreen_Client_Helper::ensure_customer_exists( $mapper_data );
+
+        if ( is_wp_error( $customer_id ) ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Uscreen ensure_customer_exists failed for subscription %d: %s',
+                    $subscription->get_id(),
+                    $customer_id->get_error_message()
+                ),
+                'error'
+            );
+
+            $subscription->add_order_note(
+                sprintf(
+                    'BrelloRise / Uscreen: Failed to ensure customer. Error: %s',
+                    $customer_id->get_error_message()
+                )
+            );
+            $subscription->save();
+
+            return;
+        }
+
+        // Verificar si ya tiene acceso WC-provisioned.
+        $has_access = AH_Uscreen_Client_Helper::customer_has_wc_access( $customer_id );
+
+        if ( is_wp_error( $has_access ) ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Error checking existing Uscreen access for customer %d: %s',
+                    $customer_id,
+                    $has_access->get_error_message()
+                ),
+                'error'
+            );
+            return;
+        }
+
+        if ( true === $has_access ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Customer %d already has WC-provisioned Uscreen access. Skipping assignment.',
+                    $customer_id
+                ),
+                'info'
+            );
+
+            $subscription->add_order_note(
+                'BrelloRise / Uscreen: Customer already has access. Assignment skipped.'
+            );
+            $subscription->save();
+
+            return;
+        }
+
+        // Asignar acceso en Uscreen.
+        $assigned = AH_Uscreen_Client_Helper::assign_access( $customer_id, $mapper_data['offer_id'] );
+
+        if ( is_wp_error( $assigned ) ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Failed to assign Uscreen access for customer %d (subscription %d): %s',
+                    $customer_id,
+                    $subscription->get_id(),
+                    $assigned->get_error_message()
+                ),
+                'error'
+            );
+
+            $subscription->add_order_note(
+                sprintf(
+                    'BrelloRise / Uscreen: Failed to assign access. Error: %s',
+                    $assigned->get_error_message()
+                )
+            );
+            $subscription->save();
+
+            return;
+        }
+
+        // Nota en la suscripción.
+        $subscription->add_order_note(
+            sprintf(
+                'BrelloRise / Uscreen: Access assigned successfully for Uscreen customer ID %d (context: %s).',
+                $customer_id,
+                $context
+            )
+        );
+        $subscription->save();
+
+        AH_Uscreen_Client::log(
+            sprintf(
+                'Access assigned in Uscreen for customer %d from subscription %d (context: %s).',
+                $customer_id,
+                $subscription->get_id(),
+                $context
+            ),
+            'info'
+        );
+    }
+
+    /**
+     * Revocar accesos Uscreen cuando la suscripción se cancela o expira.
+     *
+     * @param WC_Subscription $subscription
+     */
+    public static function handle_subscription_revocation( $subscription ) {
+
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return;
+        }
+
+        $context = 'auto_cancel_or_expired';
+
+        self::revoke_subscription_uscreen_access( $subscription, $context );
+    }
+
+    /**
+     * Agregar acción manual en la suscripción.
+     */
+    public static function add_manual_revoke_action( $actions, $subscription ) {
+
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return $actions;
+        }
+
+        $actions['ah_revoke_uscreen'] = __( 'Revoke BrelloRise (Uscreen)', 'ah-uscreen' );
+
+        return $actions;
+    }
+
+    /**
+     * Procesar acción manual.
+     */
+    public static function handle_manual_revoke_action( $subscription ) {
+
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return;
+        }
+
+        self::revoke_subscription_uscreen_access( $subscription, 'manual_action' );
+    }
+
+    /**
+     * Core revocation logic.
+     *
+     * @param WC_Subscription $subscription
+     * @param string          $context auto_cancel_or_expired|manual_action
+     */
+    protected static function revoke_subscription_uscreen_access( WC_Subscription $subscription, $context ) {
+
+        $mapper_data = AH_Uscreen_Subscription_Mapper::map_subscription( $subscription );
+
+        if ( is_wp_error( $mapper_data ) ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'Uscreen revoke mapper error (subscription %d, context %s): %s',
+                    $subscription->get_id(),
+                    $context,
+                    $mapper_data->get_error_message()
+                ),
+                'error'
+            );
+            return;
+        }
+
+        // Si nunca hubo customer en Uscreen, no hay nada que revocar
+        $customer_id = get_user_meta( $mapper_data['wp_user_id'], '_ah_uscreen_customer_id', true );
+
+        if ( ! $customer_id ) {
+            AH_Uscreen_Client::log(
+                sprintf(
+                    'No Uscreen customer found for user %d. Nothing to revoke.',
+                    $mapper_data['wp_user_id']
+                ),
+                'info'
+            );
+            return;
+        }
+
+        // Revocar SOLO accesos WC (origin = assigned_from_publisher_api)
+        AH_Uscreen_Client_Helper::revoke_wc_accesses( (int) $customer_id );
+
+        $subscription->add_order_note(
+            sprintf(
+                'BrelloRise / Uscreen: WC-provisioned access revoked (context: %s).',
+                $context
+            )
+        );
+        $subscription->save();
+
+        AH_Uscreen_Client::log(
+            sprintf(
+                'Uscreen WC access revoked for customer %d (subscription %d, context %s).',
+                $customer_id,
+                $subscription->get_id(),
+                $context
+            ),
+            'info'
+        );
+    }
+
+
+
+}

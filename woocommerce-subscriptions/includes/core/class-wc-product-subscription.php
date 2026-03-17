@@ -77,6 +77,32 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	}
 
 	/**
+	 * Provides the descriptive text for add-to-cart buttons.
+	 *
+	 * @return mixed
+	 */
+	public function add_to_cart_description() {
+		if ( $this->is_purchasable() && $this->is_in_stock() ) {
+			// For accessibility reasons it is recommended that the aria-label is the same as, or else starts with, the
+			// same text that is visible on the button itself.
+			$text = sprintf(
+				// Translators: %1$s: Pre-determined add-to-cart text 2: Product title.
+				_x( '%1$s: &ldquo;%2$s&rdquo;', 'Add-to-cart button description', 'woocommerce-subscriptions' ),
+				WC_Subscriptions_Product::get_add_to_cart_text(),
+				$this->get_name()
+			);
+		} else {
+			$text = sprintf(
+				// Translators: %1$s: Product title.
+				__( 'Read more about &ldquo;%1$s&rdquo;', 'woocommerce-subscriptions' ),
+				$this->get_name()
+			);
+		}
+
+		return apply_filters( 'woocommerce_product_add_to_cart_description', $text, $this );
+	}
+
+	/**
 	 * Get the add to cart button text for the single page
 	 *
 	 * @return string The single product page add to cart text.
@@ -104,6 +130,8 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	/**
 	 * Return the sign-up fee for this product
 	 *
+	 * @deprecated 2.2.0 Use WC_Subscriptions_Product::get_sign_up_fee().
+	 *
 	 * @return string
 	 */
 	public function get_sign_up_fee() {
@@ -114,6 +142,7 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	/**
 	 * Returns the sign up fee (including tax) by filtering the products price used in
 	 * @see WC_Product::get_price_including_tax( $qty )
+	 * @deprecated 2.3.0
 	 *
 	 * @return string
 	 */
@@ -131,6 +160,7 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	/**
 	 * Returns the sign up fee (excluding tax) by filtering the products price used in
 	 * @see WC_Product::get_price_excluding_tax( $qty )
+	 * @deprecated 2.2.0
 	 *
 	 * @return string
 	 */

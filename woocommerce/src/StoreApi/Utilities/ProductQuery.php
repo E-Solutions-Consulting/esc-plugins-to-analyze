@@ -323,6 +323,10 @@ class ProductQuery implements QueryClausesGenerator {
 	public function get_objects( $request ) {
 		$results = $this->get_results( $request );
 
+		if ( is_callable( '_prime_post_caches' ) ) {
+			_prime_post_caches( $results['results'] );
+		}
+
 		return array(
 			'objects' => array_map( 'wc_get_product', $results['results'] ),
 			'total'   => $results['total'],
@@ -350,7 +354,7 @@ class ProductQuery implements QueryClausesGenerator {
 	 * @param \WP_Query $wp_query WP_Query object.
 	 * @return array
 	 */
-	public function add_query_clauses( array $args, \WP_Query $wp_query ) {
+	public function add_query_clauses( array $args, \WP_Query $wp_query ): array {
 		global $wpdb;
 
 		if ( $wp_query->get( 'search' ) ) {

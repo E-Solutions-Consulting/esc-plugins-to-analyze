@@ -73,23 +73,77 @@ function wcs_do_subscriptions_exist() {
 /**
  * Main function for returning subscriptions. Wrapper for the wc_get_order() method.
  *
- * @since  1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+ * @since 2.0.0 Introduced.
+ * @since 8.1.0 Type safety improved.
+ *
  * @param  mixed $the_subscription Post object or post ID of the order.
+ *
  * @return WC_Subscription|false The subscription object, or false if it cannot be found.
  */
 function wcs_get_subscription( $the_subscription ) {
+
+	if ( empty( $the_subscription ) ) {
+		wc_get_logger()->debug(
+			'Subscription could not be loaded, as an empty value was supplied.',
+			array(
+				'backtrace'                   => true,
+				'requested_subscription'      => $the_subscription,
+				'requested_subscription_type' => gettype( $the_subscription ),
+			)
+		);
+		return false;
+	}
 
 	if ( is_object( $the_subscription ) && wcs_is_subscription( $the_subscription ) ) {
 		$the_subscription = $the_subscription->get_id();
 	}
 
+	/** @var WC_Subscription $subscription */
 	$subscription = WC()->order_factory->get_order( $the_subscription );
 
 	if ( ! wcs_is_subscription( $subscription ) ) {
 		$subscription = false;
 	}
 
-	return apply_filters( 'wcs_get_subscription', $subscription );
+	/**
+	 * The subscription object being supplied to the caller, or else (bool) false if it could not be loaded.
+	 *
+	 * If a callback turns $subscription into some other type, that value will be rejected and (bool) false
+	 * will ultimately be returned instead.
+	 *
+	 * @since 2.0.0 Introduced.
+	 * @since 8.1.0 Type safety improved.
+	 *
+	 * @param WC_Subscription|false $subscription The subscription object being supplied to the caller, or (bool) false.
+	 */
+	$return_val = apply_filters( 'wcs_get_subscription', $subscription );
+
+	if ( false === $return_val ) {
+		wc_get_logger()->debug(
+			'Subscription could not be loaded.',
+			array(
+				'backtrace'                   => true,
+				'requested_subscription'      => $the_subscription,
+				'requested_subscription_type' => is_object( $the_subscription ) ? get_class( $the_subscription ) : gettype( $the_subscription ),
+			)
+		);
+
+		return false;
+	} elseif ( ! $return_val instanceof WC_Subscription ) {
+		wc_get_logger()->warning(
+			'Subscriptions obtained via wcs_get_subscription() must be instances of WC_Subscription.',
+			array(
+				'backtrace'                   => true,
+				'filtered_type'               => is_object( $return_val ) ? get_class( $return_val ) : gettype( $return_val ),
+				'requested_subscription'      => $the_subscription,
+				'requested_subscription_type' => is_object( $the_subscription ) ? get_class( $the_subscription ) : gettype( $the_subscription ),
+			)
+		);
+
+		return false;
+	}
+
+	return $return_val;
 }
 
 /**
@@ -395,6 +449,7 @@ function wcs_sanitize_subscription_status_key( $status_key ) {
  *
  * @since 1.0.0 Migrated from WooCommerce Subscriptions v2.0.
  * @since 7.3.0 Any additional arguments are passed across to WooCommerce for use in the final query.
+ * @since 7.9.0 Only instances of WC_Subscriptions will be returned by this function (prior to this, other values including false were occassionally part of the result).
  *
  * @param array $args {
  *     A set of name value pairs to query for subscriptions - similar to args supported by wc_get_orders().
@@ -563,7 +618,27 @@ function wcs_get_subscriptions( $args ) {
 		$subscriptions = $query_controller->paginate_results( $subscriptions );
 	}
 
-	return apply_filters( 'woocommerce_got_subscriptions', $subscriptions, $working_args );
+	/**
+	 * Provides an opportunity to filter the subscriptions returned by wcs_get_subscriptions().
+	 *
+	 * Note that the function guarantees it will return an array of WC_Subscription objects, keyed by subscription ID.
+	 * For that reason, any non-WC_Subscription objects that are inserted via this hook will be removed.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param WC_Subscriptions[] $subscriptions The subscriptions to be returned by wcs_get_subscriptions().
+	 * @param array              $working_args  The original wcs_get_subscription() $args parameter.
+	 */
+	$filtered_subscriptions = apply_filters( 'woocommerce_got_subscriptions', $subscriptions, $working_args );
+	$subscriptions          = array();
+
+	foreach ( $filtered_subscriptions as $subscription ) {
+		if ( is_a( $subscription, WC_Subscription::class ) ) {
+			$subscriptions[ $subscription->get_id() ] = $subscription;
+		}
+	}
+
+	return $subscriptions;
 }
 
 /**
@@ -650,7 +725,12 @@ function wcs_get_subscriptions_for_product( $product_ids, $fields = 'ids', $args
 function wcs_get_line_items_with_a_trial( $subscription_id ) {
 	/** @var WC_Subscription $subscription */
 	$subscription = ( is_object( $subscription_id ) ) ? $subscription_id : wcs_get_subscription( $subscription_id );
-	$trial_items  = array();
+
+	if ( ! $subscription ) {
+		return array();
+	}
+
+	$trial_items = array();
 
 	foreach ( $subscription->get_items() as $line_item_id => $line_item ) {
 

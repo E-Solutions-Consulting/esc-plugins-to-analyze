@@ -23,6 +23,19 @@ class AH_Orders_Telegra_Renewal_Blocker {
             10,
             2
         );
+
+        add_action( 
+            'woocommerce_checkout_process', 
+            [ $this, 'block_checkout_for_invalid_renewals' ] 
+        );
+
+        add_filter( 
+            'wcs_can_subscription_be_renewed', 
+            [ $this, 'block_automatic_renewals_by_state' ], 
+            10, 
+            2 
+        );
+
     }
 
     /**
@@ -39,8 +52,9 @@ class AH_Orders_Telegra_Renewal_Blocker {
     /**
      * Block renewal orders based on date range + restricted states.
      * FIRST FILTER MUST BE THE DATE RANGE.
+     * Expired Jan 15
      */
-    public function block_subscription_renewal( $renewal_order, $subscription ) {
+    public function block_subscription_renewal__( $renewal_order, $subscription ) {
 
         try {
             if ( ! is_a( $renewal_order, 'WC_Order' ) || ! is_a( $subscription, 'WC_Subscription' ) ) {
@@ -139,6 +153,125 @@ class AH_Orders_Telegra_Renewal_Blocker {
         }
 
         return $renewal_order;
+    }
+
+    /**
+     * Block renewal orders based on restricted states.
+     */
+    public function block_subscription_renewal( $renewal_order, $subscription ) {
+
+        try {
+            if ( ! is_a( $renewal_order, 'WC_Order' ) || ! is_a( $subscription, 'WC_Subscription' ) ) {
+                return $renewal_order;
+            }
+
+            $sub_id = $subscription->get_id();
+
+            $allowed_during_period     = AH_Licensed_States_Manager::get_state_codes_by_status('available');
+            $state = strtoupper( $subscription->get_shipping_state() );
+
+            if ( in_array( $state, $allowed_during_period, true ) ) {
+                //$this->log("Allow sub #{$sub_id}: State {$state} is WHITELISTED.");
+                return $renewal_order;
+            }
+
+            // LOG blocked action
+            //$this->log("BLOCK renewal for sub #{$sub_id} — Restricted State={$state}");
+            $reason = "Renewal blocked: state {$state} restricted.";
+
+            $renewal_order->update_status( 'wc-cancelled', $reason );
+            $renewal_order->update_meta_data( '_mark_for_cleanup', 1 );
+            $renewal_order->save();
+
+            $subscription->update_status('on-hold');
+            $subscription->update_meta_data('_on_hold_facility_move', 1);
+            $subscription->update_meta_data('_cancelled_state_' . strtolower($state), 1);
+
+            $subscription->add_order_note(
+                "⚠️ Renewal skipped. Subscription on-hold due to {$state} restrictions (SEP Facility Move)."
+            );
+
+            $subscription->save();
+
+            //$this->log("Subscription #{$sub_id} moved to on-hold (facility_move flag set).");
+
+        } catch (Throwable $e) {
+            $this->log("ERROR: " . $e->getMessage(), 'error');
+        }
+
+        return $renewal_order;
+    }
+
+
+    public function block_checkout_for_invalid_renewals() {
+
+        if ( !function_exists( 'wcs_cart_contains_renewal' ) || !wcs_cart_contains_renewal() ) {
+             return ;
+        }
+
+        if ( ! WC()->cart ) {
+            return;
+        }
+
+        foreach ( WC()->cart->get_cart() as $item ) {
+
+            if ( empty( $item['subscription_renewal']['subscription_id'] ) ) {
+                continue;
+            }
+
+            $subscription_id = absint( $item['subscription_renewal']['subscription_id'] );
+            $subscription    = wcs_get_subscription( $subscription_id );
+
+            if ( ! $subscription instanceof WC_Subscription ) {
+                continue;
+            }
+
+            $state = strtoupper( $subscription->get_shipping_state() );
+
+            if ( ! AH_States::is_allowed( $state ) ) {
+
+                wc_get_logger()->warning(
+                    'Checkout blocked: early renewal not allowed for state',
+                    [
+                        'source' => $this->log_source,
+                        'subscription_id' => $subscription_id,
+                        'state' => $state,
+                    ]
+                );
+
+                wc_add_notice(
+                    'Renewals are currently unavailable for your state (' . esc_html( $state ) . ').',
+                    'error'
+                );
+
+                return;
+            }
+        }
+    }
+
+    public function block_automatic_renewals_by_state( $can_renew, $subscription ) {
+
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return $can_renew;
+        }
+
+        $state = strtoupper( $subscription->get_shipping_state() );
+
+        if ( ! AH_States::is_allowed( $state ) ) {
+
+            wc_get_logger()->warning(
+                'Automatic renewal blocked: state not allowed',
+                [
+                    'source' => $this->log_source,
+                    'subscription_id' => $subscription->get_id(),
+                    'state' => $state,
+                ]
+            );
+
+            return false;
+        }
+
+        return $can_renew;
     }
 }
 

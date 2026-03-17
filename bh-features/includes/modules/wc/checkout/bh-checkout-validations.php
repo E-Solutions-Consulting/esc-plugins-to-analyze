@@ -31,7 +31,7 @@ class Bh_Checkout_Validations {
 
         add_action('woocommerce_before_checkout_process', [ $this, 'associate_existing_customer_checkout' ], 20);
 
-        //add_action('woocommerce_checkout_process', [ $this, 'test_checkout_validations'], 50);
+        add_action('woocommerce_checkout_process', [ $this, 'test_checkout_validations'], 50);
     }
 
     /**
@@ -61,7 +61,7 @@ class Bh_Checkout_Validations {
      *  - Aplica a invitados y logueados
      *  - NO se ejecuta en flujos WCS (renovación, resuscribe, switches)
      */
-    public function restrict_one_product_per_email_or_phone() {
+    public function restrict_one_product_per_email_or_phone__original() {
 
         // Saltar si es renovación / resuscribe / switch / retry
         if ( $this->is_subscription_flow() ) {
@@ -75,7 +75,11 @@ class Bh_Checkout_Validations {
             $product    = $cart_item['data'];
             $product_id = $product->is_type( 'variation' ) ? $product->get_parent_id() : $product->get_id();
 
-            if ( has_term( 'weight-loss', 'product_cat', $product_id ) ) {
+            // if ( has_term( 'weight-loss', 'product_cat', $product_id ) ) {
+            //     $weight_loss_in_cart = true;
+            //     break;
+            // }
+            if ( has_term( [ 'weight-loss', 'protocol' ], 'product_cat', $product_id ) ) {
                 $weight_loss_in_cart = true;
                 break;
             }
@@ -151,7 +155,7 @@ class Bh_Checkout_Validations {
                  JOIN {$wpdb->prefix}wc_order_addresses a ON o.id = a.order_id
                  JOIN {$wpdb->prefix}wc_order_product_lookup opl ON o.id = opl.order_id
                  WHERE 
-                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold')
+                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-send_to_telegra')
                     AND EXISTS (
                         SELECT 1 
                         FROM {$wpdb->prefix}term_relationships tr
@@ -165,7 +169,7 @@ class Bh_Checkout_Validations {
                                     WHERE ID = opl.variation_id LIMIT 1
                                 ))
                             AND tt.taxonomy = 'product_cat'
-                            AND t.slug = 'weight-loss'
+                            AND t.slug IN ('weight-loss', 'protocol')
                     )
                     AND (
                         LOWER(a.email) = %s
@@ -198,24 +202,196 @@ class Bh_Checkout_Validations {
         // 7) Mensajes según coincidencia
         if ( $email_match && $phone_match ) {
 
+            // wc_add_notice(
+            //     __( 'You can only purchase weight-loss products once per person. An existing order was found using both your email and phone number.', 'woocommerce' ),
+            //     'error'
+            // );
             wc_add_notice(
-                __( 'You can only purchase weight-loss products once per person. An existing order was found using both your email and phone number.', 'woocommerce' ),
+                __( 'You can only purchase products once per person. An existing order was found using both your email and phone number.', 'woocommerce' ),
                 'error'
             );
 
         } elseif ( $email_match ) {
 
+            // wc_add_notice(
+            //     __( 'You can only purchase one weight-loss product per email address. An existing order was found using this email.', 'woocommerce' ),
+            //     'error'
+            // );
+
             wc_add_notice(
-                __( 'You can only purchase one weight-loss product per email address. An existing order was found using this email.', 'woocommerce' ),
+                __( 'You can only purchase one product per email address. An existing order was found using this email.', 'woocommerce' ),
                 'error'
             );
 
         } elseif ( $phone_match ) {
 
+            // wc_add_notice(
+            //     __( 'You can only purchase one weight-loss product per phone number. An existing order was found using this phone number.', 'woocommerce' ),
+            //     'error'
+            // );
             wc_add_notice(
-                __( 'You can only purchase one weight-loss product per phone number. An existing order was found using this phone number.', 'woocommerce' ),
+                __( 'You can only purchase one product per phone number. An existing order was found using this phone number.', 'woocommerce' ),
                 'error'
             );
+        }
+    }
+    public function restrict_one_product_per_email_or_phone() {
+
+        // Skip if it's a renewal / resubscribe / switch / retry
+        if ( $this->is_subscription_flow() ) {
+            return;
+        }
+
+        // 1) Check if there are products in the cart from the categories 'weight-loss', 'protocol'
+        $weight_loss_in_cart = false;
+        foreach ( WC()->cart->get_cart() as $cart_item ) {
+            $product    = $cart_item['data'];
+            $product_id = $product->is_type( 'variation' ) ? $product->get_parent_id() : $product->get_id();
+            if ( has_term( [ 'weight-loss', 'protocol' ], 'product_cat', $product_id ) ) {
+                $weight_loss_in_cart = true;
+                break;
+            }
+        }
+        if ( ! $weight_loss_in_cart ) {
+            return ;
+        }
+
+        // 2) get email and phone (user checkout or meta)
+        $billing_email = '';
+        $billing_phone = '';
+
+        if ( is_user_logged_in() ) {
+
+            $user_id = get_current_user_id();
+
+            $billing_email = ! empty( $_POST['billing_email'] )
+                ? sanitize_email( wp_unslash( $_POST['billing_email'] ) )
+                : get_user_meta( $user_id, 'billing_email', true );
+
+            $billing_phone = ! empty( $_POST['billing_phone'] )
+                ? sanitize_text_field( wp_unslash( $_POST['billing_phone'] ) )
+                : get_user_meta( $user_id, 'billing_phone', true );
+
+        } else {
+
+            if ( empty( $_POST['billing_email'] ) ) {
+                wc_add_notice( __( 'Please enter your email address.', 'woocommerce' ), 'error' );
+                return;
+            }
+
+            if ( empty( $_POST['billing_phone'] ) ) {
+                wc_add_notice( __( 'Please enter your phone number.', 'woocommerce' ), 'error' );
+                return;
+            }
+
+            $billing_email = sanitize_email( wp_unslash( $_POST['billing_email'] ) );
+            $billing_phone = sanitize_text_field( wp_unslash( $_POST['billing_phone'] ) );
+        }
+
+        // 3) Normalize email
+        $normalized_email = strtolower( trim( $billing_email ) );
+        if ( ! is_email( $normalized_email ) ) {
+            wc_add_notice( __( 'Please enter a valid email address.', 'woocommerce' ), 'error' );
+            return;
+        }
+
+        // 4) Normalize phone → E.164 digits (USA +1)
+        $digits = preg_replace( '/[^0-9]/', '', $billing_phone );
+        if ( strlen( $digits ) === 10 ) {
+            $digits = '1' . $digits;
+        }
+
+        if ( strlen( $digits ) !== 11 ) {
+            wc_add_notice( __( 'Please enter a valid phone number.', 'woocommerce' ), 'error' );
+            return;
+        }
+
+        $normalized_phone = $digits; // ej: 11585588416
+
+        // 5) Search for previous orders (weight-loss, protocol) by email or phone
+        global $wpdb;
+
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT 
+                    LOWER(a.email) AS email,
+                    opl.product_id AS product_id,
+                    REGEXP_REPLACE(REGEXP_REPLACE(a.phone, '[^0-9]', ''), '^1?', '1') AS phone
+                 FROM {$wpdb->prefix}wc_orders o
+                 JOIN {$wpdb->prefix}wc_order_addresses a ON o.id = a.order_id
+                 JOIN {$wpdb->prefix}wc_order_product_lookup opl ON o.id = opl.order_id
+                 WHERE 
+                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-send_to_telegra')
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM {$wpdb->prefix}term_relationships tr
+                        JOIN {$wpdb->prefix}term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                        JOIN {$wpdb->prefix}terms t ON tt.term_id = t.term_id
+                        WHERE 
+                            (tr.object_id = opl.product_id 
+                                OR tr.object_id = (
+                                    SELECT post_parent 
+                                    FROM {$wpdb->prefix}posts 
+                                    WHERE ID = opl.variation_id LIMIT 1
+                                ))
+                            AND tt.taxonomy = 'product_cat'
+                            AND t.slug IN ('weight-loss', 'protocol')
+                    )
+                    AND (
+                        LOWER(a.email) = %s
+                        OR REGEXP_REPLACE(REGEXP_REPLACE(a.phone, '[^0-9]', ''), '^1?', '1') = %s
+                    )",
+                $normalized_email,
+                $normalized_phone
+            )
+        );
+
+        if ( empty( $results ) ) {
+            return ;
+        }
+
+       if ( is_user_logged_in() ) {
+            return ;
+        }
+
+        // 6) Determine what matched: email, phone, or both
+        $email_match = false;
+        $phone_match = false;
+        foreach ( $results as $row ) {
+
+            if ( ! empty( $row->email ) && strtolower( $row->email ) === $normalized_email ) {
+                $email_match = true;
+            }
+
+            if ( ! empty( $row->phone ) && $row->phone === $normalized_phone ) {
+                $phone_match = true;
+            }
+        }
+
+        // 7) Messages based on match
+        if ( $email_match && $phone_match ) {
+
+            wc_add_notice(
+                __( 'You can only purchase products once per person. An existing order was found using both your email and phone number.', 'woocommerce' ),
+                'error'
+            );
+            return ;
+
+        } elseif ( $email_match ) {
+
+            wc_add_notice(
+                __( 'You can only purchase one product per email address. An existing order was found using this email.', 'woocommerce' ),
+                'error'
+            );
+            return ;
+
+        } elseif ( $phone_match ) {
+
+            wc_add_notice(
+                __( 'You can only purchase one product per phone number. An existing order was found using this phone number.', 'woocommerce' ),
+                'error'
+            );
+            return ;
         }
     }
 
@@ -225,7 +401,7 @@ class Bh_Checkout_Validations {
      *  - 1 suscripción por categoría (Weight loss, Supplements, etc.)
      *  - No se ejecuta en renovaciones / resuscribe / switches
      */
-    public function validate_logged_in_user_restrictions() {
+    public function validate_logged_in_user_restrictions__original() {
 
         if ( ! is_user_logged_in() ) {
             return;
@@ -306,6 +482,116 @@ class Bh_Checkout_Validations {
                     ),
                     'error'
                 );
+                return;
+            }
+        }
+    }
+    public function validate_logged_in_user_restrictions() {
+
+        if ( ! is_user_logged_in() ) {
+            return;
+        }
+
+        if ( $this->is_subscription_flow() ) {
+            return;
+        }
+
+        $user_id = get_current_user_id();
+
+        // 1) Detect subscription product categories in the shopping cart
+        $cart_categories = [];
+        foreach ( WC()->cart->get_cart() as $cart_item ) {
+            $product = $cart_item['data'];
+            if ( ! class_exists( 'WC_Subscriptions_Product' ) ) {
+                continue;
+            }
+            if ( ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+                continue;
+            }
+            $product_id = $product->is_type( 'variation' )
+                ? $product->get_parent_id()
+                : $product->get_id();
+
+            $terms = wp_get_post_terms( $product_id, 'product_cat', [ 'fields' => 'slugs' ] );
+            if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
+                foreach ( $terms as $slug ) {
+                    $cart_categories[] = $slug;
+                }
+            }
+        }
+
+        $cart_categories = array_unique( $cart_categories );
+        if ( empty( $cart_categories ) ) {
+            return;
+        }
+
+        $support_message     = false;
+        $categories_to_check = [];
+        // 2) Define which categories to check in the database based on what's in the cart
+        if ( in_array( 'protocol', $cart_categories ) ) {
+            // Comprando Empowered+: no puede tener ninguna suscripción previa
+            $categories_to_check = [ 'weight-loss', 'supplements', 'protocol' ];
+            $support_message     = true;
+        } else {
+            // Comprando individual (weight-loss o supplements):
+            // tampoco puede tener protocol activo
+            $categories_to_check = array_unique( array_merge(
+                array_intersect( $cart_categories, [ 'weight-loss', 'supplements' ] ),
+                [ 'protocol' ] // siempre chequear si tiene protocol
+            ) );
+            $support_message     = false;
+        }
+
+        if(ah_is_test_mode()){
+            wc_add_notice(
+                print_r($categories_to_check, true),
+                'error'
+            );
+        }
+        if ( empty( $categories_to_check ) ) {
+            return;
+        }
+
+        global $wpdb;
+
+        // 3) Check in the database if an active subscription already exists
+        foreach ( $categories_to_check as $cat_slug ) {
+
+            $existing = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT 1
+                    FROM {$wpdb->prefix}wc_orders o
+                    JOIN {$wpdb->prefix}wc_orders sub ON sub.parent_order_id = o.id
+                    JOIN {$wpdb->prefix}wc_order_product_lookup opl ON o.id = opl.order_id
+                    JOIN {$wpdb->prefix}term_relationships tr ON tr.object_id = opl.product_id
+                    JOIN {$wpdb->prefix}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+                    JOIN {$wpdb->prefix}terms t ON t.term_id = tt.term_id
+                    WHERE sub.type = 'shop_subscription'
+                        AND sub.customer_id = %d
+                        AND sub.status IN ('wc-active', 'wc-pending', 'wc-on-hold')
+                        AND tt.taxonomy = 'product_cat'
+                        AND t.slug = %s
+                    LIMIT 1",
+                    $user_id,
+                    $cat_slug
+                )
+            );
+
+            if ( $existing ) {
+                if ( $support_message ) {
+                    wc_add_notice(
+                        __( 'Note: It looks like you already have an active subscription with us. Please contact Customer Support at info@brellohealth.com so we can review your current plan and help update your subscription if needed. You can also reach our team through the live chat available in the bottom-right corner.', 'woocommerce' ),
+                        'error'
+                    );
+                } else {
+                    wc_add_notice(
+                        sprintf(
+                            __( 'Note: It looks like you already have an active subscription with us. Please contact Customer Support at info@brellohealth.com so we can review your current plan and help update your subscription if needed. You can also reach our team through the live chat available in the bottom-right corner.', 'woocommerce' ),
+                            esc_html( $cat_slug )
+                        ),
+                        'error'
+                    );
+                }
                 return;
             }
         }
@@ -428,7 +714,10 @@ class Bh_Checkout_Validations {
 	}
 
     public function test_checkout_validations() {
-    	wc_add_notice(__('🎯 Testing Checkout Validations', 'woocommerce'), 'error');
+        if(!ah_is_test_mode())
+            return ;
+
+        wc_add_notice(__('✅ Testing Checkout Validations', 'woocommerce'), 'error');
     }
 }
 new Bh_Checkout_Validations();

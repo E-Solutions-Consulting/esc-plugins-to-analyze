@@ -1331,54 +1331,6 @@ class Bh_Features_Public {
 	}
 
 	/**
-	 * Email Meta Data
-	 */
-	function hb_woocommerce_display_item_meta($html, $item, $args){
-		$strings = array();
-		$html    = '';
-		$args['before']			=	'<ul class="wc-item-meta" style="padding-left:0"><li style="display: flex;align-items: center;gap: 5px;">';
-		$args['label_before']	=	'<strong class="wc-item-meta-label">';
-
-		foreach ( $item->get_all_formatted_meta_data() as $meta_id => $meta ) {
-			$value     = $args['autop'] ? wp_kses_post( $meta->display_value ) : wp_kses_post( make_clickable( trim( $meta->display_value ) ) );
-			$strings[] = $args['label_before'] . wp_kses_post( $meta->display_key ) . $args['label_after'] . $value;
-		}
-
-		if ( $strings ) {
-			$html = $args['before'] . implode( $args['separator'], $strings ) . $args['after'];
-		}
-		return $html;
-	}
-
-	/**
-	 * Add product categories to order line items in the admin order view.
-	 */
-	function add_product_category_to_order_item_meta( $item_id, $item ) {
-	    if ( ! $item instanceof WC_Order_Item_Product )
-	        return;
-
-	    $product = $item->get_product();
-	    if ( ! $product )
-	        return;
-
-	    $product_id = $product->is_type( 'variation' ) ? $product->get_parent_id() : $product->get_id();
-	    $categories = get_the_terms( $product_id, 'product_cat' );
-	    if ( is_wp_error( $categories ) || empty( $categories ) )
-	        return;
-
-	    $category_names = wp_list_pluck( $categories, 'name' );
-	    echo '<div class="wc-order-item-categories" style="color:#888"><strong>' . esc_html__( 'Categories:', 'your-textdomain' ) . '</strong> ' . esc_html( implode( ', ', $category_names ) ) . '</div>';
-	}
-
-	/**
-	 * Remove the Error Messages from top of checkout pages
-	 */
-	function hb_init_remove_wc_hooks() {
-		remove_action( 'woocommerce_before_checkout_form', 'woocommerce_output_all_notices', 10 );
-		remove_action( 'woocommerce_before_checkout_form_cart_notices', 'woocommerce_output_all_notices', 10 );
-		//add_action( 'woocommerce_checkout_tabs', 'woocommerce_output_all_notices', 10 );
-	}
-	/**
 	 * Add Terms & Conditions to Tab Checkout
 	 */
 
@@ -1808,10 +1760,6 @@ class Bh_Features_Public {
 	/*
 	*	Print Tracking from katalys
 	*/
-	function disable_thankyou_redirect($should_redirect, $url){
-		$should_redirect	=	false;
-		return $should_redirect;
-	}
 	function execute_tracking_and_redirect($order_id) {
 	    if (!$order_id) return;
 
@@ -1838,6 +1786,31 @@ class Bh_Features_Public {
 	        'currency' 			=>	$order->get_currency()
 	    ];
 	}
+
+	function print_tracking_data(){
+		if (!is_order_received_page()) return;
+
+		global $tracking_data;
+		if(!$tracking_data)
+			return ;
+
+		echo '<script>';
+		echo 'console.log("Tracking Data:", ' . wp_json_encode( $tracking_data ) . ');';
+		echo '</script>';
+
+		if ( function_exists( 'wc_get_logger' ) ) {
+
+		    $logger = wc_get_logger();
+
+		    if ( $logger ) {
+		        $logger->info(
+		            'Tracking Data: ' . print_r( $tracking_data, true ),
+		            [ 'source' => 'ah-tracking-debug' ]
+		        );
+		    }
+		}
+
+	}
 	
 	function insert_katalys_tracking_script_footer() {
 		if (!is_order_received_page()) return;
@@ -1847,7 +1820,7 @@ class Bh_Features_Public {
 			return ;
 		?>
 		<script>
-			console.log('from footer');
+			console.log('_revoffers_track');
 			function checkTrackingLoaded() {
 				if (typeof _revoffers_track !== 'undefined') {
 					_revoffers_track.push({
@@ -1858,14 +1831,30 @@ class Bh_Features_Public {
 						email_address: "<?php echo esc_js($tracking_data['email']); ?>",
 						discount_1_code: "<?php echo esc_js($tracking_data['discount_code']); ?>"
 					});
-					setTimeout(function() {
-						window.location.href = "<?php echo esc_url($tracking_data['redirect_url']); ?>";
-					}, 1500);
 				} else {
 					setTimeout(checkTrackingLoaded, 100);
 				}
 			}		    
 			checkTrackingLoaded();
+		</script>
+		<?php
+	}
+
+
+	function redirect_tracking_script_footer() {
+		if (!is_order_received_page()) return;
+
+		global $tracking_data;
+		if(!$tracking_data)
+			return ;
+		if(empty($tracking_data['redirect_url']))
+			return ;
+		?>
+		<script>
+			console.log('redirecting...');
+			setTimeout(function() {
+				window.location.href = "<?php echo $tracking_data['redirect_url']; ?>";
+			}, 500);
 		</script>
 		<?php
 	}
@@ -1999,78 +1988,6 @@ class Bh_Features_Public {
 		}
 	}
 
-	/*
-	*	Set coupon for Renewal Order Created
-	*/
-	function set_coupon_for_subscription_renewal_created($subscription, $order){
-		try {
-			$used_coupons	=	$order->get_coupon_codes();
-			if ( empty($used_coupons) )
-				return ;
-
-			$valid_coupons	=	[];
-			foreach ($used_coupons as $code) {
-				$coupon	=	new WC_Coupon($code);
-				if(get_post_meta($coupon->get_id(), '_apply_to_subscriptions', true)==='yes'){
-					$valid_coupons[]	=	$code;
-				}
-			}
-			if(!empty($valid_coupons)){
-				$subscription->update_meta_data('_custom_subscription_coupon', implode(',', $valid_coupons));
-				$subscription->save();
-			}
-
-		} catch (\Throwable $th) {
-			$data	=	[
-				'error'		=>	$th->getMessage(),
-				'function'	=>	'public:set_coupon_for_subscription_renewal_created',
-				'args'		=>	func_get_args()
-			];
-			bh_plugins_error_log($data);
-		}
-	}
-	/*
-	*	Apply coupon for Renewal Order
-	*/
-	function apply_coupon_for_subscription_renewal_order_created($renewal_order, $subscription){
-		try {			
-			$coupon_codes	=	$subscription->get_meta('_custom_subscription_coupon');
-			if(!$coupon_codes)
-				return $renewal_order;
-
-			$coupon_codes	=	explode(',', $coupon_codes);
-			$applied	=	[];
-			foreach ($coupon_codes as $code) {
-				$coupon	=	new WC_Coupon(trim($code));
-				if($coupon->get_id()){
-					$renewal_order->apply_coupon($coupon);
-					$applied[]	=	$code;
-				}
-			}
-			$renewal_order->calculate_totals();
-
-			if(!empty($applied)){
-				$renewal_order->add_order_note(
-					sprintf(
-						'Coupon%s [%s] applied automatically from Subscription',
-						count($applied) > 1? 's':'', 
-						implode(', ', $applied)
-					)
-				);
-			}
-
-
-		} catch (\Throwable $th) {
-			$data	=	[
-				'error'		=>	$th->getMessage(),
-				'function'	=>	'public:apply_coupon_for_subscription_renewal_order_created',
-				'args'		=>	func_get_args()
-			];
-			bh_plugins_error_log($data);
-		}
-		return $renewal_order;
-	}
-	
 	/**
 	 * Update Subscriptin Next Payment Date when a Renewal Order is completed
 	 */
@@ -2154,7 +2071,7 @@ class Bh_Features_Public {
 						$subscription->set_billing_interval($product_billing_interval);
 					}
 					$subscription->save();
-					bh_plugins_log(['public:update_subscription_next_payment_date:logs', $log]);
+					//bh_plugins_log(['public:update_subscription_next_payment_date:logs', $log]);
 				}
 			}
 		} catch (\Throwable $th) {
@@ -2508,34 +2425,6 @@ class Bh_Features_Public {
 
 	        //wp_schedule_single_event(time() + 300, 'reintentar_procesamiento_upsell', [$order_id, $upsell_order_id]);
 	    }
-	}
-
-	/**
-	 * Filters the formatted line subtotal in WooCommerce orders to append custom renewal text 
-	 * for subscription products based on their billing interval.
-	 */
-	function woocommerce_order_formatted_line_subtotal($subtotal, $item, $order){
-		if (!class_exists('WC_Subscriptions_Product'))
-			return $subtotal;
-
-		$product = $item->get_product(); // Obtiene el objeto WC_Product
-		if (!WC_Subscriptions_Product::is_subscription($product))
-			return $subtotal;
-
-		global $printed_new_line;
-		if (isset($printed_new_line) && $printed_new_line)
-			return $subtotal;
-
-		$subscription_interval = get_post_meta( $product->get_id(), '_subscription_period_interval', true );
-		$custom_text = '';
-		if ( $subscription_interval == 1 ) {
-			$custom_text = 'Renews every 25 days';
-		} elseif ( $subscription_interval == 3 ) {
-			$custom_text = 'Renews every 10 weeks';
-		}
-		if(!empty($custom_text))
-			$custom_text = '<br/><small style="display:flex;line-height:1rem">'. $custom_text .'</small>';
-		return $subtotal . $custom_text;
 	}
 
 	/**
@@ -3086,24 +2975,6 @@ class Bh_Features_Public {
 		    console.log("track","purchase",{id: "<?php echo esc_js($tracking_data['order_id']); ?>", amount: <?php echo esc_js($tracking_data['sale_amount']); ?>, currency: "USD", couponCode: "<?php echo esc_js( $tracking_data['discount_code'] ); ?>"});
 		</script>
 		<?php 
-	}
-
-	
-	// Redirect non-logged-in users
-	function check_page_access() {
-	    // Only apply to single pages
-	    if (!is_singular('page')) {
-	        return;
-	    }
-	    
-	    global $post;
-	    $logged_in_only = get_post_meta($post->ID, '_logged_in_only', true);
-	    
-	    // If page requires logged-in user and user is NOT logged in
-	    if ($logged_in_only == '1' && !is_user_logged_in()) {
-	        wp_redirect(home_url());
-	        exit;
-	    }
 	}
 
 }

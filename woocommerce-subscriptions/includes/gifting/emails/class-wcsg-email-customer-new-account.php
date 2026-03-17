@@ -59,8 +59,7 @@ class WCSG_Email_Customer_New_Account extends WC_Email {
 		$this->title          = __( 'New Recipient Account', 'woocommerce-subscriptions' );
 		$this->description    = __( 'New account notification emails are sent to the subscription recipient when an account is created for them.', 'woocommerce-subscriptions' );
 		$this->customer_email = true;
-		$this->subject        = __( 'Your account on {site_title}', 'woocommerce-subscriptions' );
-		$this->heading        = __( 'Welcome to {site_title}', 'woocommerce-subscriptions' );
+
 		$this->template_html  = 'emails/new-recipient-customer.php';
 		$this->template_plain = 'emails/plain/new-recipient-customer.php';
 		$this->template_base  = plugin_dir_path( WC_Subscriptions::$plugin_file ) . 'templates/gifting/';
@@ -70,6 +69,29 @@ class WCSG_Email_Customer_New_Account extends WC_Email {
 
 		WC_Email::__construct();
 	}
+
+	/**
+	 * Get the default e-mail subject.
+	 *
+	 * @param bool $paid Whether the order has been paid or not.
+	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.5.3
+	 * @return string
+	 */
+	public function get_default_subject( $paid = false ) {
+		return __( 'Your account on {site_title}', 'woocommerce-subscriptions' );
+	}
+
+	/**
+	 * Get the default e-mail heading.
+	 *
+	 * @param bool $paid Whether the order has been paid or not.
+	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.5.3
+	 * @return string
+	 */
+	public function get_default_heading( $paid = false ) {
+		return __( 'Welcome to {site_title}', 'woocommerce-subscriptions' );
+	}
+
 
 	/**
 	 * Trigger function.
@@ -100,6 +122,11 @@ class WCSG_Email_Customer_New_Account extends WC_Email {
 	 * Returns content for the HTML version of the e-mail.
 	 */
 	public function get_content_html() {
+		// Handle the email preview.
+		if ( empty( $this->subscription_owner ) ) {
+			$this->set_preview_data();
+		}
+
 		ob_start();
 		wc_get_template(
 			$this->template_html,
@@ -125,6 +152,11 @@ class WCSG_Email_Customer_New_Account extends WC_Email {
 	 * Returns content for the plain text version of the e-mail.
 	 */
 	public function get_content_plain() {
+		// Handle the email preview.
+		if ( empty( $this->subscription_owner ) ) {
+			$this->set_preview_data();
+		}
+
 		ob_start();
 		wc_get_template(
 			$this->template_plain,
@@ -144,5 +176,12 @@ class WCSG_Email_Customer_New_Account extends WC_Email {
 			$this->template_base
 		);
 		return ob_get_clean();
+	}
+
+	/**
+	 * Set WooCommerce email preview data.
+	 */
+	public function set_preview_data() {
+		$this->subscription_owner = $this->object->get_billing_first_name() . ' ' . $this->object->get_billing_last_name();
 	}
 }

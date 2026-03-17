@@ -5,11 +5,12 @@
  * Description: Sell products and services with recurring payments in your WooCommerce Store.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 7.8.2
+ * Version: 8.3.1
  * Requires Plugins: woocommerce
  *
- * WC requires at least: 9.8.5
- * WC tested up to: 9.9.5
+ * WC requires at least: 10.3.0
+ * WC tested up to: 10.4.3
+ * Requires PHP: 7.4
  *
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -22,7 +23,7 @@
  * @since   1.0
  */
 
-require_once __DIR__ . '/vendor/autoload_packages.php';
+require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/includes/class-wc-subscriptions-dependency-manager.php';
 $dependency_manager = new WC_Subscriptions_Dependency_Manager( WC_Subscriptions::$wc_minimum_supported_version );
 
@@ -43,6 +44,15 @@ add_action(
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
 		}
+	}
+);
+
+add_action(
+	'woocommerce_init',
+	function () {
+		// Overrides the WooCommerce version to the WC()->version.
+		// This prevents the wrong version being stored in the transient during a WooCommerce core downgrade.
+		set_transient( 'wcs_woocommerce_active_version', WC()->version, HOUR_IN_SECONDS );
 	}
 );
 
@@ -74,7 +84,7 @@ class WC_Subscriptions {
 	public static $plugin_file = __FILE__;
 
 	/** @var string */
-	public static $version = '7.8.2'; // WRCS: DEFINED_VERSION.
+	public static $version = '8.3.1'; // WRCS: DEFINED_VERSION.
 
 	/** @var string */
 	public static $wc_minimum_supported_version = '7.7';
