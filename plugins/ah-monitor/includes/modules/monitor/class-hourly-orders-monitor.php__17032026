@@ -1,0 +1,427 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class AH_Hourly_Orders_Monitor {
+
+    private $options = [];
+    private $start;
+    private $end;
+
+    private $stats = [];
+    private $message = '';
+
+    private $result = [];
+
+    public function __construct( $options = [] ) {
+
+        $defaults = [
+            'dry_run'    => true,
+            'send_slack' => false,
+            'start'      => null,
+            'end'        => null,
+        ];
+
+        $this->options = wp_parse_args( $options, $defaults );
+
+        $this->resolve_time_range();
+    }
+
+    private function get_today_range() {
+
+        $tz = wp_timezone();
+
+        $now = new DateTime('now', $tz);
+
+        $start = new DateTime($now->format('Y-m-d 00:00:00'), $tz);
+
+        return [
+            'start_local' => $start->format('Y-m-d H:i:s'),
+            'end_local'   => $now->format('Y-m-d H:i:s'),
+            'start_gmt'   => get_gmt_from_date($start->format('Y-m-d H:i:s')),
+            'end_gmt'     => get_gmt_from_date($now->format('Y-m-d H:i:s')),
+        ];
+    }
+
+    private function get_today_totals() {
+
+        global $wpdb;
+
+        $orders_table = $wpdb->prefix . 'wc_orders';
+
+        $range = $this->get_today_range();
+
+        $sql = $wpdb->prepare(
+            "
+            SELECT
+
+            COUNT(*) AS orders_today,
+
+            SUM(
+                CASE
+                WHEN o.status = 'wc-completed'
+                THEN o.total_amount
+                ELSE 0
+                END
+            ) AS revenue_today
+
+            FROM {$orders_table} o
+
+            WHERE
+            o.type = 'shop_order'
+            AND o.date_created_gmt BETWEEN %s AND %s
+            ",
+            $range['start_gmt'],
+            $range['end_gmt']
+        );
+
+        return $wpdb->get_row($sql);
+    }
+
+
+    /**
+     * Resolve monitoring window using WP timezone
+     */
+    private function resolve_time_range() {
+
+        if ( ! empty( $this->options['start'] ) && ! empty( $this->options['end'] ) ) {
+            $this->start = $this->options['start'];
+            $this->end   = $this->options['end'];
+            return;
+        }
+
+        $tz  = wp_timezone();                 // timezone de WP
+        $now = new DateTime('now', $tz);      // hora actual en WP timezone
+
+        $hour = $now->format('Y-m-d H');
+
+        $this->start = $hour . ':00:00';
+        $this->end   = $hour . ':59:59';
+
+    }
+
+
+
+    /**
+     * Collect stats
+     */
+    private function collect_stats() {
+
+        global $wpdb;
+
+        $orders_table = $wpdb->prefix . 'wc_orders';
+        $meta_table   = $wpdb->prefix . 'wc_orders_meta';
+
+        $start_gmt = get_gmt_from_date($this->start);
+        $end_gmt   = get_gmt_from_date($this->end);
+
+        $sql = $wpdb->prepare(
+                "
+                SELECT
+                    COUNT(*) AS orders_created,
+
+                    SUM(
+                    CASE
+                    WHEN NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} m
+                        WHERE m.order_id=o.id
+                        AND m.meta_key='_subscription_renewal'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS new_orders,
+
+                    SUM(
+                    CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM {$meta_table} m
+                        WHERE m.order_id=o.id
+                        AND m.meta_key='_subscription_renewal'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS renewal_orders,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status='wc-completed'
+                    AND NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} m
+                        WHERE m.order_id=o.id
+                        AND m.meta_key='_subscription_renewal'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS completed_new_orders,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status='wc-completed'
+                    AND EXISTS (
+                        SELECT 1 FROM {$meta_table} m
+                        WHERE m.order_id=o.id
+                        AND m.meta_key='_subscription_renewal'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS completed_renewal_orders,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status='wc-completed'
+                    THEN 1 ELSE 0 END
+                    ) AS completed_total_orders,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status='wc-send_to_telegra'
+                    THEN 1 ELSE 0 END
+                    ) AS send_to_telegra_orders,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status LIKE 'wc-cancel%'
+                    THEN 1 ELSE 0 END
+                    ) AS cancelled_orders,
+
+
+                    SUM(
+                    CASE
+                    WHEN NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} r
+                        WHERE r.order_id=o.id
+                        AND r.meta_key='_subscription_renewal'
+                    )
+                    AND EXISTS (
+                        SELECT 1 FROM {$meta_table} t
+                        WHERE t.order_id=o.id
+                        AND t.meta_key='telemdnow_entity_id'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS new_synced_telegra,
+
+
+                    SUM(
+                    CASE
+                    WHEN NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} r
+                        WHERE r.order_id=o.id
+                        AND r.meta_key='_subscription_renewal'
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} t
+                        WHERE t.order_id=o.id
+                        AND t.meta_key='telemdnow_entity_id'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS new_pending_telegra,
+
+
+                    SUM(
+                    CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM {$meta_table} r
+                        WHERE r.order_id=o.id
+                        AND r.meta_key='_subscription_renewal'
+                    )
+                    AND EXISTS (
+                        SELECT 1 FROM {$meta_table} t
+                        WHERE t.order_id=o.id
+                        AND t.meta_key='telemdnow_entity_id'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS renewal_synced_telegra,
+
+
+                    SUM(
+                    CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM {$meta_table} r
+                        WHERE r.order_id=o.id
+                        AND r.meta_key='_subscription_renewal'
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} t
+                        WHERE t.order_id=o.id
+                        AND t.meta_key='telemdnow_entity_id'
+                    )
+                    THEN 1 ELSE 0 END
+                    ) AS renewal_pending_telegra,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status='wc-completed'
+                    AND NOT EXISTS (
+                        SELECT 1 FROM {$meta_table} r
+                        WHERE r.order_id=o.id
+                        AND r.meta_key='_subscription_renewal'
+                    )
+                    THEN o.total_amount ELSE 0 END
+                    ) AS new_revenue,
+
+
+                    SUM(
+                    CASE
+                    WHEN o.status='wc-completed'
+                    AND EXISTS (
+                        SELECT 1 FROM {$meta_table} r
+                        WHERE r.order_id=o.id
+                        AND r.meta_key='_subscription_renewal'
+                    )
+                    THEN o.total_amount ELSE 0 END
+                    ) AS renewal_revenue
+
+                FROM {$orders_table} o
+
+                WHERE
+                o.type='shop_order'
+                AND o.date_created_gmt BETWEEN %s AND %s
+        ",
+
+        $start_gmt,
+        $end_gmt
+        );
+        //_print($sql);
+
+        $row = $wpdb->get_row($sql);
+
+        $total_revenue =
+            (float)$row->new_revenue +
+            (float)$row->renewal_revenue;
+
+
+        $this->stats = [
+
+            'orders_created' => (int)$row->orders_created,
+
+            'new_orders' => (int)$row->new_orders,
+            'renewal_orders' => (int)$row->renewal_orders,
+
+            'completed_new_orders' => (int)$row->completed_new_orders,
+            'completed_renewal_orders' => (int)$row->completed_renewal_orders,
+            'completed_total_orders' => (int)$row->completed_total_orders,
+
+            'send_to_telegra_orders' => (int)$row->send_to_telegra_orders,
+
+            'cancelled_orders' => (int)$row->cancelled_orders,
+
+            'new_synced_telegra' => (int)$row->new_synced_telegra,
+            'new_pending_telegra' => (int)$row->new_pending_telegra,
+
+            'renewal_synced_telegra' => (int)$row->renewal_synced_telegra,
+            'renewal_pending_telegra' => (int)$row->renewal_pending_telegra,
+
+            'new_revenue' => (float)$row->new_revenue,
+            'renewal_revenue' => (float)$row->renewal_revenue,
+
+            'total_revenue' => $total_revenue
+
+        ];
+
+    }
+
+    private function get_orders_admin_link() {
+
+        $tz = wp_timezone();
+
+        $today = new DateTime('now', $tz);
+
+        $date = $today->format('Y-m-d');
+
+        return admin_url(
+            "admin.php?page=wc-orders&search-filter=all&start_date={$date}&end_date={$date}&filter_action=Filter"
+        );
+    }
+
+    /**
+     * Build message
+     */
+    private function build_message() {
+
+        $today = $this->get_today_totals();
+
+        $s = $this->stats;
+
+        $link = $this->get_orders_admin_link();
+
+        $this->message .= "\n\nView Orders:\n{$link}";
+
+        //https://www.brellohealth.com/wp-admin/admin.php?page=wc-orders&search-filter=all&start_date=2026-03-15&end_date&filter_action=Filter
+
+        $this->message =
+        "Brello Orders Monitor\n\n" . 
+        "TODAY: <{$link}|*{$today->orders_today}*> → Revenue: *$" . number_format($today->revenue_today) . "*\n\n" . 
+
+        "Time: `{$this->start}` → `{$this->end}`\n\n". 
+
+        "Orders Created: *{$s['orders_created']}* → Revenue: *$" . number_format($s['total_revenue']) . "*\n" .
+        "```".        
+        "Completed: {$s['completed_total_orders']} | Cancelled: {$s['cancelled_orders']}".
+        "```\n".
+        
+        "New Orders: *{$s['new_orders']}* → Revenue: *$" . number_format($s['new_revenue']) . "*\n".
+        "```".
+        "Completed: {$s['completed_new_orders']} | Telegra: Synced({$s['new_synced_telegra']}) | Not Yet Synced({$s['new_pending_telegra']})".
+         "```\n".
+
+        "Renewals: *{$s['renewal_orders']}* → Revenue: *$" . number_format($s['renewal_revenue']) . "*\n".
+         "```".
+        "Completed: {$s['completed_renewal_orders']} | Telegra: Synced({$s['renewal_synced_telegra']}) | Not Yet Synced({$s['renewal_pending_telegra']})".
+         "```";
+
+    }
+
+
+
+    private function maybe_send_slack() {
+
+        if ( $this->options['dry_run'] ) {
+            return 'dry_run';
+        }
+
+        if ( ! $this->options['send_slack'] ) {
+            return 'slack_disabled';
+        }
+
+        if ( ! class_exists('AH_Slack_Notifier') ) {
+            return 'slack_notifier_missing';
+        }
+
+        return AH_Slack_Notifier::send($this->message);
+    }
+
+
+
+    public function run() {
+
+        $this->collect_stats();
+
+        $this->build_message();
+
+        $slack_status = $this->maybe_send_slack();
+
+        $this->result = [
+
+            'window' => [
+                'start' => $this->start,
+                'end' => $this->end
+            ],
+
+            'stats' => $this->stats,
+
+            'message' => $this->message,
+
+            'slack' => $slack_status,
+
+            'options' => $this->options
+
+        ];
+
+        return $this->result;
+    }
+
+}
