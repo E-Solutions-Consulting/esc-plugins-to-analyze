@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-03-28 00:21
+# Generated : 2026-03-28 00:44
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -49,7 +49,7 @@ esc-plugins-to-analyze/
 - INDEX url         : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-gateway-stripe.md
 
 ### woocommerce
-- PHP files indexed : 3055
+- PHP files indexed : 2712
 - INDEX url         : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce.md
 
 ### woocommerce-subscriptions
