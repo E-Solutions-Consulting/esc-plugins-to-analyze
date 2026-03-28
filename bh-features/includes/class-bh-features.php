@@ -353,7 +353,6 @@ class Bh_Features {
 		 *	Add tracking code to Thankyou Page
 		 */
 		add_action('woocommerce_thankyou', [$plugin_public, 'execute_tracking_and_redirect'], 999);
-		add_action('wp_footer', [$plugin_public, 'print_tracking_data'], 998);
 		add_action('wp_footer', [$plugin_public, 'insert_katalys_tracking_script_footer'], 999);
 		add_action('wp_footer', [$plugin_public, 'redirect_tracking_script_footer'], 1000);
 

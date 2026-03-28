@@ -1787,31 +1787,6 @@ class Bh_Features_Public {
 	    ];
 	}
 
-	function print_tracking_data(){
-		if (!is_order_received_page()) return;
-
-		global $tracking_data;
-		if(!$tracking_data)
-			return ;
-
-		echo '<script>';
-		echo 'console.log("Tracking Data:", ' . wp_json_encode( $tracking_data ) . ');';
-		echo '</script>';
-
-		if ( function_exists( 'wc_get_logger' ) ) {
-
-		    $logger = wc_get_logger();
-
-		    if ( $logger ) {
-		        $logger->info(
-		            'Tracking Data: ' . print_r( $tracking_data, true ),
-		            [ 'source' => 'ah-tracking-debug' ]
-		        );
-		    }
-		}
-
-	}
-	
 	function insert_katalys_tracking_script_footer() {
 		if (!is_order_received_page()) return;
 
@@ -2976,5 +2951,8 @@ class Bh_Features_Public {
 		</script>
 		<?php 
 	}
+
+	
+
 
 }

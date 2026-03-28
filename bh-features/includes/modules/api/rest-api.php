@@ -70,6 +70,22 @@ class AH_Rest_Api {
                 return array( 'success' => false, 'body' => $body, 'event' => null );
             }
 
+            $upload_dir = wp_upload_dir();
+            $file_path = $upload_dir['basedir'] . '/bh-logs/stripe-raw-' . time() . '.json';
+
+
+            $logger = wc_get_logger();
+            $logger->info('Stripe Webhook Received', array(
+                'source' => 'bh-stripe-webhook',
+                'file_path' => $file_path
+            ));
+
+            file_put_contents(
+                $file_path,
+                $body . PHP_EOL,
+                FILE_APPEND
+            );
+
             $payment_intent  = $event->data->object;
             $events_accepted = array(
                 'payment_intent.succeeded',

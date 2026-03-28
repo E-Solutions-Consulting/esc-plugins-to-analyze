@@ -43,39 +43,6 @@ class Woocommerce_Webhook{
         return $new_order_statuses;
     }
 
-
-    private function find_order_id_by_telemdnow_id( $telemdnow_id ) {
-        global $wpdb;
-
-        $order_id = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT order_id
-                 FROM {$wpdb->prefix}wc_orders_meta
-                 WHERE meta_key = 'telemdnow_entity_id'
-                   AND meta_value = %s
-                 LIMIT 1",
-                $telemdnow_id
-            )
-        );
-
-        if ( $order_id ) {
-            return (int) $order_id;
-        }
-
-        $order_id = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT order_id
-                 FROM {$wpdb->prefix}wc_orders_meta
-                 WHERE meta_key = 'telemdnow_order_id'
-                   AND meta_value = %s
-                 LIMIT 1",
-                $telemdnow_id
-            )
-        );
-
-        return $order_id ? (int) $order_id : null;
-    }
-
     function register_telemdnow_api_route() {
 
         register_rest_route('telegra', '/webhook', array(
@@ -118,7 +85,7 @@ class Woocommerce_Webhook{
     }
 
 
-    function telegramdnow_update_order_status__original(WP_REST_Request $request) {
+    function telegramdnow_update_order_status(WP_REST_Request $request) {
         $data_received = $request->get_body();
     
         $targetEntity = $request->get_param('targetEntity');
@@ -217,87 +184,6 @@ class Woocommerce_Webhook{
         // $this->telemdnow_webhook_logs('200',  $data_received, $request_response);
     
         return new WP_REST_Response($orders, 200);
-    }
-
-    function telegramdnow_update_order_status( WP_REST_Request $request ) {
-        $data_received = $request->get_body();
-
-        $targetEntity  = $request->get_param( 'targetEntity' );
-        $orderId       = $targetEntity['id'];
-        $eventTitle    = $request->get_param( 'eventTitle' );
-        $eventData     = $request->get_param( 'eventData' );
-        $orderStatus   = $eventData['newStatus'];
-
-        if ( empty( $orderId ) || empty( $orderStatus ) ) {
-            $request_response = 'OrderId and status are required';
-            $this->telemdnow_webhook_logs( '400', $data_received, $request_response );
-            return new WP_Error( 'invalid_request', $request_response, array( 'status' => 400 ) );
-        }
-
-        $orderStatusArray = json_decode( get_option( 'telegra_woo_status' ), true );
-
-        $woo_order_id = $this->find_order_id_by_telemdnow_id( $orderId );
-
-        if ( ! $woo_order_id ) {
-
-            $external_identifier = isset( $targetEntity['externalIdentifier'] ) ? $targetEntity['externalIdentifier'] : null;
-
-            if ( $external_identifier ) {
-                $order_data = $this->retrieve_and_update_wc_order_status(
-                    $external_identifier,
-                    $orderStatus,
-                    $orderStatusArray,
-                    $eventTitle
-                );
-
-                if ( $order_data && isset( $order_data['order'] ) ) {
-                    $order = $order_data['order'];
-                    return new WP_REST_Response( array(
-                        array(
-                            'woo_order_id'     => $order->get_id(),
-                            'telegra_order_id' => $orderId,
-                            'status'           => $order->get_status(),
-                            'total'            => $order->get_total(),
-                        )
-                    ), 200 );
-                }
-            }
-
-            $request_response = 'Order not found for telemdnow_id: ' . $orderId;
-            $this->telemdnow_webhook_logs( '404', $data_received, $request_response );
-            return new WP_Error( 'no_orders', 'Order not found', array( 'status' => 404 ) );
-        }
-
-        $order = wc_get_order( $woo_order_id );
-
-        if ( ! $order ) {
-            $request_response = 'Could not load order ' . $woo_order_id;
-            $this->telemdnow_webhook_logs( '404', $data_received, $request_response );
-            return new WP_Error( 'no_orders', $request_response, array( 'status' => 404 ) );
-        }
-
-        $request_response = 'Order status not mapped for order Id ' . $order->get_id();
-
-        if ( ! empty( $orderStatusArray[ $orderStatus ] ) ) {
-            $order->add_order_note(
-                'The status was changed in Telegra: ' . $eventTitle .
-                '. The order will transition to ' . $orderStatusArray[ $orderStatus ] .
-                ' because of Telegra status mappings.'
-            );
-            $order->update_status( $orderStatusArray[ $orderStatus ] );
-            $request_response = 'Order status mapped successfully for order Id ' . $order->get_id();
-        }
-
-        // $this->telemdnow_webhook_logs( '200', $data_received, $request_response );
-
-        return new WP_REST_Response( array(
-            array(
-                'woo_order_id'     => $order->get_id(),
-                'telegra_order_id' => $orderId,
-                'status'           => $order->get_status(),
-                'total'            => $order->get_total(),
-            )
-        ), 200 );
     }
 
     function telemdnow_webhook_logs($status,  $data_received, $request_response) {

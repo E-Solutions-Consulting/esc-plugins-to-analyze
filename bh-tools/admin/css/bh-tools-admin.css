@@ -7,7 +7,8 @@
  .toggle-btn {cursor: pointer;color:#666;text-decoration: none;outline:none !important;box-shadow:none !important}
 
  .box-rounded {background: #fff;padding: 2rem;border-radius: 1rem;box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);}
- .box-rounded:not(:first-of-type) {margin-top: 2rem;}
+ .box-rounded {margin-top: 2rem;}
+ /*.box-rounded:not(:first-of-type) {margin-top: 2rem;}*/
 .input-filters {display: flex;gap: 20px;}
 .input-filters:not(:first-child) {border-top: 1px solid #fff;padding-top: 5px;}
 .input-filters > div {display: flex;flex-direction: column;gap: 5px;justify-content: flex-end;min-width: 9rem;}
@@ -17,7 +18,7 @@
 .box-form span.select2-selection.select2-selection--multiple ul > li {margin-bottom: 0;}
 .box-form span.select2-selection.select2-selection--multiple ul > li input.select2-search__field {margin-top: 0;}
 #progress-info{}
-
+.dev-mode input:checked + span{font-weight: bold;}
 .cont-checkbox {cursor:pointer}
 #include-amount-paid:checked + span {font-weight: 700;}
 

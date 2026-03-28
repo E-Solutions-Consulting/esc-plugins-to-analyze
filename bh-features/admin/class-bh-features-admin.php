@@ -630,7 +630,7 @@ class Bh_Features_Admin {
 			</style>';
 		}
 	}
-	function handle_date_range_filter_to_orders($query) {
+	function handle_date_range_filter_to_orders__original($query) {
 		if (!empty($_GET['start_date']) || !empty($_GET['end_date'])) {
 			$date_query = array();
 			$timezone = wp_timezone();
@@ -661,6 +661,63 @@ class Bh_Features_Admin {
 			$date_query['inclusive'] = true;			
 			$query['date_query'] = array($date_query);
 		}
+		return $query;
+	}
+
+	function handle_date_range_filter_to_orders( $query ) {
+		if ( ! empty( $_GET['start_date'] ) || ! empty( $_GET['end_date'] ) ) {
+			$date_query = array();
+			$timezone   = wp_timezone();
+			$utc        = isset( $_GET['utc'] );
+
+			if ( ! empty( $_GET['start_date'] ) ) {
+				$raw = sanitize_text_field( $_GET['start_date'] );
+
+				if ( $utc ) {
+					// Pass value directly — caller is responsible for UTC formatting.
+					$date_query['after'] = $raw;
+				} else {
+					$is_datetime = ( strpos( $raw, ' ' ) !== false || strpos( $raw, 'T' ) !== false );
+					if ( $is_datetime ) {
+						// e.g. "2025-10-07 15:00:00" — treat as site timezone, convert to UTC.
+						$start_date = DateTime::createFromFormat( 'Y-m-d H:i:s', $raw, $timezone );
+					} else {
+						// e.g. "2025-10-07" — start of day in site timezone.
+						$start_date = DateTime::createFromFormat( 'Y-m-d', $raw, $timezone );
+						$start_date->setTime( 0, 0, 0 );
+					}
+
+					$start_date->setTimezone( new DateTimeZone( 'UTC' ) );
+					$date_query['after'] = $start_date->format( 'Y-m-d H:i:s' );
+				}
+			}
+
+			if ( ! empty( $_GET['end_date'] ) ) {
+				$raw = sanitize_text_field( $_GET['end_date'] );
+
+				if ( $utc ) {
+					$date_query['before'] = $raw;
+				} else {
+					$is_datetime = ( strpos( $raw, ' ' ) !== false || strpos( $raw, 'T' ) !== false );
+
+					if ( $is_datetime ) {
+						// e.g. "2025-10-07 15:59:59" — treat as site timezone, convert to UTC.
+						$end_date = DateTime::createFromFormat( 'Y-m-d H:i:s', $raw, $timezone );
+					} else {
+						// e.g. "2025-10-07" — end of day in site timezone.
+						$end_date = DateTime::createFromFormat( 'Y-m-d', $raw, $timezone );
+						$end_date->setTime( 23, 59, 59 );
+					}
+
+					$end_date->setTimezone( new DateTimeZone( 'UTC' ) );
+					$date_query['before'] = $end_date->format( 'Y-m-d H:i:s' );
+				}
+			}
+
+			$date_query['inclusive'] = true;
+			$query['date_query']     = array( $date_query );
+		}
+
 		return $query;
 	}
 
@@ -1394,6 +1451,12 @@ class Bh_Features_Admin {
 			return $actions;
 		}
 
+		
+		$excluded_subscription_states = ['CT', 'FL'];
+		if (!empty($state) && in_array($state, $excluded_subscription_states)) {
+			return $actions;
+		}
+
 		$next_payment_ts = $subscription->get_time( 'next_payment' );
 
 		if ( ! $next_payment_ts ) {
@@ -1479,6 +1542,18 @@ class Bh_Features_Admin {
 
 	        case 'WI':
 	            $window_end_ts = strtotime( '2026-03-10 17:30:00' );
+	            break;
+
+	        case 'FL':
+	            $window_end_ts = strtotime( '2026-03-18 14:30:00' );
+	            break;
+
+	        case 'NM':
+	            $window_end_ts = strtotime( '2026-03-18 11:30:00' );
+	            break;
+
+	        case 'IL':
+	            $window_end_ts = strtotime( '2026-03-18 11:12:00' );
 	            break;
 
 	    }

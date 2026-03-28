@@ -29,7 +29,7 @@
         <div style="justify-content:space-around;">
             <label>Test Mode:</label>
             <label>
-                <input type="checkbox" name="test_mode">Preview simulate changes
+                <input type="checkbox" name="test_mode"><span>Preview Changes</span>
             </label>
         </div>
     </div>

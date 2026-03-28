@@ -195,8 +195,14 @@ class Bh_Tools {
 		$this->loader->add_action( 'wp_ajax_process_send_notifications_to_complete_subscription_batch', $plugin_admin, 'process_send_notifications_to_complete_subscription_batch' );
 		$this->loader->add_action( 'wp_ajax_process_send_notifications_to_complete_subscription_export_file', $plugin_admin, 'process_send_notifications_to_complete_subscription_export_file');
 
+		$this->loader->add_action( 'wp_ajax_process_check_questionaries_status_batch', $plugin_admin, 'process_check_questionaries_status_batch' );
+		$this->loader->add_action( 'wp_ajax_process_check_questionaries_status_export_file', $plugin_admin, 'process_check_questionaries_status_export_file');
+
 		$this->loader->add_action( 'wp_ajax_process_order_inspector_batch', $plugin_admin, 'process_order_inspector_batch' );
 		$this->loader->add_action( 'wp_ajax_process_order_inspector_export_file', $plugin_admin, 'process_order_inspector_export_file');
+
+		$this->loader->add_action( 'wp_ajax_process_telegra_wc_sync_batch',       $plugin_admin, 'process_telegra_wc_sync_batch' );
+		$this->loader->add_action( 'wp_ajax_process_telegra_wc_sync_export_file', $plugin_admin, 'process_telegra_wc_sync_export_file' );
 
 		$this->loader->add_action( 'wp_ajax_process_prepare_order_to_northbeam_batch', $plugin_admin, 'process_prepare_order_to_northbeam_batch' );
 		$this->loader->add_action( 'wp_ajax_process_prepare_order_to_northbeam_export_file', $plugin_admin, 'process_prepare_order_to_northbeam_export_file');

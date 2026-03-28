@@ -174,6 +174,8 @@ class BH_Modules_Loader {
         $this->safe_require( $base . 'wc/orders/orders.php' );
         $this->safe_require( $base . 'wc/orders/orders-admin.php' );
 
+        $this->safe_require( $base . 'wc/orders/columns/orders-columns.php' );
+
         // Telegra integration
         $this->safe_require( $base . 'wc/orders/telegra/orders-telegra-admin.php' );
         $this->safe_require( $base . 'wc/orders/telegra/orders-telegra.php' );

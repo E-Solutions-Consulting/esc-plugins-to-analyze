@@ -183,21 +183,6 @@ if ( ! class_exists( 'AH_Orders_Telegra' ) ) {
             return false;
         }
 
-
-        public function notify_slack_on_critical_error__original($status, $url, $type, $data_sent, $data_received, $inserted_id) {
-            try {
-                if ($status < 502) return;
-
-                $sent_decoded = is_string($data_sent) ? json_decode($data_sent, true) : $data_sent;
-
-                $message = "🚨 Error {$status} | URL: {$url} | Type: {$type} | Data: " . json_encode($sent_decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-                bh_send_slack_notification($message, BH_SLACK_CHANNEL_TELEGRA_API_ERROR);
-
-            } catch (Exception $e) {
-                bh_plugins_error_log('notify_slack_on_critical_error: ' . $e->getMessage());
-            }
-        }
         function notify_slack_on_critical_error($status, $url, $type, $data_sent, $data_received, $inserted_id) {
             try {
                 if ($status < 502) return;

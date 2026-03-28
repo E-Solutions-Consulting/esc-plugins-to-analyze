@@ -5,13 +5,13 @@
     <hr>
     <br>
 
-    <input type="hidden" name="action" value="process_order_inspector">
-    <?php wp_nonce_field('process_order_inspector', 'check_payment_subscriptions_nonce'); ?>
-    <button type="submit" class="button button-primary">Process</button>
+    <input type="hidden" name="action" value="process_check_payment_subscriptions">
+    <?php wp_nonce_field('process_check_payment_subscriptions', 'check_payment_subscriptions_nonce'); ?>
+    <button type="submit" class="button button-primary">Check status questionnaires on Telegra</button>
 </form>
 <script>
-    const _action_batch =   'process_order_inspector_batch';
-    const _action_export=   'process_order_inspector_export_file';
+    const _action_batch =   'process_check_questionaries_status_batch';
+    const _action_export=   'process_check_questionaries_status_export_file';
     const DataPreviewer = {
                     previewProcessedData: function(data) {
                         jQuery('#process-progress-container').hide();
@@ -22,67 +22,66 @@
                                         <thead>
                                             <tr>
                                                 <th></th>
-                                                <th colspan="4">WC Order</th>
-                                                <th colspan="3">Telegra</th>
-                                                <th colspan="2">Stripe</th>
+                                                <th colspan="3">Order</th>
+                                                <th colspan="2">Telegra</th>
+                                                <th colspan="3">Questionnaire</th>
                                             </tr>
                                             <tr>
                                                 <th>#</th>
                                                 <th>ID</th>
                                                 <th>Amount</th>
                                                 <th>Created</th>
-                                                <th>Fix</th>
                                                 <th>Status</th>
                                                 <th>Link</th>
-                                                <th>Questionnaries</th>
-                                                <th>Status</th>
-                                                <th>Link</th>
+                                                <th>Quantity</th>
+                                                <th>Completed</th>
+                                                <th>Missing</th>
                                             </tr>
                                         </thead>
                                         <tbody>`;
                         
                         let rowCount = 1;
                         data.rows.forEach(row => {
-                            console.log(row);
-                            let class_row_status='';
-                            if(row.order.status==='on-hold' && row.telegra.status=='completed' ){
-                                class_row_status=' class="error"';
-                            }
+
                             let class_telegra_status='';
                             if(row.telegra.status==='completed'){
                                 class_telegra_status=' class="succeeded"';
                             }
-                            let class_stripe_status='';
-                            if(row.stripe.status==='succeeded'){
-                                class_stripe_status=' class="succeeded"';
+                            
+                            let link_order= row.order.link ? `<a target="_blank" href="${row.order.link}">${row.order.id} - ${row.order.status}</a>` : row.order.id + ' - ' + row.order.id;
+                            let link_telegra = row.order.telemdnow_entity_id ? `<a target="_blank" href="https://affiliate-admin.telegramd.com/orders/${row.order.telemdnow_entity_id}">${row.order.telemdnow_entity_id}</a>` : '';
+                            let questionnaires  = `<div>${row.telegra.questionnaires.valid} / ${row.telegra.questionnaires.count}</div>`;
+                            //let questionaries_completed=row.telegra.questionnaires.missing==0? 'YES':'NO';
+                            let class_row_status='';
+                            if(row.telegra.questionnaires.missing>0 ){
+                                class_row_status=' class="error"';
                             }
 
-                            let link_stripe_text    =   truncateString(row.stripe.intent_id, 12);
-                            let link_telegra_text    =   truncateString(row.order.telemdnow_entity_id);
-                            let link_order= row.order.link ? `<a target="_blank" href="${row.order.link}">${row.order.id} - ${row.order.status}</a>` : row.order.id + ' - ' + row.order.id;
-                            let link_telegra = row.order.telemdnow_entity_id ? `<a target="_blank" href="https://affiliate-admin.telegramd.com/orders/${row.order.telemdnow_entity_id}">${link_telegra_text}</a>` : '';
-                            let link_stripe = row.stripe.intent_id ? `<a target="_blank" href="https://dashboard.stripe.com/payments/${row.stripe.intent_id}">${link_stripe_text}</a>` : '';
-
-                            let link_order_fix_status= row.order.link_fix_status ? `<a target="_blank" href="${row.order.link_fix_status}">Fix Status</a>` : '';
-
-                            let questionnaires = '';
-                            // row.telegra.questionnaires.forEach(row_q => {
-                            //     questionnaires  = `<div>${row_q.valid} / ${row_q.count}</div>`;
-                            // });
-                            questionnaires  = `<div>${row.telegra.questionnaires.valid} / ${row.telegra.questionnaires.count}</div>`;
-
+                            console.log('building tr');
                             table += `<tr${class_row_status}>
                                 <td>${rowCount}</td>
                                 <td>${link_order}</td>
                                 <td>${row.order.total} ${row.order.currency}</td>
                                 <td>${row.order.date_created}</td>
-                                <td>${link_order_fix_status}</td>
                                 <td><span${class_telegra_status}>${row.telegra.status}<span></td>
                                 <td>${link_telegra}</td>
-                                <td>${questionnaires}</td>
-                                <td><span${class_telegra_status}>${row.stripe.status}</span></td>
-                                <td>${link_stripe}</td>
-                            </tr>`;
+                                <td>${row.telegra.questionnaires.count}</td>
+                                <td>${row.telegra.questionnaires.valid}</td>
+                                <td>${row.telegra.questionnaires.missing}</td>`;
+
+
+                            if(row.stripe){
+                                let class_stripe_status='';
+                                if(row.stripe.status==='succeeded'){
+                                    class_stripe_status=' class="succeeded"';
+                                }
+                                let link_stripe = row.stripe.intent_id ? `<a target="_blank" href="https://dashboard.stripe.com/payments/${row.stripe.intent_id}">${row.stripe.intent_id}</a>` : '';
+                                table += `
+                                    <td><span${class_telegra_status}>${row.stripe.status}</span></td>
+                                    <td>${link_stripe}</td>
+                                </tr>`;
+                            }
+                            
                             rowCount++;
                         });
                         
@@ -90,21 +89,12 @@
                         jQuery('#process-progress-info-container').append(table);
                     }
         };
-
-    function truncateString(value, prefixLen = 6, suffixLen = 5) {
-        if (typeof value !== 'string') return value;
-
-        if (value.length <= (prefixLen + suffixLen)) {
-            return value;
-        }
-
-        return value.slice(0, prefixLen) + '...' + value.slice(-suffixLen);
-    }
-
+    
     jQuery(document).ready(function($) {
         jQuery(document).on('previewData', function(event, data) {
             DataPreviewer.previewProcessedData(data);
         });
+        
     });
 </script>
 <style>

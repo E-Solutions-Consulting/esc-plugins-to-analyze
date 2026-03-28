@@ -339,6 +339,15 @@ class Bh_Tools_Admin {
 
 		// add_submenu_page(
 		// 	PARENT_MENU_SLUG,
+		// 	'Telegra WC Sync',
+		// 	'Telegra WC Sync',
+		// 	'manage_options',
+		// 	PARENT_MENU_SLUG . '--tools-telegra-wc-sync',
+		// 	[ $this, 'telegra_wc_sync_page' ]
+		// );
+
+		// add_submenu_page(
+		// 	PARENT_MENU_SLUG,
 		// 	'Prepare Order to Northbeam',
 		// 	'Prepare Order to Northbeam',
 		// 	'manage_options',
@@ -353,6 +362,15 @@ class Bh_Tools_Admin {
 			'manage_options',
 			PARENT_MENU_SLUG . '--tools-notifications',
 			[$this, 'send_notifications_to_complete_subscription_page']
+		);
+
+		add_submenu_page(
+			PARENT_MENU_SLUG,
+			'Questionnaries Status',
+			'Questionnaries Status',
+			'manage_options',
+			PARENT_MENU_SLUG . '--tools-questionaries-status',
+			[$this, 'check_questionaries_status_page']
 		);
 
 		// add_submenu_page(
@@ -706,7 +724,8 @@ class Bh_Tools_Admin {
 			/* --------------------
 			* ALWAYS EXCLUDE: FL, CT
 			* -------------------- */
-			$where[] = "a.state NOT IN ('FL','CT')";
+			//$where[] = "a.state NOT IN ('FL','CT')";
+			$where[] = "a.state NOT IN ('CT')";
 
 			/* --------------------
 			* FILTER: DATE RANGE
@@ -2201,6 +2220,334 @@ class Bh_Tools_Admin {
 
 
 	/**
+	 * Check the questionaries of Orders
+	 */
+
+	function check_questionaries_status_page() {
+		//delete_transient('process_export_subscriptions_active');
+		$states			=	WC()->countries->get_states('US');
+		$input_datetime	=	true;
+		$active_process =	get_transient('process_check_questionaries_status_active');
+
+		wp_enqueue_script('jquery-ui-tabs');
+		wp_enqueue_style( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css' );
+		wp_enqueue_script( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), null, true );
+		wp_enqueue_script( 'checkbox-states', plugin_dir_url( __DIR__ ) . 'admin/js/bh-select2.js', array('jquery', 'hb-select2'), null, true );
+		wp_localize_script('checkbox-states', 'ajaxurl', admin_url('admin-ajax.php'));
+
+		add_action('input_filters', function() {
+		?>
+		<div>
+            <label>Status:</label>
+            <select name="status" id="order_status">
+                <option value="">Select status</option>
+                <?php
+                if (function_exists('wc_get_order_statuses')) {
+                    $statuses = wc_get_order_statuses();
+                    foreach ($statuses as $value => $label) {
+                        echo '<option value="' . esc_attr($value) . '">' . esc_html($label) . '</option>';
+                    }
+                }
+                ?>
+            </select>
+        </div>
+
+			<div>
+				<label>&nbsp;</label>
+				<label>
+					<input type="checkbox" name="exclude_completed" id="exclude_renewals">
+					Exclude completed
+				</label>
+			</div>
+		<?php
+		});
+		?>
+		<div class="wrap">
+			<h1>Check the questionnaries Status of Orders</h1>
+			<?php 
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-page-questionnaries.php';
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-progress-bar.php';
+			?>
+		</div>
+		<?php
+	}
+
+	function process_check_questionaries_status_batch() {
+		global $wpdb;
+		$transient_name	=	'process_check_questionaries_status_active';
+
+		try {
+			set_transient($transient_name, true, 3600);
+			parse_str($_POST['form_data'], $form_data);
+			$offset		=	intval($_POST['offset']);
+			$batch_size =	intval($form_data['batch_size']);
+			$test_mode	=	boolval($form_data['test_mode']);
+			$exclude_completed = boolval( $form_data['exclude_completed'] ?? false );
+			
+			$upload_dir =	wp_upload_dir();
+			$file_path 	=	$upload_dir['basedir'] . '/bh-csv/check_questionaries_status_export_temp.csv';
+			
+			if ($offset === 0) {
+				$headers = [
+					'Order ID', 'Order Date', 'Order Status', 'Order State', 'Order Link', 
+					'Telegra ID', 'Telegra Status', 'Telegra Link', 'Questionnaries', 'Completed', 'Missing'
+				];
+				$file = fopen($file_path, 'w');
+				fputcsv($file, $headers);
+				fclose($file);
+			}
+			$joins = [
+				"INNER JOIN {$wpdb->prefix}wc_orders_meta om ON om.order_id=o.id ",
+			];
+
+			//"o.status = 'wc-on-hold'",
+			$where = [
+				"o.type='shop_order'",
+				"om.meta_key='telemdnow_entity_id'",
+				"om.meta_value IS NOT NULL"
+
+			];
+
+			if (!empty($form_data['states'])) {
+				if(count($form_data['states'])==1 && $form_data['states'][0]!=='') {
+					$states_placeholders = implode(',', array_fill(0, count($form_data['states']), '%s'));
+					$where[] = $wpdb->prepare(
+						"a.state IN ($states_placeholders)",
+						$form_data['states']
+					);
+				}				
+			}
+
+
+			if (!empty($form_data['status'])) {
+				$where[] = $wpdb->prepare("o.status = %s", $form_data['status']);
+			}
+
+			// if (!empty($form_data['start_date'])) {
+			// 	$where[] = $wpdb->prepare("o.date_created_gmt >= %s", $form_data['start_date']);
+			// }
+
+			// if (!empty($form_data['end_date'])) {
+			// 	$where[] = $wpdb->prepare("o.date_created_gmt <= %s", $form_data['end_date']);
+			// }
+
+			if (!empty($form_data['start_date'])) {
+				$wp_tz   = new DateTimeZone( wp_timezone_string() );
+				$utc_tz  = new DateTimeZone( 'UTC' );
+				$dt      = new DateTime( $form_data['start_date'], $wp_tz );
+				$dt->setTimezone( $utc_tz );
+				$where[] = $wpdb->prepare( "o.date_created_gmt >= %s", $dt->format( 'Y-m-d H:i:s' ) );
+			}
+
+			if (!empty($form_data['end_date'])) {
+				$wp_tz   = new DateTimeZone( wp_timezone_string() );
+				$utc_tz  = new DateTimeZone( 'UTC' );
+				$dt      = new DateTime( $form_data['end_date'], $wp_tz );
+				$dt->setTimezone( $utc_tz );
+				$where[] = $wpdb->prepare( "o.date_created_gmt <= %s", $dt->format( 'Y-m-d H:i:s' ) );
+			}
+
+			$orders	=	[];
+			if ($offset === 0) {
+				$sql	=	$wpdb->prepare(
+							"SELECT COUNT(*) 
+							FROM {$wpdb->prefix}wc_orders o 
+							" . implode(' ', $joins) . "
+							WHERE " . implode(' AND ', $where)
+						);
+				$total = $wpdb->get_var($sql);
+			} else {
+				$total = intval($_POST['total']);
+			}
+
+			$select = [
+				'*',
+			];
+			
+			$sql	=	$wpdb->prepare(
+							"SELECT " . implode(', ', $select) . " 
+							FROM {$wpdb->prefix}wc_orders o 
+							" . implode(' ', $joins) . "
+							WHERE " . implode(' AND ', $where) . "
+							GROUP BY o.id 
+							LIMIT %d OFFSET %d",
+							$batch_size,
+							$offset
+						);
+			
+			bh_plugins_log(['process_check_questionaries_status_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
+			$orders = $wpdb->get_results($sql);
+			$processed = $offset;
+
+			$rows = array();
+			
+			global $telegramd_token;
+			if(empty($telegramd_token))
+				$telegramd_token	=	$this->telegramd_getToken();
+			
+			$telemdnow_rest_url	=	'https://telegramd-rest.telegramd.com';
+
+			if (!class_exists('WC_Stripe')) {
+				wp_send_json_error( 'ERROR: WooCommerce Stripe Gateway no está activo' );
+				return false;
+			}
+			
+			$gateway = WC()->payment_gateways->payment_gateways()['stripe'];
+			
+			if (!$gateway) {
+				wp_send_json_error( 'ERROR: No se pudo inicializar el gateway Stripe' );
+				return false;
+			}
+			$file = fopen($file_path, 'a');
+
+			$wp_timezone	=	wp_timezone();
+			$wp_date_format	=	get_option('date_format');
+			$wp_time_format	=	get_option('time_format');
+			
+			foreach ($orders as $order_item) {
+				$order					=	wc_get_order($order_item->order_id);				
+				$telemdnow_entity_id	=	$order->get_meta('telemdnow_entity_id', true);
+				$intent_id 				=	$order->get_meta('_stripe_intent_id');
+				
+				$api_url				=	$telemdnow_rest_url . '/orders/' . $telemdnow_entity_id . '?access_token='. $telegramd_token;
+				$response				=	wp_remote_get($api_url);
+				$telegra_status					=	'';
+				$telegra_reminderCreationDate	=	'';
+				$telegra_questionnaireInstances	=	[
+							'instances'	=>	'',
+							'count'		=>	0,
+							'valid'		=>	0,
+							'missing'	=>	0,
+						];
+				$questionnaries_completed	=	false;
+				
+				if (!is_wp_error($response)){
+					$jsonData		=	json_decode(wp_remote_retrieve_body($response), true);
+					$telegra_status	=	$jsonData['status'];
+
+					if(isset($jsonData['questionnaireInstances'])){
+						$questionnaireInstances	=	$jsonData['questionnaireInstances'];
+						$questionnaires=[];
+						foreach ($questionnaireInstances as $key_questionnaire => $item_questionnaire) {
+							$questionnaire['status']=	$item_questionnaire['status'] ?? '...';
+							$questionnaire['valid']	=	$item_questionnaire['valid'] ?? 0;
+							$questionnaire['title']	=	$item_questionnaire['questionnaire']['title'] ?? '...';
+							if($questionnaire['valid']==1){
+								$questionnaire['status']	=	'Completed';
+							}
+							$questionnaires[]	=	$questionnaire;
+						}
+						$count_questionaries_valid	=	count(array_filter($questionnaires, function($q){ return ($q['valid'] ?? 0) == 1; }));
+						$count_questionaries		=	count($questionnaireInstances);
+						$missing=	$count_questionaries - $count_questionaries_valid;
+						$telegra_questionnaireInstances	=	[
+							'instances'	=>	$questionnaires,
+							'count'		=>	$count_questionaries,
+							'valid'		=>	$count_questionaries_valid,
+							'missing'	=>	$missing,
+						];
+						$questionnaries_completed	=	$missing==0;
+					}
+				}
+				if($exclude_completed && $questionnaries_completed)
+					continue ;
+				
+				$sent	=	false;
+
+				$rows[] = array(
+					'order'	=> [
+						'link'					=> admin_url( 'admin.php?page=wc-orders&action=edit&id=' . $order->get_id() ),
+						'id' 					=> $order->get_id(),
+						'status'				=> $order->get_status(),
+						'date_created'			=>	$order->get_date_created()->format('Y-m-d H:i:s'),
+						'total' 				=> $order->get_total(),
+						'currency' 				=> $order->get_currency(),
+						'telemdnow_entity_id'	=> $telemdnow_entity_id,
+					],
+					'telegra' => [
+						'status' 				=> $telegra_status,
+						'questionnaires' 		=> $telegra_questionnaireInstances,
+						'reminderCreationDate' 	=> $sent? 'Yes': 'No',
+					]
+				);
+
+				$_row = array(
+					'order_id' 		=> $order->get_id(),
+					'order_date_created'		=>	$order->get_date_created()->format('Y-m-d H:i:s'),
+					'order_status'	=> $order->get_status(),
+					'order_state'	=> $order->get_shipping_state(),
+					'order_link'	=> admin_url( 'admin.php?page=wc-orders&action=edit&id=' . $order->get_id() ),
+					'telegra_entity_id' =>	$telemdnow_entity_id, 
+					'telegra_status' => $telegra_status,
+					'telegra_link'			=> 'https://affiliate-admin.telegramd.com/orders/' . $telemdnow_entity_id,
+					'telegra_questionnaires_count' 		=> $telegra_questionnaireInstances['count'],
+					'telegra_questionnaires_valid' 		=> $telegra_questionnaireInstances['valid'],
+					'telegra_questionnaires_missing' 		=> $telegra_questionnaireInstances['missing'],
+					
+				);
+
+				fputcsv($file, $_row);
+				$processed++;
+			}
+
+			if(!$test_mode){
+				fclose($file);
+				$next_offset = $offset + $batch_size;
+				$complete = $processed >= $total;
+			}else{
+				$next_offset = 0;
+				$complete = true;
+			}
+
+			if ($complete) {
+				$final_path = $upload_dir['basedir'] . '/bh-csv/check_questionaries_status_export_' . date('Y-m-d-His') . '.csv';
+				rename($file_path, $final_path);
+				$file_url = $upload_dir['baseurl'] . '/bh-csv/check_questionaries_status_export_' . date('Y-m-d-His') . '.csv';
+				delete_transient($transient_name);
+			}
+			bh_plugins_log('$processed=' . $processed . ', $next_offset=' . $next_offset . ', $complete=' . $complete);		
+
+			$return	=	[
+				'processed' 	=>	$processed,
+				'total' 		=>	intval($total),
+				'next_offset' 	=>	$next_offset,
+				'complete' 		=>	$complete,
+				'sql' 		=>	$sql,				
+				'file_url' 		=>	$complete ? $file_url : ''
+			];
+			if($test_mode) {
+				$return['rows']	=	$rows;
+				$return['preview']	=	true;
+			}
+			wp_send_json_success($return);
+
+		} catch (\Throwable $th) {
+			bh_plugins_log($th);
+			delete_transient($transient_name);
+			wp_send_json_error( $th->getMessage() );
+		}
+
+	}
+
+	function process_check_questionaries_status_export_file(){
+		$upload_dir = wp_upload_dir();
+		$file_path = $upload_dir['basedir'] . '/bh-csv/check_questionaries_status_export_temp.csv';
+		
+		if (file_exists($file_path)) {
+			// Renombrar archivo parcial
+			$partial_path = $upload_dir['basedir'] . '/bh-csv/check_questionaries_status_export_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			rename($file_path, $partial_path);
+			$file_url = $upload_dir['baseurl'] . '/bh-csv/check_questionaries_status_export_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			
+			delete_transient('process_check_questionaries_status_active');
+			wp_send_json_success(['file_url' => $file_url]);
+		} else {
+			wp_send_json_error(['message' => 'No partial file found']);
+		}
+	}
+
+
+	/**
 	 * Admin Menu order_inspector_page Tools
 	 */
 	function order_inspector_page() {
@@ -2219,7 +2566,7 @@ class Bh_Tools_Admin {
 
 		add_action('input_filters', function() {
 		?>
-		<div style="display:none">
+		<div style="display:nonee">
             <label>Status:</label>
             <select name="status" id="order_status">
                 <option value="">Select status</option>
@@ -2235,6 +2582,10 @@ class Bh_Tools_Admin {
         </div>
 
 		<div>
+            <label>
+            	<input type="checkbox" name="exclude_sync_telegra" id="exclude_exclude_sync_telegra">
+				Exclude Sync Telegra Orders
+			</label>
             <label>
             	<input type="checkbox" name="exclude_completed" id="exclude_completed">
 				Exclude Completed Orders(WC+Telegra+Stripe)
@@ -2270,6 +2621,7 @@ class Bh_Tools_Admin {
 			$test_mode	=	boolval($form_data['test_mode']);
 			$exclude_completed	=	boolval($form_data['exclude_completed']);
 			$exclude_renewals	=	boolval($form_data['exclude_renewals']);
+			$exclude_sync_telegra=	boolval($form_data['exclude_sync_telegra']);
 			
 			$upload_dir =	wp_upload_dir();
 			$base_file_path	=	$upload_dir['basedir'] . '/bh-exports/';
@@ -2381,6 +2733,33 @@ class Bh_Tools_Admin {
 			if(!$test_mode)
 				$file = fopen($file_path, 'a');
 
+
+			$telegra_statuses = TelemdNow::get_telegra_order_status();
+          	//$custom_woo_statuses = TelemdNow::get_custom_woo_order_status();
+
+			$action				=	get_option('telemdnow_trigger_action');
+			$orderStatusArray 	=	json_decode( get_option( 'telegra_woo_status' ), true );
+			/**
+			 * {
+			 * 	"requires_waiting_room_egress":"wc-waiting_room",
+			 * 	"requires_provider_review":"wc-provider_review",
+			 * 	"requires_order_processing":"wc-collect_payment",
+			 * 	"requires_affiliate_review":"wc-error_review",
+			 * 	"completed":"wc-completed",
+			 * 	"cancelled":"wc-cancelled",
+			 * 	"requires_prerequisite_completion":"wc-prerequisites",
+			 * 	"requires_admin_review":"wc-admin_review"
+			 * }
+			 * 
+			 */
+			$orderStatusArray['started']	=	'wc-' . $action;
+
+			$orderStatusArray = array_map(function($item) {
+			    return str_starts_with($item, 'wc-') 
+			        ? substr($item, 3) 
+			        : $item;
+			}, $orderStatusArray);
+
 			foreach ($orders as $order_item) {
 				$order					=	wc_get_order($order_item->order_id);
 				if( $exclude_renewals && !wcs_order_contains_subscription( $order ))
@@ -2447,8 +2826,13 @@ class Bh_Tools_Admin {
 						continue ;
 				}
 
+				if($exclude_sync_telegra){
+					if($order->get_status() == $orderStatusArray[$telegra_status])
+						continue ;
+				}
+
 				$link_fix_status	=	'';
-				if($order->get_status() != $telegra_status){
+				if($order->get_status() != $orderStatusArray[$telegra_status]){
 					$link_fix_status	=	admin_url( 'admin.php?bh-action=update_status_order_from_telegra&order_id=' . $order->get_id() . '&new_status=' . $telegra_status  );
 				}
 
@@ -2464,7 +2848,7 @@ class Bh_Tools_Admin {
 						'link_fix_status'		=> $link_fix_status,
 					],
 					'telegra' => [
-						'status' 	=> $telegra_status,
+						'status' 	=> isset($telegra_statuses[$telegra_status])? $telegra_statuses[$telegra_status]:$telegra_status,
 						'link'		=> 'https://affiliate-admin.telegramd.com/orders/' . $telemdnow_entity_id,
 						'questionnaires' 	=> $telegra_questionnaireInstances,
 					],
@@ -2554,6 +2938,411 @@ class Bh_Tools_Admin {
 			wp_send_json_success(['file_url' => $file_url]);
 		} else {
 			wp_send_json_error(['message' => 'No partial file found']);
+		}
+	}
+
+	/**
+	 * Admin Menu – Telegra WC Sync page
+	 */
+	function telegra_wc_sync_page() {
+
+		$states = WC()->countries->get_states( 'US' );
+
+		wp_enqueue_script( 'jquery-ui-tabs' );
+		wp_enqueue_style(  'hb-select2',      'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css' );
+		wp_enqueue_script( 'hb-select2',      'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', [ 'jquery' ], null, true );
+		wp_enqueue_script( 'checkbox-states', plugin_dir_url( __DIR__ ) . 'admin/js/bh-select2.js', [ 'jquery', 'hb-select2' ], null, true );
+		wp_localize_script( 'checkbox-states', 'ajaxurl', admin_url( 'admin-ajax.php' ) );
+
+		// Extra filters injected via do_action('input_filters') in the common partial
+		add_action( 'input_filters', function () {
+			?>
+			<div>
+				<label>WC Status filter:</label>
+				<select name="status" id="order_status">
+					<option value="">— Any status —</option>
+					<?php
+					if ( function_exists( 'wc_get_order_statuses' ) ) {
+						foreach ( wc_get_order_statuses() as $value => $label ) {
+							echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
+						}
+					}
+					?>
+				</select>
+			</div>
+			<div>
+				<label>
+					<input type="checkbox" name="exclude_renewals" id="exclude_renewals">
+					Exclude Renewal Orders
+				</label>
+			</div>
+			<div>
+				<label>
+					<input type="checkbox" name="only_out_of_sync" id="only_out_of_sync" checked>
+					Only out-of-sync orders (WC ≠ Telegra)
+				</label>
+			</div>
+			<?php
+		} );
+		?>
+		<div class="wrap">
+			<h1>Telegra WC Sync</h1>
+			<?php
+				require_once plugin_dir_path( __FILE__ ) . 'partials/bh-tools-admin-display-page-telegra-wc-sync.php';
+				require_once plugin_dir_path( __FILE__ ) . 'partials/bh-tools-admin-display-progress-bar.php';
+			?>
+		</div>
+		<?php
+	}
+
+
+	// ─────────────────────────────────────────────────────────────
+	// 2. BATCH PROCESSOR  (AJAX)
+	// ─────────────────────────────────────────────────────────────
+
+	/**
+	 * process_telegra_wc_sync_batch()
+	 *
+	 * Called on every AJAX tick.  For each order in the slice it:
+	 *   1. Fetches the Telegra status via API.
+	 *   2. Compares it against the mapped WC status.
+	 *   3. When different → updates WC order directly OR via webhook
+	 *      depending on the user-selected method.
+	 *   4. Appends changed rows to a temp CSV file (only updated rows).
+	 *   5. Returns JSON consumed by the shared progress-bar JS.
+	 */
+	function process_telegra_wc_sync_batch() {
+		global $wpdb;
+
+		$transient_name = 'process_telegra_wc_sync_active';
+
+		try {
+			set_transient( $transient_name, true, 3600 );
+
+			parse_str( $_POST['form_data'], $form_data );
+			$offset          = intval( $_POST['offset'] );
+			$batch_size      = intval( $form_data['batch_size'] );
+			$test_mode       = boolval( $form_data['test_mode'] ?? false );
+			$exclude_renewals = boolval( $form_data['exclude_renewals'] ?? false );
+			$only_out_of_sync = isset( $form_data['only_out_of_sync'] ) ? boolval( $form_data['only_out_of_sync'] ) : true;
+
+			// update_method: 'direct' | 'webhook'
+			$update_method = isset( $form_data['update_method'] ) && $form_data['update_method'] === 'webhook'
+				? 'webhook'
+				: 'direct';
+
+			// ── CSV paths ──────────────────────────────────────────
+			$upload_dir     = wp_upload_dir();
+			$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+			$file_path      = $base_file_path . 'telegra_wc_sync_temp.csv';
+
+			if ( ! file_exists( $base_file_path ) ) {
+				wp_mkdir_p( $base_file_path );
+			}
+
+			// First tick: create/reset temp CSV with headers
+			if ( $offset === 0 ) {
+				$file = fopen( $file_path, 'w' );
+				fputcsv( $file, [ 'Order ID', 'Order Link', 'Previous WC Status', 'New WC Status', 'Telegra Status', 'Telegra Link', 'Update Method', 'Result' ] );
+				fclose( $file );
+			}
+
+			// ── Build query (same approach as process_order_inspector_batch) ──
+			$joins = [
+				"INNER JOIN {$wpdb->prefix}wc_orders_meta om ON om.order_id = o.id",
+			];
+
+			$where = [
+				"o.type       = 'shop_order'",
+				"om.meta_key  = 'telemdnow_entity_id'",
+				"om.meta_value IS NOT NULL",
+			];
+
+			if ( ! empty( $form_data['states'] ) ) {
+				if ( count( $form_data['states'] ) === 1 && $form_data['states'][0] !== '' ) {
+					$placeholders = implode( ',', array_fill( 0, count( $form_data['states'] ), '%s' ) );
+					$where[]      = $wpdb->prepare( "a.state IN ($placeholders)", $form_data['states'] );
+				}
+			}
+
+			if ( ! empty( $form_data['start_date'] ) ) {
+				$where[] = $wpdb->prepare( "o.date_created_gmt >= %s", $form_data['start_date'] );
+			}
+
+			if ( ! empty( $form_data['end_date'] ) ) {
+				$where[] = $wpdb->prepare( "o.date_created_gmt <= %s", $form_data['end_date'] );
+			}
+
+			if ( ! empty( $form_data['status'] ) ) {
+				$where[] = $wpdb->prepare( "o.status = %s", $form_data['status'] );
+			}
+
+			// ── Total (first tick only) ────────────────────────────
+			if ( $offset === 0 ) {
+				$sql_count = "SELECT COUNT(DISTINCT o.id)
+							FROM {$wpdb->prefix}wc_orders o
+							" . implode( ' ', $joins ) . "
+							WHERE " . implode( ' AND ', $where );
+				$total = (int) $wpdb->get_var( $sql_count );
+			} else {
+				$total = intval( $_POST['total'] );
+			}
+
+			// ── Fetch batch ────────────────────────────────────────
+			$sql = $wpdb->prepare(
+				"SELECT DISTINCT o.id AS order_id
+				FROM {$wpdb->prefix}wc_orders o
+				" . implode( ' ', $joins ) . "
+				WHERE " . implode( ' AND ', $where ) . "
+				ORDER BY o.id DESC
+				LIMIT %d OFFSET %d",
+				$batch_size,
+				$offset
+			);
+			$order_rows = $wpdb->get_results( $sql );
+
+			// ── Telegra token ──────────────────────────────────────
+			global $telegramd_token;
+			if ( empty( $telegramd_token ) ) {
+				$telegramd_token = $this->telegramd_getToken();
+			}
+			$telemdnow_rest_url = 'https://telegramd-rest.telegramd.com';
+
+			// ── Status map:  telegra_status → wc_status (without "wc-" prefix) ──
+			$action           = get_option( 'telemdnow_trigger_action' );
+			$orderStatusArray = json_decode( get_option( 'telegra_woo_status' ), true );
+			$orderStatusArray['started'] = 'wc-' . $action;
+			$orderStatusArray = array_map( function ( $item ) {
+				return str_starts_with( $item, 'wc-' ) ? substr( $item, 3 ) : $item;
+			}, $orderStatusArray );
+
+			$telegra_statuses = TelemdNow::get_telegra_order_status();
+
+			// ── Loop ───────────────────────────────────────────────
+			$rows      = [];
+			$processed = $offset;
+
+			if ( ! $test_mode ) {
+				$file = fopen( $file_path, 'a' );
+			}
+
+			foreach ( $order_rows as $order_item ) {
+
+				$order = wc_get_order( $order_item->order_id );
+				if ( ! $order ) {
+					$processed++;
+					continue;
+				}
+
+				// Skip renewal-only orders if requested
+				if ( $exclude_renewals && ! wcs_order_contains_subscription( $order ) ) {
+					$processed++;
+					continue;
+				}
+
+				$telemdnow_entity_id = $order->get_meta( 'telemdnow_entity_id', true );
+				if ( empty( $telemdnow_entity_id ) ) {
+					$processed++;
+					continue;
+				}
+
+				// ── Call Telegra API ───────────────────────────────
+				$api_url       = $telemdnow_rest_url . '/orders/' . $telemdnow_entity_id . '?access_token=' . $telegramd_token;
+				$api_response  = wp_remote_get( $api_url );
+				$telegra_status = '';
+
+				if ( ! is_wp_error( $api_response ) ) {
+					$json_data      = json_decode( wp_remote_retrieve_body( $api_response ), true );
+					$telegra_status = $json_data['status'] ?? '';
+				}
+
+				// Skip if we couldn't get the Telegra status
+				if ( empty( $telegra_status ) ) {
+					$processed++;
+					continue;
+				}
+
+				$wc_current_status  = $order->get_status();                          // e.g. "on-hold"
+				$wc_mapped_status   = $orderStatusArray[ $telegra_status ] ?? null;  // what WC should be
+
+				// Skip if Telegra status has no mapping
+				if ( $wc_mapped_status === null ) {
+					$processed++;
+					continue;
+				}
+
+				$is_in_sync = ( $wc_current_status === $wc_mapped_status );
+
+				// Respect "only out-of-sync" filter
+				if ( $only_out_of_sync && $is_in_sync ) {
+					$processed++;
+					continue;
+				}
+
+				// ── Build row for table / CSV ──────────────────────
+				$order_link   = admin_url( 'admin.php?page=wc-orders&action=edit&id=' . $order->get_id() );
+				$telegra_link = 'https://affiliate-admin.telegramd.com/orders/' . $telemdnow_entity_id;
+				$telegra_label = isset( $telegra_statuses[ $telegra_status ] ) ? $telegra_statuses[ $telegra_status ] : $telegra_status;
+
+				$update_result = 'skipped (already in sync)';
+				$actually_updated = false;
+
+				if ( ! $is_in_sync ) {
+					if ( $test_mode ) {
+						$update_result    = 'preview — would update';
+						$actually_updated = false;
+					} elseif ( $update_method === 'webhook' ) {
+						// ── Via Webhook ────────────────────────────
+						$endpoint_url = site_url( '/wp-json/telegra/webhook' );
+						$payload      = [
+							'targetEntity' => [
+								'id'                 => $telemdnow_entity_id,
+								'externalIdentifier' => $order->get_id(),
+							],
+							'eventTitle' => 'status_changed',
+							'eventData'  => [ 'newStatus' => $telegra_status ],
+							'brello'     => [ 'action'    => 'update_status' ],
+						];
+						$wh_response = wp_remote_post( $endpoint_url, [
+							'headers' => [ 'Content-Type' => 'application/json' ],
+							'body'    => json_encode( $payload ),
+							'timeout' => 30,
+						] );
+						if ( ! is_wp_error( $wh_response ) ) {
+							$wh_code       = wp_remote_retrieve_response_code( $wh_response );
+							$update_result    = $wh_code >= 200 && $wh_code < 300 ? 'updated (webhook)' : 'error webhook HTTP ' . $wh_code;
+							$actually_updated = ( $wh_code >= 200 && $wh_code < 300 );
+						} else {
+							$update_result = 'error webhook: ' . $wh_response->get_error_message();
+						}
+					} else {
+						// ── Direct update ──────────────────────────
+						$order->update_status(
+							$wc_mapped_status,
+							sprintf(
+								__( '[Telegra WC Sync] Status updated from "%s" to "%s" (Telegra: %s).', 'bh-tools' ),
+								$wc_current_status,
+								$wc_mapped_status,
+								$telegra_status
+							)
+						);
+						$update_result    = 'updated (direct)';
+						$actually_updated = true;
+					}
+				}
+
+				$_row = [
+					'order'   => [
+						'id'              => $order->get_id(),
+						'link'            => $order_link,
+						'status_before'   => $wc_current_status,
+						'status_after'    => $wc_mapped_status,
+						'date_created'    => $order->get_date_created()->format( 'Y-m-d H:i:s' ),
+						'total'           => $order->get_total(),
+						'currency'        => $order->get_currency(),
+					],
+					'telegra' => [
+						'status' => $telegra_label,
+						'link'   => $telegra_link,
+					],
+					'sync' => [
+						'was_in_sync'     => $is_in_sync,
+						'updated'         => $actually_updated,
+						'update_method'   => $update_method,
+						'result'          => $update_result,
+					],
+				];
+
+				$rows[] = $_row;
+
+				// Write to CSV only rows that were actually changed (or would be)
+				if ( ! $test_mode && ( $actually_updated ) ) {
+					fputcsv( $file, [
+						$_row['order']['id'],
+						$_row['order']['link'],
+						$_row['order']['status_before'],
+						$_row['order']['status_after'],
+						$_row['telegra']['status'],
+						$_row['telegra']['link'],
+						$update_method,
+						$update_result,
+					] );
+				}
+
+				$processed++;
+			}
+
+			if ( ! $test_mode ) {
+				fclose( $file );
+			}
+
+			// ── Determine if complete ──────────────────────────────
+			if ( ! $test_mode ) {
+				$next_offset = $offset + $batch_size;
+				$complete    = $processed >= $total;
+			} else {
+				$next_offset = 0;
+				$complete    = true;
+			}
+
+			$file_url = '';
+			if ( $complete && ! $test_mode ) {
+				$final_name = 'telegra_wc_sync_' . date( 'Y-m-d-His' ) . '.csv';
+				$final_path = $base_file_path . $final_name;
+				rename( $file_path, $final_path );
+				$file_url = $upload_dir['baseurl'] . '/bh-exports/' . $final_name;
+				delete_transient( $transient_name );
+			}
+
+			$return = [
+				'processed'   => $processed,
+				'total'       => intval( $total ),
+				'next_offset' => $next_offset,
+				'complete'    => $complete,
+				'file_url'    => $file_url,
+			];
+
+			// In test/preview mode send rows back for table rendering
+			if ( $test_mode ) {
+				$return['rows']    = $rows;
+				$return['preview'] = true;
+			} else {
+				// In live mode also send rows so the UI table updates in real time
+				$return['rows'] = $rows;
+			}
+
+			wp_send_json_success( $return );
+
+		} catch ( \Throwable $th ) {
+			delete_transient( $transient_name );
+			wp_send_json_error( $th->getMessage() );
+		}
+	}
+
+
+	// ─────────────────────────────────────────────────────────────
+	// 3. EXPORT PARTIAL FILE  (AJAX – Stop button)
+	// ─────────────────────────────────────────────────────────────
+
+	/**
+	 * When the user clicks "Stop", the shared progress-bar JS calls
+	 * _action_export.  We rename the temp file and return a download URL.
+	 */
+	function process_telegra_wc_sync_export_file() {
+		$upload_dir     = wp_upload_dir();
+		$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+		$file_path      = $base_file_path . 'telegra_wc_sync_temp.csv';
+
+		if ( file_exists( $file_path ) ) {
+			$partial_name = 'telegra_wc_sync_PARTIAL_' . date( 'Y-m-d-His' ) . '.csv';
+			$partial_path = $base_file_path . $partial_name;
+			rename( $file_path, $partial_path );
+			$file_url = $upload_dir['baseurl'] . '/bh-exports/' . $partial_name;
+
+			delete_transient( 'process_telegra_wc_sync_active' );
+			wp_send_json_success( [ 'file_url' => $file_url ] );
+		} else {
+			wp_send_json_error( [ 'message' => 'No partial file found.' ] );
 		}
 	}
 

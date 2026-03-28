@@ -23,3 +23,8 @@ if(!defined('CANCEL_PATIENT_REJECTED'))
     define('CANCEL_PATIENT_REJECTED', 'cancel_pat_rej');
 
 
+if(!defined('TELEGRA_REST_URL')){
+    $telemdnow_rest_url = 'https://affiliate-admin.telegramd.com';
+    define('TELEGRA_REST_URL', $telemdnow_rest_url);
+}
+

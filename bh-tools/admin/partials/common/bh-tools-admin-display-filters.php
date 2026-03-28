@@ -12,7 +12,15 @@
         <div>
             <label>Start date:</label>
              <?php if($input_datetime) : ?>
-            <input type="datetime-local" name="start_date" min="2024-10-01T00:00" max="2030-12-31T23:59" required>
+            <?php /*<input type="datetime-local" name="start_date" min="2024-10-01T00:00" max="2030-12-31T23:59" required>*/ ?>
+            <input 
+                type="datetime-local" 
+                name="start_date" 
+                min="2024-10-01T00:00" 
+                max="2030-12-31T23:59" 
+                value="<?php echo esc_attr( wp_date('Y-m-d') . 'T00:00' ); ?>"
+                required
+            >
             <?php else : ?>
             <input type="date" name="start_date">
             <?php endif; ?>
@@ -20,7 +28,15 @@
         <div>
             <label>End date:</label>
             <?php if($input_datetime) : ?>
-            <input type="datetime-local" name="end_date" min="2024-01-01T00:00" max="2030-12-31T23:59" required>
+            <?php /*<input type="datetime-local" name="end_date" min="2024-01-01T00:00" max="2030-12-31T23:59" required>*/ ?>
+            <input 
+                type="datetime-local" 
+                name="end_date" 
+                min="2024-10-01T00:00" 
+                max="2030-12-31T23:59" 
+                value="<?php echo esc_attr( wp_date('Y-m-d') . 'T23:59' ); ?>"
+                required
+            >
             <?php else : ?>
             <input type="date" name="end_date">
             <?php endif; ?>
