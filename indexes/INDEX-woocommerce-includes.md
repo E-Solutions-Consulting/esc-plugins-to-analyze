@@ -1,5 +1,5 @@
 # INDEX -- woocommerce-includes
-# Generated  : 2026-03-28 00:57
+# Generated  : 2026-03-28 01:02
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/woocommerce/includes
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce
 #
@@ -2075,6 +2075,6 @@
 # EOF -- INDEX-woocommerce-includes.md
 # Total PHP files indexed : 636
 # Total lines in this file: 2072
-# Generated               : 2026-03-28 00:57
+# Generated               : 2026-03-28 01:02
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------
