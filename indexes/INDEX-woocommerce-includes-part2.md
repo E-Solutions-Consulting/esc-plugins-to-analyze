@@ -1,0 +1,216 @@
+# INDEX -- woocommerce-includes-part2
+# Generated  : 2026-03-28 01:18
+# Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/woocommerce/includes (part 2 of 4)
+# Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce
+#
+# Usage: paste any raw URL below into Claude web_fetch to read that file.
+# -----------------------------------------------------------------------------
+
+- `class-wc-ajax.php` -- AJAX handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-ajax.php
+- `class-wc-auth.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-auth.php
+- `class-wc-autoloader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-autoloader.php
+- `class-wc-background-emailer.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-background-emailer.php
+- `class-wc-background-updater.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-background-updater.php
+- `class-wc-brands-brand-settings-manager.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-brands-brand-settings-manager.php
+- `class-wc-brands-coupons.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-brands-coupons.php
+- `class-wc-brands.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-brands.php
+- `class-wc-breadcrumb.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-breadcrumb.php
+- `class-wc-cache-helper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-cache-helper.php
+- `class-wc-cart-fees.php` -- Cart class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-cart-fees.php
+- `class-wc-cart.php` -- Cart class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-cart.php
+- `class-wc-cart-session.php` -- Cart class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-cart-session.php
+- `class-wc-cart-totals.php` -- Cart class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-cart-totals.php
+- `class-wc-checkout.php` -- Checkout class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-checkout.php
+- `class-wc-cli.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-cli.php
+- `class-wc-comments.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-comments.php
+- `class-wc-countries.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-countries.php
+- `class-wc-coupon.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-coupon.php
+- `class-wc-customer-download-log.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-customer-download-log.php
+- `class-wc-customer-download.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-customer-download.php
+- `class-wc-customer.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-customer.php
+- `class-wc-data-exception.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-data-exception.php
+- `class-wc-data-store.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-data-store.php
+- `class-wc-datetime.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-datetime.php
+- `class-wc-deprecated-action-hooks.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-deprecated-action-hooks.php
+- `class-wc-deprecated-filter-hooks.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-deprecated-filter-hooks.php
+- `class-wc-discounts.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-discounts.php
+- `class-wc-download-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-download-handler.php
+- `class-wc-emails.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-emails.php
+- `class-wc-embed.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-embed.php
+- `class-wc-form-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-form-handler.php
+- `class-wc-frontend-scripts.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-frontend-scripts.php
+- `class-wc-geo-ip.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-geo-ip.php
+- `class-wc-geolite-integration.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-geolite-integration.php
+- `class-wc-geolocation.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-geolocation.php
+- `class-wc-https.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-https.php
+- `class-wc-install.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-install.php
+- `class-wc-integrations.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-integrations.php
+- `class-wc-logger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-logger.php
+- `class-wc-log-levels.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-log-levels.php
+- `class-wc-meta-data.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-meta-data.php
+- `class-wc-order-factory.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-factory.php
+- `class-wc-order-item-coupon.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item-coupon.php
+- `class-wc-order-item-fee.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item-fee.php
+- `class-wc-order-item-meta.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item-meta.php
+- `class-wc-order-item.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item.php
+- `class-wc-order-item-product.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item-product.php
+- `class-wc-order-item-shipping.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item-shipping.php
+- `class-wc-order-item-tax.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-item-tax.php
+- `class-wc-order.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order.php
+- `class-wc-order-query.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-query.php
+- `class-wc-order-refund.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-order-refund.php
+- `class-wc-payment-gateways.php` -- Payment/Gateway class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-payment-gateways.php
+- `class-wc-payment-tokens.php` -- Payment/Gateway class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-payment-tokens.php
+- `class-wc-post-data.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-post-data.php
+- `class-wc-post-types.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-post-types.php
+- `class-wc-privacy-background-process.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-privacy-background-process.php
+- `class-wc-privacy-erasers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-privacy-erasers.php
+- `class-wc-privacy-exporters.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-privacy-exporters.php
+- `class-wc-privacy.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-privacy.php
+- `class-wc-product-attribute.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-attribute.php
+- `class-wc-product-download.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-download.php
+- `class-wc-product-external.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-external.php
+- `class-wc-product-factory.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-factory.php
+- `class-wc-product-grouped.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-grouped.php
+- `class-wc-product-query.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-query.php
+- `class-wc-product-simple.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-simple.php
+- `class-wc-product-variable.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-variable.php
+- `class-wc-product-variation.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-product-variation.php
+- `class-wc-query.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-query.php
+- `class-wc-rate-limiter.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-rate-limiter.php
+- `class-wc-regenerate-images.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-regenerate-images.php
+- `class-wc-regenerate-images-request.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-regenerate-images-request.php
+- `class-wc-register-wp-admin-settings.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-register-wp-admin-settings.php
+- `class-wc-rest-authentication.php` -- REST API | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-rest-authentication.php
+- `class-wc-rest-exception.php` -- REST API | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-rest-exception.php
+- `class-wc-session-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-session-handler.php
+- `class-wc-shipping.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-shipping.php
+- `class-wc-shipping-rate.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-shipping-rate.php
+- `class-wc-shipping-zone.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-shipping-zone.php
+- `class-wc-shipping-zones.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-shipping-zones.php
+- `class-wc-shortcodes.php` -- Shortcode | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-shortcodes.php
+- `class-wc-structured-data.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-structured-data.php
+- `class-wc-tax.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-tax.php
+- `class-wc-template-loader.php` -- Template | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-template-loader.php
+- `class-wc-tracker.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-tracker.php
+- `class-wc-validation.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-validation.php
+- `class-wc-webhook.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-wc-webhook.php
+- `class-woocommerce.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/class-woocommerce.php
+- `cli/class-wc-cli-com-command.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-com-command.php
+- `cli/class-wc-cli-com-extension-command.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-com-extension-command.php
+- `cli/class-wc-cli-rest-command.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-rest-command.php
+- `cli/class-wc-cli-runner.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-runner.php
+- `cli/class-wc-cli-tool-command.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-tool-command.php
+- `cli/class-wc-cli-tracker-command.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-tracker-command.php
+- `cli/class-wc-cli-update-command.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/cli/class-wc-cli-update-command.php
+- `customizer/class-wc-customizer-control-cropping.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/customizer/class-wc-customizer-control-cropping.php
+- `customizer/class-wc-shop-customizer.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/customizer/class-wc-shop-customizer.php
+- `data-stores/abstract-wc-order-data-store-cpt.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/abstract-wc-order-data-store-cpt.php
+- `data-stores/abstract-wc-order-item-type-data-store.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/abstract-wc-order-item-type-data-store.php
+- `data-stores/class-wc-coupon-data-store-cpt.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-coupon-data-store-cpt.php
+- `data-stores/class-wc-customer-data-store.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-customer-data-store.php
+- `data-stores/class-wc-customer-data-store-session.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-customer-data-store-session.php
+- `data-stores/class-wc-customer-download-data-store.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-customer-download-data-store.php
+- `data-stores/class-wc-customer-download-log-data-store.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-customer-download-log-data-store.php
+- `data-stores/class-wc-data-store-wp.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-data-store-wp.php
+- `data-stores/class-wc-order-data-store-cpt.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-data-store-cpt.php
+- `data-stores/class-wc-order-item-coupon-data-store.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-item-coupon-data-store.php
+- `data-stores/class-wc-order-item-data-store.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-item-data-store.php
+- `data-stores/class-wc-order-item-fee-data-store.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-item-fee-data-store.php
+- `data-stores/class-wc-order-item-product-data-store.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-item-product-data-store.php
+- `data-stores/class-wc-order-item-shipping-data-store.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-item-shipping-data-store.php
+- `data-stores/class-wc-order-item-tax-data-store.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-item-tax-data-store.php
+- `data-stores/class-wc-order-refund-data-store-cpt.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-order-refund-data-store-cpt.php
+- `data-stores/class-wc-payment-token-data-store.php` -- Payment/Gateway class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-payment-token-data-store.php
+- `data-stores/class-wc-product-data-store-cpt.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-product-data-store-cpt.php
+- `data-stores/class-wc-product-grouped-data-store-cpt.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-product-grouped-data-store-cpt.php
+- `data-stores/class-wc-product-variable-data-store-cpt.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-product-variable-data-store-cpt.php
+- `data-stores/class-wc-product-variation-data-store-cpt.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-product-variation-data-store-cpt.php
+- `data-stores/class-wc-shipping-zone-data-store.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-shipping-zone-data-store.php
+- `data-stores/class-wc-webhook-data-store.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/data-stores/class-wc-webhook-data-store.php
+- `emails/class-wc-email-cancelled-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-cancelled-order.php
+- `emails/class-wc-email-customer-cancelled-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-cancelled-order.php
+- `emails/class-wc-email-customer-completed-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-completed-order.php
+- `emails/class-wc-email-customer-failed-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-failed-order.php
+- `emails/class-wc-email-customer-fulfillment-created.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-fulfillment-created.php
+- `emails/class-wc-email-customer-fulfillment-deleted.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-fulfillment-deleted.php
+- `emails/class-wc-email-customer-fulfillment-updated.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-fulfillment-updated.php
+- `emails/class-wc-email-customer-invoice.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-invoice.php
+- `emails/class-wc-email-customer-new-account.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-new-account.php
+- `emails/class-wc-email-customer-note.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-note.php
+- `emails/class-wc-email-customer-on-hold-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-on-hold-order.php
+- `emails/class-wc-email-customer-partially-refunded-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-partially-refunded-order.php
+- `emails/class-wc-email-customer-pos-completed-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-pos-completed-order.php
+- `emails/class-wc-email-customer-pos-refunded-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-pos-refunded-order.php
+- `emails/class-wc-email-customer-processing-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-processing-order.php
+- `emails/class-wc-email-customer-refunded-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-refunded-order.php
+- `emails/class-wc-email-customer-reset-password.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-customer-reset-password.php
+- `emails/class-wc-email-failed-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-failed-order.php
+- `emails/class-wc-email-new-order.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email-new-order.php
+- `emails/class-wc-email.php` -- Email class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/emails/class-wc-email.php
+- `export/abstract-wc-csv-batch-exporter.php` -- Abstract class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/export/abstract-wc-csv-batch-exporter.php
+- `export/abstract-wc-csv-exporter.php` -- Abstract class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/export/abstract-wc-csv-exporter.php
+- `export/class-wc-product-csv-exporter.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/export/class-wc-product-csv-exporter.php
+- `gateways/bacs/class-wc-gateway-bacs.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/bacs/class-wc-gateway-bacs.php
+- `gateways/cheque/class-wc-gateway-cheque.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/cheque/class-wc-gateway-cheque.php
+- `gateways/class-wc-payment-gateway-cc.php` -- Payment/Gateway class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/class-wc-payment-gateway-cc.php
+- `gateways/class-wc-payment-gateway-echeck.php` -- Payment/Gateway class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/class-wc-payment-gateway-echeck.php
+- `gateways/cod/class-wc-gateway-cod.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/cod/class-wc-gateway-cod.php
+- `gateways/paypal/class-wc-gateway-paypal-buttons.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/class-wc-gateway-paypal-buttons.php
+- `gateways/paypal/class-wc-gateway-paypal.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/class-wc-gateway-paypal.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-api-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-api-handler.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-constants.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-constants.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-helper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-helper.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-ipn-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-ipn-handler.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-notices.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-notices.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-pdt-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-pdt-handler.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-request.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-request.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-response.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-response.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-transact-account-manager.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-transact-account-manager.php
+- `gateways/paypal/includes/class-wc-gateway-paypal-webhook-handler.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/class-wc-gateway-paypal-webhook-handler.php
+- `gateways/paypal/includes/settings-paypal.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/gateways/paypal/includes/settings-paypal.php
+- `import/abstract-wc-product-importer.php` -- Abstract class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/import/abstract-wc-product-importer.php
+- `import/class-wc-product-csv-importer.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/import/class-wc-product-csv-importer.php
+- `integrations/maxmind-geolocation/class-wc-integration-maxmind-database-service.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/integrations/maxmind-geolocation/class-wc-integration-maxmind-database-service.php
+- `integrations/maxmind-geolocation/class-wc-integration-maxmind-geolocation.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/integrations/maxmind-geolocation/class-wc-integration-maxmind-geolocation.php
+- `integrations/maxmind-geolocation/views/html-admin-options.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/integrations/maxmind-geolocation/views/html-admin-options.php
+- `interfaces/class-wc-abstract-order-data-store-interface.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-abstract-order-data-store-interface.php
+- `interfaces/class-wc-coupon-data-store-interface.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-coupon-data-store-interface.php
+- `interfaces/class-wc-customer-data-store-interface.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-customer-data-store-interface.php
+- `interfaces/class-wc-customer-download-data-store-interface.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-customer-download-data-store-interface.php
+- `interfaces/class-wc-customer-download-log-data-store-interface.php` -- Customer class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-customer-download-log-data-store-interface.php
+- `interfaces/class-wc-importer-interface.php` -- Interface | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-importer-interface.php
+- `interfaces/class-wc-logger-interface.php` -- Interface | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-logger-interface.php
+- `interfaces/class-wc-log-handler-interface.php` -- Interface | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-log-handler-interface.php
+- `interfaces/class-wc-object-data-store-interface.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-object-data-store-interface.php
+- `interfaces/class-wc-order-data-store-interface.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-order-data-store-interface.php
+- `interfaces/class-wc-order-item-data-store-interface.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-order-item-data-store-interface.php
+- `interfaces/class-wc-order-item-product-data-store-interface.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-order-item-product-data-store-interface.php
+- `interfaces/class-wc-order-item-type-data-store-interface.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-order-item-type-data-store-interface.php
+- `interfaces/class-wc-order-refund-data-store-interface.php` -- Order class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-order-refund-data-store-interface.php
+- `interfaces/class-wc-payment-token-data-store-interface.php` -- Payment/Gateway class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-payment-token-data-store-interface.php
+- `interfaces/class-wc-product-data-store-interface.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-product-data-store-interface.php
+- `interfaces/class-wc-product-variable-data-store-interface.php` -- Product class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-product-variable-data-store-interface.php
+- `interfaces/class-wc-queue-interface.php` -- Interface | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-queue-interface.php
+- `interfaces/class-wc-shipping-zone-data-store-interface.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-shipping-zone-data-store-interface.php
+- `interfaces/class-wc-webhooks-data-store-interface.php` -- Data store (HPOS) | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/interfaces/class-wc-webhooks-data-store-interface.php
+- `legacy/abstract-wc-legacy-order.php` -- Abstract class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/abstract-wc-legacy-order.php
+- `legacy/abstract-wc-legacy-payment-token.php` -- Abstract class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/abstract-wc-legacy-payment-token.php
+- `legacy/abstract-wc-legacy-product.php` -- Abstract class | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/abstract-wc-legacy-product.php
+- `legacy/class-wc-legacy-cart.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/class-wc-legacy-cart.php
+- `legacy/class-wc-legacy-coupon.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/class-wc-legacy-coupon.php
+- `legacy/class-wc-legacy-customer.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/class-wc-legacy-customer.php
+- `legacy/class-wc-legacy-shipping-zone.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/class-wc-legacy-shipping-zone.php
+- `legacy/class-wc-legacy-webhook.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/legacy/class-wc-legacy-webhook.php
+- `libraries/class-wc-eval-math.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/libraries/class-wc-eval-math.php
+- `libraries/wp-async-request.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/libraries/wp-async-request.php
+- `libraries/wp-background-process.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/libraries/wp-background-process.php
+- `log-handlers/class-wc-log-handler-db.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce/includes/log-handlers/class-wc-log-handler-db.php
+
+# -----------------------------------------------------------------------------
+# EOF -- INDEX-woocommerce-includes-part2.md
+# Total PHP files indexed : 200
+# Total lines in this file: 208
+# Generated               : 2026-03-28 01:18
+# If you can read this line, you have read the complete index.
+# -----------------------------------------------------------------------------
