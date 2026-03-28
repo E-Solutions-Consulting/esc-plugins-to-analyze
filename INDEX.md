@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-03-28 00:44
+# Generated : 2026-03-28 00:57
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -10,11 +10,11 @@
 
 esc-plugins-to-analyze/
   INDEX.md        <- you are here (global entry point)
-  indexes/        <- one INDEX-{plugin}.md per plugin
+  indexes/        <- one INDEX-{name}.md per plugin or plugin subdirectory
   plugins/        <- plugin source code
   themes/         <- theme source code (future)
 
-## Available plugins
+## Available indexes
 
 ### ah-monitor
 - PHP files indexed : 12
@@ -48,6 +48,10 @@ esc-plugins-to-analyze/
 - PHP files indexed : 148
 - INDEX url         : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-gateway-stripe.md
 
+### woocommerce-includes
+- PHP files indexed : 636
+- INDEX url         : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-includes.md
+
 ### woocommerce
 - PHP files indexed : 2712
 - INDEX url         : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce.md
@@ -59,8 +63,8 @@ esc-plugins-to-analyze/
 
 ## How to use
 
-1. Read this INDEX.md to discover available plugins
-2. Fetch the INDEX-{plugin}.md url for the plugin you need
+1. Read this INDEX.md to discover available indexes
+2. Fetch the INDEX-{name}.md url for the plugin/section you need
 3. Find the relevant file(s) in that index
 4. Fetch the raw url of that file to read its source
 5. Confirm the EOF flag at the bottom of each INDEX --
