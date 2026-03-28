@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-03-28 01:18
+# Generated : 2026-03-28 01:27
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -45,7 +45,7 @@ esc-plugins-to-analyze/
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-telemdnow-wp-plugin.md
 
 ### woocommerce-gateway-stripe
-- PHP files : 148
+- PHP files : 141
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-gateway-stripe.md
 
 ### woocommerce-includes
@@ -72,9 +72,77 @@ esc-plugins-to-analyze/
 - PHP files : 2712
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce.md
 
+### woocommerce-part10
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part10.md
+
+### woocommerce-part11
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part11.md
+
+### woocommerce-part12
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part12.md
+
+### woocommerce-part13
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part13.md
+
+### woocommerce-part14
+- PHP files : 112
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part14.md
+
+### woocommerce-part1
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part1.md
+
+### woocommerce-part2
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part2.md
+
+### woocommerce-part3
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part3.md
+
+### woocommerce-part4
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part4.md
+
+### woocommerce-part5
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part5.md
+
+### woocommerce-part6
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part6.md
+
+### woocommerce-part7
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part7.md
+
+### woocommerce-part8
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part8.md
+
+### woocommerce-part9
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part9.md
+
 ### woocommerce-subscriptions
 - PHP files : 408
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-subscriptions.md
+
+### woocommerce-subscriptions-part1
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-subscriptions-part1.md
+
+### woocommerce-subscriptions-part2
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-subscriptions-part2.md
+
+### woocommerce-subscriptions-part3
+- PHP files : 5
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-subscriptions-part3.md
 
 
 ## How to use
