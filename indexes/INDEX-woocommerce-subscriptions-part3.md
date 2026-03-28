@@ -1,5 +1,5 @@
 # INDEX -- woocommerce-subscriptions-part3
-# Generated  : 2026-03-28 01:27
+# Generated  : 2026-03-28 01:56
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/woocommerce-subscriptions (part 3 of 3)
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce-subscriptions
 #
@@ -16,6 +16,6 @@
 # EOF -- INDEX-woocommerce-subscriptions-part3.md
 # Total PHP files indexed : 5
 # Total lines in this file: 13
-# Generated               : 2026-03-28 01:27
+# Generated               : 2026-03-28 01:56
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

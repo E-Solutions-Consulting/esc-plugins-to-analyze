@@ -1,5 +1,5 @@
 # INDEX -- woocommerce-gateway-stripe
-# Generated  : 2026-03-28 01:27
+# Generated  : 2026-03-28 01:56
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/woocommerce-gateway-stripe
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/woocommerce-gateway-stripe
 #
@@ -152,6 +152,6 @@
 # EOF -- INDEX-woocommerce-gateway-stripe.md
 # Total PHP files indexed : 141
 # Total lines in this file: 149
-# Generated               : 2026-03-28 01:27
+# Generated               : 2026-03-28 01:56
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------
