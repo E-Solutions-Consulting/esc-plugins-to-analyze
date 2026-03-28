@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-03-28 01:27
+# Generated : 2026-03-28 01:56
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -48,10 +48,6 @@ esc-plugins-to-analyze/
 - PHP files : 141
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-gateway-stripe.md
 
-### woocommerce-includes
-- PHP files : 636
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-includes.md
-
 ### woocommerce-includes-part1
 - PHP files : 200
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-includes-part1.md
@@ -67,10 +63,6 @@ esc-plugins-to-analyze/
 ### woocommerce-includes-part4
 - PHP files : 36
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-includes-part4.md
-
-### woocommerce
-- PHP files : 2712
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce.md
 
 ### woocommerce-part10
 - PHP files : 200
@@ -127,10 +119,6 @@ esc-plugins-to-analyze/
 ### woocommerce-part9
 - PHP files : 200
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-part9.md
-
-### woocommerce-subscriptions
-- PHP files : 408
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-woocommerce-subscriptions.md
 
 ### woocommerce-subscriptions-part1
 - PHP files : 200
