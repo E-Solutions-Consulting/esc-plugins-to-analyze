@@ -1,5 +1,5 @@
 # INDEX -- bh-integration
-# Generated  : 2026-03-28 01:56
+# Generated  : 2026-04-07 17:32
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/bh-integration
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-integration
 #
@@ -26,6 +26,6 @@
 # EOF -- INDEX-bh-integration.md
 # Total PHP files indexed : 15
 # Total lines in this file: 23
-# Generated               : 2026-03-28 01:56
+# Generated               : 2026-04-07 17:32
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

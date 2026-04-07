@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * WP-CLI command: wp ah-sync telegra-wc-sync [--options]
  *
  * Used primarily by SG Cronjob:
- *   cd /path/to/wp && wp ah-sync telegra-wc-sync --allow-root
+ *   cd /path/to/wp && wp ah-sync telegra-wc-sync --allow-root --notify
  */
 class AH_Sync_CLI {
 
@@ -42,16 +42,21 @@ class AH_Sync_CLI {
      * [--dry-run]
      * : Preview changes without applying them.
      *
+     * [--notify]
+     * : Send a Slack notification on completion via bh_send_slack_notification().
+     * Requires AH_SYNC_SLACK_WEBHOOK defined in wp-config.php.
+     * Disabled by default — intended for cron use.
+     *
      * ## EXAMPLES
      *
-     *     # Default run (last 7 days, all active statuses)
-     *     wp ah-sync telegra-wc-sync --allow-root
+     *     # Default cron run with Slack notification
+     *     wp ah-sync telegra-wc-sync --allow-root --notify
      *
-     *     # Dry run to preview changes
+     *     # Dry run, no notification
      *     wp ah-sync telegra-wc-sync --dry-run
      *
-     *     # Only specific statuses
-     *     wp ah-sync telegra-wc-sync --status="send_to_telegra,collect_payment"
+     *     # Only specific statuses, with notification
+     *     wp ah-sync telegra-wc-sync --status="send_to_telegra,collect_payment" --notify
      *
      *     # Specific date range
      *     wp ah-sync telegra-wc-sync --start="2026-03-01" --end="2026-03-22"
@@ -61,11 +66,12 @@ class AH_Sync_CLI {
     public function telegra_wc_sync( array $args, array $assoc_args ) {
 
         $dry_run = WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
+        $notify  = WP_CLI\Utils\get_flag_value( $assoc_args, 'notify',  false );
 
         WP_CLI::log( '=== AH Sync — Telegra WC Sync ===' );
-        WP_CLI::log( 'Mode: ' . ( $dry_run ? 'DRY RUN' : 'LIVE' ) );
+        WP_CLI::log( 'Mode: '   . ( $dry_run ? 'DRY RUN' : 'LIVE' ) );
+        WP_CLI::log( 'Notify: ' . ( $notify  ? 'YES (Slack)' : 'NO' ) );
 
-        // ── Parse args ─────────────────────────────────────────
         $runner_args = [
             'start_date'       => $assoc_args['start'] ?? date( 'Y-m-d H:i:s', strtotime( '-7 days' ) ),
             'end_date'         => $assoc_args['end']   ?? date( 'Y-m-d H:i:s' ),
@@ -77,7 +83,6 @@ class AH_Sync_CLI {
                                     : [],
             'batch_size'       => intval( $assoc_args['batch-size'] ?? 25 ),
             'update_method'    => sanitize_text_field( $assoc_args['method'] ?? 'direct' ),
-            'exclude_sync' => WP_CLI\Utils\get_flag_value( $assoc_args, 'exclude-sync', false ),
             'exclude_renewals' => WP_CLI\Utils\get_flag_value( $assoc_args, 'exclude-renewals', false ),
             'dry_run'          => $dry_run,
             'mode'             => 'apply_fresh',
@@ -95,14 +100,17 @@ class AH_Sync_CLI {
             WP_CLI::log( 'Status filter: ' . implode( ', ', $runner_args['status'] ) );
         }
 
-        // ── Run ────────────────────────────────────────────────
+        // Notifier — only active when --notify flag is passed
+        $notifier = $notify
+            ? new AH_Sync_Notifier( true, AH_Sync_Logger::SOURCE_CLI )
+            : null;
+
         $logger = new AH_Sync_Logger( AH_Sync_Logger::SOURCE_CLI );
         $runner = new AH_Telegra_WC_Sync( $logger );
 
         try {
-            $stats = $runner->run_full( $runner_args );
+            $stats = $runner->run_full( $runner_args, $notifier );
 
-            // Output summary table
             WP_CLI\Utils\format_items( 'table',
                 [ $stats ],
                 [ 'total', 'updated', 'pharmacy_ok', 'pharmacy_error', 'cancel_conflict', 'in_sync', 'skipped', 'errors' ]

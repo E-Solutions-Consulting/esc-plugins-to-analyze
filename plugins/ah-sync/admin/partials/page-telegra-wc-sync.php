@@ -39,7 +39,7 @@
                 <label>WC Status <small>(empty = all )</small></label>
                 <select name="status[]" multiple class="wc-enhanced-select" style="width:100%">
                     <?php
-                    $excluded_from_filter = [ 'wc-completed', 'wc-cancelled', 'wc-refunded', 'wc-on-hold', 'wc-draft', 'wc-failed', 'wc-pending' ];
+                    $excluded_from_filter = [ 'wc-completed', 'wc-cancelled', 'wc-refunded', 'wc-on-hold', 'wc-draft', 'wc-failed', 'wc-pending', 'wc-processing', 'trash' ];
                     foreach ( wc_get_order_statuses() as $value => $label ) :
                         if ( in_array( $value, $excluded_from_filter, true ) ) continue;
                     ?>

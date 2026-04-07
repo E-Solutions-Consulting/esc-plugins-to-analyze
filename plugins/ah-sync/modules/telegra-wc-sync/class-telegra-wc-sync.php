@@ -24,6 +24,8 @@ class AH_Telegra_WC_Sync {
         'wc-draft',
         'wc-failed',
         'wc-pending',
+        'wc-processing',
+        'trash'
     ];
 
     private AH_Sync_Logger $logger;
@@ -176,13 +178,16 @@ class AH_Telegra_WC_Sync {
      * Run a full sync in one go — used by WP-CLI and cron.
      * Loops internally until all orders are processed.
      *
-     * Returns summary stats array.
+     * @param array               $args     Run configuration.
+     * @param AH_Sync_Notifier|null $notifier Optional notifier — pass one to send Slack on completion.
+     *
+     * @return array Summary stats.
      */
-    public function run_full( array $args ): array {
-        $offset     = 0;
-        $total      = 0;
-        $stats      = $this->empty_stats();
-        $batch_size = intval( $args['batch_size'] ?? 25 );
+    public function run_full( array $args, ?AH_Sync_Notifier $notifier = null ): array {
+        $offset  = 0;
+        $total   = 0;
+        $stats   = $this->empty_stats();
+        $dry_run = boolval( $args['dry_run'] ?? false );
 
         $this->logger->info( 'Starting full sync run', [ 'args' => $args ] );
 
@@ -207,7 +212,12 @@ class AH_Telegra_WC_Sync {
 
         } while ( ! $result['complete'] );
 
-        $this->logger->log_summary( $stats, $args['dry_run'] ?? false );
+        $this->logger->log_summary( $stats, $dry_run );
+
+        // Send Slack notification if a notifier was provided
+        if ( $notifier !== null ) {
+            $notifier->notify( $stats, $dry_run );
+        }
 
         return $stats;
     }
@@ -316,24 +326,108 @@ class AH_Telegra_WC_Sync {
     // PRIVATE — helpers
     // ─────────────────────────────────────────────────────────
 
+    /**
+     * Fetch the current Telegra status for an order.
+     *
+     * Retries up to 3 times on 502/503/504 or HTML responses (nginx error pages).
+     * Backoff: 10s → 20s → 30s between attempts.
+     * On permanent failure returns null — the order is logged and skipped,
+     * the batch continues normally.
+     *
+     * @param  string $entity_id  Telegra order entity ID.
+     * @return string|null        Telegra status key, or null on failure.
+     */
     private function fetch_telegra_status( string $entity_id ): ?string {
-        $url      = $this->telegra_rest_url . '/orders/' . $entity_id . '?access_token=' . $this->telegra_token;
-        $response = wp_remote_get( $url, [ 'timeout' => 20 ] );
+        $url         = $this->telegra_rest_url . '/orders/' . $entity_id . '?access_token=' . $this->telegra_token;
+        $max_retries = 3;
+        $backoff      = [ 10, 20, 30 ]; // seconds between attempts
 
-        if ( is_wp_error( $response ) ) {
-            $this->logger->error( 'Telegra API wp_error: ' . $response->get_error_message() );
-            return null;
+        for ( $attempt = 1; $attempt <= $max_retries; $attempt++ ) {
+
+            $response = wp_remote_get( $url, [ 'timeout' => 20 ] );
+
+            // ── wp_error (network / DNS / timeout) ────────────
+            if ( is_wp_error( $response ) ) {
+                $this->logger->warning( sprintf(
+                    'Telegra API wp_error (attempt %d/%d) entity %s: %s',
+                    $attempt, $max_retries, $entity_id, $response->get_error_message()
+                ) );
+                $this->maybe_sleep( $attempt, $max_retries, $backoff );
+                continue;
+            }
+
+            $code = wp_remote_retrieve_response_code( $response );
+            $raw  = wp_remote_retrieve_body( $response );
+
+            // ── Detect HTML body (nginx 502 page) ─────────────
+            // Even if HTTP code says 200, nginx can return an HTML error page.
+            if ( $this->is_html_response( $raw ) ) {
+                $this->logger->warning( sprintf(
+                    'Telegra API returned HTML body (nginx error) HTTP %d (attempt %d/%d) entity %s',
+                    $code, $attempt, $max_retries, $entity_id
+                ) );
+                $this->maybe_sleep( $attempt, $max_retries, $backoff );
+                continue;
+            }
+
+            // ── Retryable HTTP codes ───────────────────────────
+            if ( in_array( $code, [ 502, 503, 504 ], true ) ) {
+                $this->logger->warning( sprintf(
+                    'Telegra API HTTP %d (attempt %d/%d) entity %s — retrying',
+                    $code, $attempt, $max_retries, $entity_id
+                ) );
+                $this->maybe_sleep( $attempt, $max_retries, $backoff );
+                continue;
+            }
+
+            // ── Non-retryable HTTP error (401, 404, 500…) ─────
+            if ( $code !== 200 ) {
+                $this->logger->error( sprintf(
+                    'Telegra API HTTP %d (non-retryable) entity %s — skipping order',
+                    $code, $entity_id
+                ) );
+                return null;
+            }
+
+            // ── Parse JSON ────────────────────────────────────
+            $body = json_decode( $raw, true );
+
+            if ( empty( $body['status'] ) ) {
+                $this->logger->error( sprintf(
+                    'Telegra API HTTP 200 but empty/invalid status entity %s — skipping order',
+                    $entity_id
+                ) );
+                return null;
+            }
+
+            // ── Success ───────────────────────────────────────
+            return $body['status'];
         }
 
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
-        $code = wp_remote_retrieve_response_code( $response );
+        // All retries exhausted
+        $this->logger->error( sprintf(
+            'Telegra API failed after %d attempts for entity %s — order skipped, retry later',
+            $max_retries, $entity_id
+        ) );
+        return null;
+    }
 
-        if ( $code !== 200 || empty( $body['status'] ) ) {
-            $this->logger->error( 'Telegra API HTTP ' . $code . ' for entity ' . $entity_id );
-            return null;
+    /**
+     * Sleep between retries — only if there are more attempts left.
+     */
+    private function maybe_sleep( int $attempt, int $max_retries, array $backoff ): void {
+        if ( $attempt < $max_retries ) {
+            sleep( $backoff[ $attempt - 1 ] ?? 10 );
         }
+    }
 
-        return $body['status'];
+    /**
+     * Detect an HTML response body (nginx/apache error page).
+     * Telegra always returns JSON — any HTML means a gateway error.
+     */
+    private function is_html_response( string $body ): bool {
+        $trimmed = ltrim( $body );
+        return str_starts_with( $trimmed, '<' ) || stripos( $trimmed, '<html' ) !== false;
     }
 
     private function handle_pharmacy_check( $order, string $entity_id, bool $dry_run ): array {

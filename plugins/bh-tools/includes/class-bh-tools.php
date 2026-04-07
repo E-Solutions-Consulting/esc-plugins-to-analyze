@@ -182,7 +182,7 @@ class Bh_Tools {
 		/**
 		 * Add Subscription Export Menu
 		 */
-		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
+		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu', 30 );
 
 		$this->loader->add_action( 'wp_ajax_process_export_subscriptions_batch', $plugin_admin, 'process_export_subscriptions_batch' );
 		$this->loader->add_action( 'wp_ajax_check_export_file', $plugin_admin, 'check_export_file' );

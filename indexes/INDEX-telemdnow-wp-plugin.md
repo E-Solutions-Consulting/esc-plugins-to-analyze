@@ -1,5 +1,5 @@
 # INDEX -- telemdnow-wp-plugin
-# Generated  : 2026-03-28 01:56
+# Generated  : 2026-04-07 18:38
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/telemdnow-wp-plugin
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/telemdnow-wp-plugin
 #
@@ -22,6 +22,6 @@
 # EOF -- INDEX-telemdnow-wp-plugin.md
 # Total PHP files indexed : 11
 # Total lines in this file: 19
-# Generated               : 2026-03-28 01:56
+# Generated               : 2026-04-07 18:38
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

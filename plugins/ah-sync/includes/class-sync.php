@@ -16,7 +16,7 @@ class AH_Sync {
         $admin = new AH_Sync_Admin( $this->version );
 
         // Menu
-        $this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
+        $this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu', 20 );
 
         // Enqueue
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_assets' );

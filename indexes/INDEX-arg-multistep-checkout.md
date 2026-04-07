@@ -1,5 +1,5 @@
 # INDEX -- arg-multistep-checkout
-# Generated  : 2026-03-28 01:56
+# Generated  : 2026-03-28 02:16
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/arg-multistep-checkout
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/arg-multistep-checkout
 #
@@ -21,6 +21,6 @@
 # EOF -- INDEX-arg-multistep-checkout.md
 # Total PHP files indexed : 10
 # Total lines in this file: 18
-# Generated               : 2026-03-28 01:56
+# Generated               : 2026-03-28 02:16
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

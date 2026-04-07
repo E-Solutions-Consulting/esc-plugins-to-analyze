@@ -181,7 +181,7 @@ class Bh_Integration {
 		/**
 		 * Limit Limiting Rate for Rest API
 		 * */
-		$this->loader->add_filter( 'woocommerce_rest_is_request_to_rest_api', $plugin_public, 'limit_request_to_rest_api' );
+		// $this->loader->add_filter( 'woocommerce_rest_is_request_to_rest_api', $plugin_public, 'limit_request_to_rest_api' );
 
 	}
 

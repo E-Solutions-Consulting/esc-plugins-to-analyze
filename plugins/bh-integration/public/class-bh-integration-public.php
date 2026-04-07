@@ -181,26 +181,26 @@ class Bh_Integration_Public {
 	/**
 	 * Limit Limiting Rate for Rest API
 	 * */
-	public function limit_request_to_rest_api($is_rest_api_request){
-		try {
-		    if ($is_rest_api_request) {
-		    	//bh_plugins_log(['limit_request_to_rest_api', $_SERVER], 'bh_plugins-integration-limit');
-		    	$log	=	[$_SERVER['REMOTE_ADDR'], $_SERVER['REQUEST_URI']];
-				//bh_plugins_log(implode(' ', $log), 'bh_plugins-integration-limit');
-		        $ip 			=	$_SERVER['REMOTE_ADDR'];
-		        $transient_key 	=	'wc_rest_rate_limit_' . $ip;
-		        $requests		=	get_transient($transient_key) ?: 0;
+	// public function limit_request_to_rest_api($is_rest_api_request){
+	// 	try {
+	// 	    if ($is_rest_api_request) {
+	// 	    	//bh_plugins_log(['limit_request_to_rest_api', $_SERVER], 'bh_plugins-integration-limit');
+	// 	    	$log	=	[$_SERVER['REMOTE_ADDR'], $_SERVER['REQUEST_URI']];
+	// 			//bh_plugins_log(implode(' ', $log), 'bh_plugins-integration-limit');
+	// 	        $ip 			=	$_SERVER['REMOTE_ADDR'];
+	// 	        $transient_key 	=	'wc_rest_rate_limit_' . $ip;
+	// 	        $requests		=	get_transient($transient_key) ?: 0;
 		        
-		        if ($requests > 100) {
-		            status_header(429);
-		            exit('Too Many Requests');
-		        }	        
-		        set_transient($transient_key, $requests + 1, MINUTE_IN_SECONDS);
-		    }
-	    } catch (Exception $e) {
+	// 	        if ($requests > 100) {
+	// 	            status_header(429);
+	// 	            exit('Too Many Requests');
+	// 	        }	        
+	// 	        set_transient($transient_key, $requests + 1, MINUTE_IN_SECONDS);
+	// 	    }
+	//     } catch (Exception $e) {
 			
-		}
-	    return $is_rest_api_request;
-	}
+	// 	}
+	//     return $is_rest_api_request;
+	// }
 
 }

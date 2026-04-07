@@ -1,5 +1,5 @@
 # INDEX -- bh-features
-# Generated  : 2026-03-28 01:56
+# Generated  : 2026-04-07 18:34
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/bh-features
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features
 #
@@ -102,6 +102,6 @@
 # EOF -- INDEX-bh-features.md
 # Total PHP files indexed : 91
 # Total lines in this file: 99
-# Generated               : 2026-03-28 01:56
+# Generated               : 2026-04-07 18:34
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

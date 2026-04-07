@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-03-28 02:16
+# Generated : 2026-04-07 18:38
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -21,7 +21,7 @@ esc-plugins-to-analyze/
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-ah-monitor.md
 
 ### ah-sync
-- PHP files : 9
+- PHP files : 10
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-ah-sync.md
 
 ### arg-multistep-checkout

@@ -21,6 +21,7 @@ define( 'AH_SYNC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 // ── Autoloader ─────────────────────────────────────────────────────────────────
 require_once AH_SYNC_PLUGIN_DIR . 'includes/class-sync-loader.php';
 require_once AH_SYNC_PLUGIN_DIR . 'includes/class-sync-logger.php';
+require_once AH_SYNC_PLUGIN_DIR . 'includes/class-sync-notifier.php';
 require_once AH_SYNC_PLUGIN_DIR . 'includes/class-sync.php';
 require_once AH_SYNC_PLUGIN_DIR . 'modules/telegra-wc-sync/class-telegra-wc-evaluator.php';
 require_once AH_SYNC_PLUGIN_DIR . 'modules/telegra-wc-sync/class-telegra-wc-sync.php';
