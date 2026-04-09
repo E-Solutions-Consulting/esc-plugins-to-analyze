@@ -1,0 +1,127 @@
+.container {
+  margin: 0 auto; /* Center container horizontally */
+  width: 70%; /* Set container width to 70% on desktop */
+
+  /* Media query for mobile devices */
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo {
+  width: 40%;
+  margin: 30px 10%;
+}
+.partnership-message {
+  margin: 0 auto; /* Center container horizontally */
+  width: 60%; 
+  font-weight: 200;
+}
+
+.logo img {
+  width: 100%;
+}
+
+.reminder {
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 20px;
+  text-align: center;
+}
+
+.message_header {
+  margin-bottom: 20px;
+}
+
+.message_subtext {
+  margin-bottom: 20px;
+}
+
+  
+.reminder h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.reminder button {
+  background-color: #2D99CF;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.reminder button:hover {
+  background-color: #2D99CF;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.reminder-container {
+  display: flex; /* Use flexbox to create columns */
+  flex-wrap: wrap; /* Wrap items onto multiple lines */
+}
+
+.reminder-column {
+  flex: 1; /* Distribute remaining space equally among columns */
+  padding: 10px; /* Add padding to columns */
+  box-sizing: border-box; /* Include padding in column width */
+  text-align: left;
+}
+
+.steps-container {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.step {
+  width: 100%;
+  flex: 1; /* Distribute remaining space equally among columns */
+  padding: 10px; /* Add padding to columns */
+  box-sizing: border-box; /* Include padding in column width */
+  text-align: left;
+}
+
+.step h3 {
+  color: #2D99CF;
+}
+@media screen and (min-width: 768px) {
+	.logo-mobile {
+		display: none;
+	}
+}
+@media screen and (max-width: 767px) {
+  .container {
+    width: 95%; /* Set container width to 95% on mobile */
+  }
+  .partnership-message {
+    width: 90%; 
+  }
+  .reminder-container {
+    flex-direction: column;
+  }
+  .steps-container {
+    flex-direction: column;
+  }
+	.logo-container {
+		display: none;
+	}
+}
