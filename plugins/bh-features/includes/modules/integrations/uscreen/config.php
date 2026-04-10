@@ -16,7 +16,7 @@ class AH_Uscreen_Config {
      */
     public static function init() {
         add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
-        add_action( 'admin_menu', array( __CLASS__, 'register_admin_page' ), 5 );
+        add_action( 'admin_menu', array( __CLASS__, 'register_admin_page' ), 50 );
     }
 
     /**

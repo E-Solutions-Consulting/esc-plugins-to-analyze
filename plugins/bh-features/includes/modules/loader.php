@@ -37,6 +37,7 @@ class BH_Modules_Loader {
          * ============================================================
          */
         $this->safe_require( $base . 'common/constants.php' );
+        $this->safe_require( $base . 'common/db-ext.php' );
 
 
         /**

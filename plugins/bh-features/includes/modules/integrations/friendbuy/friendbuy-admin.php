@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 class FriendBuy_Admin {
     
     public function __construct() {
-        add_action('admin_menu', [$this, 'add_referrals_admin_page']);
+        add_action('admin_menu', [$this, 'add_referrals_admin_page'], 50);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
     }
 

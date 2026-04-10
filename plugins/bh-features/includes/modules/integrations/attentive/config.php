@@ -22,7 +22,7 @@ class BH_Attentive_Config {
      */
     public static function init() {
         add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
-        add_action( 'admin_menu', array( __CLASS__, 'add_admin_page' ), 6 );
+        add_action( 'admin_menu', array( __CLASS__, 'add_admin_page' ), 50 );
     }
 
     /**

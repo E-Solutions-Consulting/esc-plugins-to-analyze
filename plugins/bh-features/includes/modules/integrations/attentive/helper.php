@@ -55,6 +55,64 @@ class BH_Attentive_Helper {
     }
 
     /**
+     * Subscribe user via Integration source (no signUpSourceId).
+     * Use this when the configured signUpSourceId is not of type INTEGRATION.
+     * Safe to call even if user already exists in Attentive.
+     *
+     * @param string $phone
+     * @param string $email
+     * @param bool   $blocking
+     * @return array|WP_Error|null
+     */
+    public static function subscribe_user_integration( string $phone, string $email, bool $blocking = false ) {
+
+        if ( empty( $phone ) && empty( $email ) ) {
+            self::log( 'subscribe_user_integration: no phone or email provided' );
+            return null;
+        }
+
+        $settings = BH_Attentive_Config::get_settings();
+        $api_key  = $settings['api_key'];
+
+        if ( empty( $api_key ) ) {
+            self::log( 'subscribe_user_integration: API key not configured' );
+            return null;
+        }
+
+        $data = [
+            'user'   => [ 'phone' => $phone ],
+            'locale' => 'en_US',
+            'externalIdentifiers' => [
+                'clientUserId' => md5( $phone . $email ),
+            ],
+        ];
+
+        if ( ! empty( $email ) ) {
+            $data['user']['email'] = $email;
+        }
+
+        $response = wp_remote_post(
+            'https://api.attentivemobile.com/v1/subscriptions',
+            [
+                'headers'  => [
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Content-Type'  => 'application/json',
+                ],
+                'body'     => wp_json_encode( $data ),
+                'blocking' => $blocking,
+                'timeout'  => 10,
+            ]
+        );
+
+        if ( $blocking ) {
+            $code = wp_remote_retrieve_response_code( $response );
+            self::log( 'subscribe_user_integration response: ' . $code . ' | ' . wp_remote_retrieve_body( $response ) );
+        }
+
+        return $response;
+    }
+
+    /**
      * Subscribe user to Attentive
      * Creates subscriber profile before sending events
      * 

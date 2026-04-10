@@ -56,6 +56,9 @@ class BH_Attentive_Loader {
         
         // Shared helper functions (must load before event handlers)
         require_once $base_path . 'helper.php';
+
+        require_once $base_path . 'events-log.php';
+        require_once $base_path . 'questionnaire-status.php';
         
         // Frontend components
         require_once $base_path . 'frontend-trigger.php';
@@ -104,6 +107,10 @@ class BH_Attentive_Loader {
         // Initialize STRIPE event handler (Priority #2: payment_failed, card_expiring, payment_recovered)
         if ( class_exists( 'BH_Attentive_Stripe_Events' ) ) {
             new BH_Attentive_Stripe_Events();
+        }
+
+        if ( class_exists( 'BH_Attentive_Questionnaire_Status' ) ) {
+            new BH_Attentive_Questionnaire_Status();
         }
         
         // OLD event trackers - DISABLED (unified-events.php handles everything)

@@ -1,5 +1,5 @@
 # INDEX -- bh-features
-# Generated  : 2026-04-07 18:34
+# Generated  : 2026-04-10 18:03
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/bh-features
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features
 #
@@ -24,13 +24,16 @@
 - `includes/modules/admin/roles-and-permissions.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/admin/roles-and-permissions.php
 - `includes/modules/api/rest-api.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/api/rest-api.php
 - `includes/modules/common/constants.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/common/constants.php
+- `includes/modules/common/db-ext.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/common/db-ext.php
 - `includes/modules/integrations/attentive/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/api-client.php
 - `includes/modules/integrations/attentive/config.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/config.php
+- `includes/modules/integrations/attentive/events-log.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/events-log.php
 - `includes/modules/integrations/attentive/field-mapper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/field-mapper.php
 - `includes/modules/integrations/attentive/frontend-trigger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/frontend-trigger.php
 - `includes/modules/integrations/attentive/helper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/helper.php
 - `includes/modules/integrations/attentive/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/loader.php
 - `includes/modules/integrations/attentive/logger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/logger.php
+- `includes/modules/integrations/attentive/questionnaire-status.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/questionnaire-status.php
 - `includes/modules/integrations/attentive/stripe-events.php` -- Stripe integration | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/stripe-events.php
 - `includes/modules/integrations/attentive/unified-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/unified-events.php
 - `includes/modules/integrations/attentive/webhook-handler.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/webhook-handler.php
@@ -100,8 +103,8 @@
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-bh-features.md
-# Total PHP files indexed : 91
-# Total lines in this file: 99
-# Generated               : 2026-04-07 18:34
+# Total PHP files indexed : 94
+# Total lines in this file: 102
+# Generated               : 2026-04-10 18:03
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

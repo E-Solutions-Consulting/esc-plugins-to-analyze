@@ -614,8 +614,10 @@ class Bh_Features_Admin {
 	function date_range_filter_to_orders() {
 		$current_screen = get_current_screen();		
 		if ($current_screen && in_array($current_screen->id, ['woocommerce_page_wc-orders', 'woocommerce_page_wc-orders--shop_subscription']) ) {
-			$start_date 	=	isset($_GET['start_date']) ? sanitize_text_field($_GET['start_date']) : '';
-			$end_date 		=	isset($_GET['end_date']) ? sanitize_text_field($_GET['end_date']) : '';			
+			//$start_date 	=	isset($_GET['start_date']) ? sanitize_text_field($_GET['start_date']) : '';
+			//$end_date 		=	isset($_GET['end_date']) ? sanitize_text_field($_GET['end_date']) : '';
+			$start_date = isset($_GET['start_date']) ? substr(sanitize_text_field($_GET['start_date']), 0, 10) : '';
+			$end_date   = isset($_GET['end_date'])   ? substr(sanitize_text_field($_GET['end_date']), 0, 10)   : '';
 			$utc_checked 	=	isset($_GET['utc']) ? ' checked' : '';			
 			echo '
 			<div class="order-date-filter">
