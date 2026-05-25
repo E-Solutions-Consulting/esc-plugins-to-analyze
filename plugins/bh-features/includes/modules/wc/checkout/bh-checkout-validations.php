@@ -605,7 +605,7 @@ class Bh_Checkout_Validations {
 	/**
 	 * Restric PO Boxes in Address
 	 */
-    public function restrict_po_boxes_in_checkout() {
+    public function restrict_po_boxes_in_checkout__() {
         $error_message = __(
             'Note: PO boxes cannot be used as a delivery address. Please provide a valid physical address.',
             'woocommerce'
@@ -647,6 +647,32 @@ class Bh_Checkout_Validations {
             }
         }
     }
+    public function restrict_po_boxes_in_checkout() {
+        $error_message = 'Note: PO boxes cannot be used as a delivery address(%s). Please provide a valid physical address.';
+
+        $address_fields = [
+            'shipping_address_1',
+            'shipping_address_2',
+            'billing_address_1',
+            'billing_address_2',
+        ];
+
+        $po_box_regex = '/(post\s*office\s*box|p\s*[.\-\s]*o\s*[.\-\s]*box|po[-\s]*box|pob\s*\d*|\bp\s*o\s*b\b|\bp\s*o\s*\d|\bpob\b|\bbox\s*#?\s*\d+)/i';
+
+        foreach ($address_fields as $key) {
+            if ( empty($_POST[$key]) ) {
+                continue;
+            }
+
+            $value = trim( preg_replace('/\s+/', ' ', sanitize_text_field($_POST[$key])) );
+
+            if ( preg_match($po_box_regex, $value, $matches) ) {
+                wc_add_notice( sprintf( $error_message, $matches[0] ), 'error' );
+                return;
+            }
+        }
+    }
+
     public function render_po_box_inline_error( $data, $errors ) {
     
         $field = WC()->session->get('po_box_error_field');

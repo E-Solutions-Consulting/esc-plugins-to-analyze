@@ -279,14 +279,17 @@ class Bh_Features {
 		// add_filter('woocommerce_cart_item_name', [ $plugin_public, 'bh_woocommerce_cart_item_name'], 10, 3);
 
 		add_filter('woocommerce_add_to_cart_redirect', [ $plugin_public, 'bh_woocommerce_add_to_cart_redirect']);
+		// $this->loader->add_action('wp_footer', $plugin_public, 'bh_add_weight_loss_redirect_script', 25);
+		// $this->loader->add_action('wp_ajax_bh_check_weight_loss_product', $plugin_public, 'bh_ajax_check_weight_loss_product');
+		// $this->loader->add_action('wp_ajax_nopriv_bh_check_weight_loss_product', $plugin_public, 'bh_ajax_check_weight_loss_product');
 
 		// add_filter('woocommerce_states', [ $plugin_public, 'restrict_us_states']);
 		// add_filter('gettext', [ $plugin_public, 'change_ship_to_different_address_text'], 20, 3);
 		
 		add_shortcode('modal_single_product', [ $plugin_public, 'hb_modal_single_product']);
 
-		add_action( 'woocommerce_product_after_variable_attributes', [ $plugin_public, 'variation_settings'], 10, 3 );
-		add_action( 'woocommerce_save_product_variation', [ $plugin_public, 'save_variation_settings'], 10, 2 );
+		//add_action( 'woocommerce_product_after_variable_attributes', [ $plugin_public, 'variation_settings'], 10, 3 );
+		//add_action( 'woocommerce_save_product_variation', [ $plugin_public, 'save_variation_settings'], 10, 2 );
 
 		//add_filter('woocommerce_is_sold_individually', [ $plugin_public, 'force_individual_products_cart'], 10, 2);
 
@@ -374,8 +377,8 @@ class Bh_Features {
 		 *	-	Update Subscriptin Next Payment Date when a Renewal Order is completed
 		 *	-	Edit Next Payment Date when the subscription is created from Checkout
 		 */
-		$this->loader->add_action('woocommerce_order_status_completed', $plugin_public, 'update_subscription_next_payment_date', 10, 2);		
-		$this->loader->add_action('woocommerce_checkout_subscription_created', $plugin_public, 'set_plan_days_to_new_subscription', 10, 3);
+		//$this->loader->add_action('woocommerce_order_status_completed', $plugin_public, 'update_subscription_next_payment_date', 10, 2);		
+		//$this->loader->add_action('woocommerce_checkout_subscription_created', $plugin_public, 'set_plan_days_to_new_subscription', 10, 3);
 
 		/**
 		 *	Add tracking code Gtag to Thankyou Page
@@ -389,7 +392,7 @@ class Bh_Features {
 		/**
 		 *	Add tracking code vibeq to Thankyou Page
 		 */
-		$this->loader->add_action('wp_footer', $plugin_public, 'insert_vibe_pixel_tracking', 100);
+		// $this->loader->add_action('wp_footer', $plugin_public, 'insert_vibe_pixel_tracking', 100);
 		/**
 		 *	Add tracking code Northbeam to Thankyou Page
 		 */

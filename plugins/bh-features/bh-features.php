@@ -39,10 +39,6 @@ define( 'BH_FEATURES_VERSION', '1.0.0' );
 if ( ! defined( 'PARENT_MENU_SLUG' ) ) {
 	define( 'PARENT_MENU_SLUG', 'bh-features' );
 }
-// Plan Days
-define( 'BH_DAYS_MONTHLY_PLAN', 25 );
-define( 'BH_DAYS_THREE_MONTH_PLAN', 70 );
-
 
 if(!function_exists('_print'))    :
 function _print($data, $title=''){

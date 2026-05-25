@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-04-10 18:03
+# Generated : 2026-05-25 17:07
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -29,7 +29,7 @@ esc-plugins-to-analyze/
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-arg-multistep-checkout.md
 
 ### bh-features
-- PHP files : 94
+- PHP files : 115
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-bh-features.md
 
 ### bh-integration

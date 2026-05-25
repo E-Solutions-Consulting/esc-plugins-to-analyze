@@ -290,7 +290,7 @@ class Bh_Features_Admin {
 			'woocommerce',*/
 			'edit.php?post_type=acf-field-group',
 			/*'autopilot_settings',*/
-			'bh-features',
+			/*'bh-features',*/
 			/*'deadline-funnel-settings',
 			'ib-ghlconnect',
 			'pixelyoursite',*/
@@ -1424,7 +1424,7 @@ class Bh_Features_Admin {
 	    return $actions;
 	}
 	
-	function ah_hide_renew_now_based_on_next_payment( $actions, $subscription ) {
+	function ah_hide_renew_now_based_on_next_payment__( $actions, $subscription ) {
 
 		if ( ! $subscription instanceof WC_Subscription ) {
 			return $actions;
@@ -1453,7 +1453,6 @@ class Bh_Features_Admin {
 			return $actions;
 		}
 
-		
 		$excluded_subscription_states = ['CT', 'FL'];
 		if (!empty($state) && in_array($state, $excluded_subscription_states)) {
 			return $actions;
@@ -1558,6 +1557,14 @@ class Bh_Features_Admin {
 	            $window_end_ts = strtotime( '2026-03-18 11:12:00' );
 	            break;
 
+	        case 'HI':
+	            $window_end_ts = strtotime( '2026-04-15 15:57:00' );
+	            break;
+
+	        case 'TN':
+	            $window_end_ts = strtotime( '2026-04-20 12:58:00' );
+	            break;
+
 	    }
 
 	    if ( $next_payment_ts < $window_start_ts || $next_payment_ts > $window_end_ts ) {
@@ -1580,5 +1587,164 @@ class Bh_Features_Admin {
 		return $actions;
 	}
 
+	function ah_hide_renew_now_based_on_next_payment( $actions, $subscription ) {
+
+		if ( ! $subscription instanceof WC_Subscription ) {
+			return $actions;
+		}
+
+		$logger  = wc_get_logger();
+		$context = [
+			'source' => 'ah-renew-visibility',
+			'subscription_id' => $subscription->get_id(),
+		];
+
+		$state = $subscription->get_shipping_state();
+
+		if ( ! AH_States::is_allowed( $state ) ) {
+
+			$logger->debug(
+				'Renew button hidden: state not allowed',
+				array_merge( $context, [
+					'state' => $state,
+				] )
+			);
+
+			unset( $actions['subscription_renewal_early'] );
+			unset( $actions['subscription_renewal'] );
+
+			return $actions;
+		}
+
+		$excluded_subscription_states = ['CT', 'FL'];
+		if (!empty($state) && in_array($state, $excluded_subscription_states)) {
+			return $actions;
+		}
+
+		$next_payment_ts = $subscription->get_time( 'next_payment' );
+
+		if ( ! $next_payment_ts ) {
+			return $actions;
+		}
+
+		/**
+	     * Base window (default):
+	     * - allowed states
+	     * - before Dec 17
+	     */
+	    $window_start_ts = strtotime( '2025-12-09 00:00:00' );
+	    $window_end_ts   = strtotime( '2025-12-17 23:59:59' );
+
+	    /**
+	     * State-specific overrides
+	     */
+	    switch ( strtoupper( $state ) ) {
+
+	        case 'MO':
+	        case 'SD':
+	            $window_end_ts = strtotime( '2025-12-17 23:59:59' );
+	            break;
+
+	        case 'WY':
+	            $window_end_ts = strtotime( '2025-12-18 23:59:59' );
+	            break;
+
+	        case 'ND':
+	            $window_end_ts = strtotime( '2025-12-18 23:59:59' );
+	            break;
+
+	        case 'KY':
+	            $window_end_ts = strtotime( '2026-01-29 23:59:59' );
+	            break;
+
+	        case 'MN':
+	            $window_end_ts = strtotime( '2026-01-29 23:59:59' );
+	            break;
+
+	        case 'MT':
+	            $window_end_ts = strtotime( '2026-02-02 15:40:59' );
+	            break;
+
+	        case 'OH':
+	            $window_end_ts = strtotime( '2026-02-04 14:34:59' );
+	            break;
+
+	        case 'OR':
+	            $window_end_ts = strtotime( '2026-02-19 18:30:59' );
+	            break;
+
+	        case 'GA':
+	            $window_end_ts = strtotime( '2026-03-03 13:00:00' );
+	            break;
+
+	        case 'RI':
+	            $window_end_ts = strtotime( '2026-03-04 15:00:00' );
+	            break;
+
+	        case 'VT':
+	            $window_end_ts = strtotime( '2026-03-09 12:10:00' );
+	            break;
+
+	        case 'WI':
+	            $window_end_ts = strtotime( '2026-03-10 17:30:00' );
+	            break;
+
+	        case 'FL':
+	            $window_end_ts = strtotime( '2026-03-18 14:30:00' );
+	            break;
+
+	        case 'NM':
+	            $window_end_ts = strtotime( '2026-03-18 11:30:00' );
+	            break;
+
+	        case 'IL':
+	            $window_end_ts = strtotime( '2026-03-18 11:12:00' );
+	            break;
+
+	        case 'HI':
+	            $window_end_ts = strtotime( '2026-04-15 15:57:00' );
+	            break;
+
+	        case 'TN':
+	            $window_end_ts = strtotime( '2026-04-20 12:58:00' );
+	            break;
+
+	    }
+
+	    /**
+	     * Special window: May 29 - June 29 (ONLY for Virginia VA)
+	     */
+	    $is_in_may_window = false;
+	    if ( strtoupper( $state ) === 'VA' ) {
+	        $may_window_start_ts = strtotime( '2026-05-29 00:00:00' );
+	        $may_window_end_ts   = strtotime( '2026-06-29 23:59:59' );
+	        $is_in_may_window = ( $next_payment_ts >= $may_window_start_ts && $next_payment_ts <= $may_window_end_ts );
+	    }
+	    
+	    $is_in_dec_window = ( $next_payment_ts >= $window_start_ts && $next_payment_ts <= $window_end_ts );
+	    
+	    if ( ! $is_in_may_window && ! $is_in_dec_window ) {
+
+	        $log_data = array_merge( $context, [
+	            'state'               => $state,
+	            'next_payment_ts'     => $next_payment_ts,
+	            'next_payment_utc'    => gmdate( 'Y-m-d H:i:s', $next_payment_ts ),
+	            'dec_window_start'    => gmdate( 'Y-m-d H:i:s', $window_start_ts ),
+	            'dec_window_end'      => gmdate( 'Y-m-d H:i:s', $window_end_ts ),
+	        ] );
+	        
+	        if ( strtoupper( $state ) === 'VA' ) {
+	            $log_data['va_may_window_start'] = gmdate( 'Y-m-d H:i:s', $may_window_start_ts );
+	            $log_data['va_may_window_end']   = gmdate( 'Y-m-d H:i:s', $may_window_end_ts );
+	        }
+	        
+	        $logger->debug( 'Renew button hidden: next payment outside allowed windows', $log_data );
+
+	        unset( $actions['subscription_renewal_early'] );
+			unset( $actions['subscription_renewal'] );
+	    }
+
+		return $actions;
+	}
 
 }

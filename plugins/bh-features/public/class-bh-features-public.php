@@ -203,6 +203,137 @@ class Bh_Features_Public {
 		return wc_get_checkout_url();
 	}
 
+	function bh_add_weight_loss_redirect_script() {
+		?>
+		<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			var processingClick = false;
+			var selectors = [
+				'.single_add_to_cart_button',
+				'.add_to_cart_button', 
+				'button[name="add-to-cart"]',
+				'input[name="add-to-cart"]',
+				'.woocommerce-variation-add-to-cart button',
+				'[type="submit"]'
+			];
+			
+			$(document).on('click', selectors.join(', '), function(e) {
+				if (processingClick) {
+					return true;
+				}
+				
+				var $button = $(this);
+				var $form = $button.closest('form.cart');
+				var product_id = $button.val() || $button.data('product_id') || $button.attr('value') || $('input[name="add-to-cart"]').val();
+				var variation_id = $form.find('input[name="variation_id"]').val() || 0;
+				
+				if (variation_id && variation_id !== '0') {
+					product_id = variation_id;
+				}
+				
+				if (!product_id) {
+					return true;
+				}
+				
+				e.preventDefault();
+				e.stopPropagation();
+				processingClick = true;
+				
+				var parent_product_id = $button.val() || $button.data('product_id') || $button.attr('value') || $('input[name="add-to-cart"]').val();
+
+				$.ajax({
+					url: '<?php echo admin_url( 'admin-ajax.php' ); ?>',
+					type: 'POST',
+					data: {
+						action: 'bh_check_weight_loss_product',
+						product_id: parent_product_id,
+						variation_id: variation_id,
+						nonce: '<?php echo wp_create_nonce( 'bh_weight_loss_check' ); ?>'
+					},
+					success: function(response) {
+						processingClick = false;
+						if (response.success && response.data.is_weight_loss) {
+							window.location.href = response.data.redirect_url;
+						} else {
+							if ($form.length) {
+								$form.off('submit').submit();
+							} else {
+								$button.prop('disabled', false);
+								setTimeout(function() {
+									processingClick = true;
+									$button[0].click();
+								}, 10);
+							}
+						}
+					},
+					error: function() {
+						processingClick = false;
+						if ($form.length) {
+							$form.off('submit').submit();
+						}
+					}
+				});
+				
+				return false;
+			});
+		});
+		</script>
+		<?php
+	}
+
+	function bh_ajax_check_weight_loss_product() {
+		check_ajax_referer( 'bh_weight_loss_check', 'nonce' );
+		
+		$product_id = intval( $_POST['product_id'] );
+		$variation_id = intval( $_POST['variation_id'] );
+		if ( ! $product_id ) {
+			wp_die();
+		}
+		
+		$terms = get_the_terms( $product_id, 'product_cat' );
+		$slugs = [];
+		if ( $terms && ! is_wp_error( $terms ) ) {
+			$slugs = wp_list_pluck( $terms, 'slug' );
+		}
+		
+		$is_weight_loss = in_array( 'weight-loss', $slugs );
+		$response = array( 'is_weight_loss' => false );
+		
+		if ( $is_weight_loss ) {
+			$product_slug = get_post_field( 'post_name', $product_id );
+			$product_base = '';
+			if ( strpos( $product_slug, 'tirzepatide' ) !== false ) {
+				$product_base = 'tirzepatide';
+			} elseif ( strpos( $product_slug, 'semaglutide' ) !== false ) {
+				$product_base = 'semaglutide';
+			}
+			
+			$cart_item_id = $variation_id ? $variation_id : $product_id;
+			$add_to_cart_url = add_query_arg(
+				[
+					'add-to-cart' => $cart_item_id,
+					'quantity' => 1,
+				],
+				wc_get_checkout_url()
+			);
+			
+			$redirect_url = add_query_arg(
+				[
+					'redirect' => $add_to_cart_url,
+					'product'  => $product_base,
+				],
+				'https://start.brellohealth.com/goal'
+			);
+			
+			$response = array(
+				'is_weight_loss' => true,
+				'redirect_url' => $redirect_url
+			);
+		}
+		
+		wp_send_json_success( $response );
+	}
+
 	function add_billing_shipping_summary() {
 		if (!is_checkout()) {
 			return;

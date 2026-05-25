@@ -125,7 +125,7 @@ class AH_Friendbuy_Events {
     /**
      * Build payload.
      */
-    private static function build_payload( $order ) {
+    private static function build_payload__( $order ) {
 
         return [
             'orderId'       => (string) $order->get_order_number(),
@@ -138,6 +138,29 @@ class AH_Friendbuy_Events {
             'isNewCustomer' => $order->get_customer_id() ? false : true,
             'couponCode'    => implode( ', ', $order->get_coupon_codes() ),
         ];
+    }
+    private static function build_payload( $order ) {
+
+        $payload    =   [
+            'orderId'       => (string) $order->get_order_number(),
+            'email'         => $order->get_billing_email(),
+            'customerId'    => (string) $order->get_customer_id(),
+            'firstName'     => $order->get_billing_first_name(),
+            'lastName'      => $order->get_billing_last_name(),
+            'amount'        => (float) $order->get_total(),
+            'currency'      => $order->get_currency(),
+            'isNewCustomer' => $order->get_customer_id() ? false : true,
+            'couponCode'    => implode( ', ', $order->get_coupon_codes() ),
+        ];
+
+        if ( class_exists( 'AH_Friendbuy_Referral_Tracker' ) ) {
+            $referral_code = AH_Friendbuy_Referral_Tracker::get_referral_code( $order->get_id() );
+            if ( $referral_code !== '' ) {
+                $payload['referralCode'] = $referral_code;
+            }
+        }
+ 
+        return $payload;
     }
 }
 

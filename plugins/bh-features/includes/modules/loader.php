@@ -37,6 +37,7 @@ class BH_Modules_Loader {
          * ============================================================
          */
         $this->safe_require( $base . 'common/constants.php' );
+        $this->safe_require( $base . 'common/helpers.php' );
         $this->safe_require( $base . 'common/db-ext.php' );
 
 
@@ -67,39 +68,12 @@ class BH_Modules_Loader {
         $this->safe_require( $base . 'states/states-ui.php' );
         $this->safe_require( $base . 'states/states-admin.php' );
 
-
         /**
          * ============================================================
          * INTEGRATIONS (Tracking + External platforms)
          * ============================================================
          */
-
-        // Server-side tracking
-        //$this->safe_require( $base . 'integrations/tracking/container.php' );
-
-        // Frontend tracking
-        //$this->safe_require( $base . 'integrations/tracking/frontend.php' );
-
-        // Friendbuy
-        //$this->safe_require( $base . 'integrations/friendbuy/frontend-tracking.php' );
-
-        // TripleWhale
-        $this->safe_require( $base . 'integrations/triplewhale/loader.php' );
-
-        // Podscribe
-        $this->safe_require( $base . 'integrations/podscribe/loader.php' );
-
-        // Attentive
-        $this->safe_require( $base . 'integrations/attentive/loader.php' );
-
-        // Uscreen
-        $this->safe_require( $base . 'integrations/uscreen/loader.php' );
-
-        // Friendbuy
-        $this->safe_require( $base . 'integrations/friendbuy/loader.php' );
-
-        // Everflow
-        $this->safe_require( $base . 'integrations/everflow/loader.php' );
+        $this->safe_require( $base . 'integrations/loader.php' );
 
         /**
          * ============================================================
@@ -107,6 +81,7 @@ class BH_Modules_Loader {
          * ============================================================
          */
         $this->safe_require( $base . 'admin/roles-and-permissions.php' );
+        $this->safe_require( $base . 'admin/brello-menu-restriction.php' );
 
 
         /**
@@ -135,7 +110,7 @@ class BH_Modules_Loader {
          * COUPONS
          * --------------------------------
          */
-        $this->safe_require( $base . 'wc/coupons/coupons.php' );
+        $this->safe_require( $base . 'wc/coupons/loader.php' );
 
 
         /**
@@ -144,7 +119,7 @@ class BH_Modules_Loader {
          * --------------------------------
          */
         //$this->safe_require( $base . 'wc/products/bh-products.php' );
-        //$this->safe_require( $base . 'wc/products/bh-products-admin.php' );
+        $this->safe_require( $base . 'wc/products/loader.php' );
 
 
         /**
@@ -201,7 +176,7 @@ class BH_Modules_Loader {
         
         //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions.php' );
         //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-admin.php' );
-        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-next-payment-date.php' );
+        $this->safe_require( $base . 'wc/subscriptions/subscriptions-next-payment-date.php' );
         //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-pause.php' );
 
         // Subscription filters

@@ -29,6 +29,7 @@ class AH_Orders_Admin {
 		// add_action( 'woocommerce_order_list_table_restrict_manage_orders', [ 'AH_Date_Range_Filter', 'render_filter_ui' ]);
         // add_action( 'woocommerce_shop_order_list_table_prepare_items_query_args', [ 'AH_Date_Range_Filter', 'apply_query_args' ]);
 
+		add_filter( 'woocommerce_json_search_found_products', [ $this, 'filter_published_products_only' ] );
     }
 
 	/**
@@ -105,6 +106,52 @@ class AH_Orders_Admin {
 
 	    $category_names = wp_list_pluck( $categories, 'name' );
 	    echo '<div class="wc-order-item-categories" style="color:#888"><strong>' . esc_html__( 'Categories:', 'your-textdomain' ) . '</strong> ' . esc_html( implode( ', ', $category_names ) ) . '</div>';
+	}
+
+
+	/**
+	* When searching for products while editing an order:
+	* - Only shows published products (checks the parent product for variations).
+	* - If a variable product has variations in the results, hides the parent product.
+	*/
+	public function filter_published_products_only( array $products ): array {
+		$action = $_REQUEST['action'] ?? '';
+		if ( ! in_array( $action, [
+			'woocommerce_json_search_products_and_variations',
+			'woocommerce_json_search_products',
+		], true ) ) {
+			return $products;
+		}
+
+		$filtered       = [];
+		$parent_ids_with_variations = [];
+
+		foreach ( $products as $id => $name ) {
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				continue;
+			}
+
+			if ( $product->is_type( 'variation' ) ) {
+				$parent_id = $product->get_parent_id();
+				$parent    = wc_get_product( $parent_id );
+
+				if ( $parent && $parent->get_status() === 'publish' ) {
+					$filtered[ $id ] = $name;
+					$parent_ids_with_variations[ $parent_id ] = true;
+				}
+			} else {
+				if ( $product->get_status() === 'publish' ) {
+					$filtered[ $id ] = $name;
+				}
+			}
+		}
+
+		foreach ( $parent_ids_with_variations as $parent_id => $_ ) {
+			unset( $filtered[ $parent_id ] );
+		}
+
+		return $filtered;
 	}
 
 }

@@ -24,7 +24,7 @@ class AH_Cart {
 		*/
 		add_filter( 'woocommerce_add_to_cart_validation', [$this, 'strict_cart_restrictions'], 30, 6);
 
-		add_filter( 'woocommerce_product_single_add_to_cart_text', [$this, 'change_product_single_add_to_cart_text'], 10, 2);
+		// add_filter( 'woocommerce_product_single_add_to_cart_text', [$this, 'change_product_single_add_to_cart_text'], 10, 2);
 
     }
 

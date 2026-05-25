@@ -8,7 +8,7 @@ if(!defined('BH_DAYS_MONTHLY_PLAN'))
     define('BH_DAYS_MONTHLY_PLAN', 25);
 
 if(!defined('BH_DAYS_THREE_MONTH_PLAN'))
-    define('BH_DAYS_THREE_MONTH_PLAN', 50);
+    define('BH_DAYS_THREE_MONTH_PLAN', 70);
 
 if(!defined('SEND_TO_TELEGRA'))
     define('SEND_TO_TELEGRA', 'send_to_telegra');

@@ -276,7 +276,7 @@ class BH_Checkout_UI {
 		$output .= '</figure>';
 		$output .= '</div>';
 
-		$output .= do_shortcode('[deadlinefunnel type="inline"]');
+		//$output .= do_shortcode('[deadlinefunnel type="inline"]');
 
 		$discount_total = WC()->cart->get_discount_total();
 		$fees           = WC()->cart->get_fees();
@@ -418,27 +418,79 @@ class BH_Checkout_UI {
 			<h3 class="title-important">Important!</h3>
 	
 			<div class="content-terms-conditions">
-				<p><strong>Before we begin the process of finalizing your intake form please review and accept the following.</strong></p>
+				<p><u>Before you proceed and move to completing your <strong>clinical intake form</strong>, please review and accept the following terms:</u></p>
 				<ol>
 					<li>
-						<strong>3 month plan:</strong> You will be charged $499 for compounded tirzepatide, $399 for compounded semaglutide, $598 for Semaglutide + NAD+, $698 for Tirzepatide + NAD+, or $199 for NAD+ Only today. Your subscription will automatically renew every 10 weeks at the same rate ($499 for compounded tirzepatide, $399 for compounded semaglutide, $598 for Semaglutide + NAD+, $698 for Tirzepatide + NAD+, or $199 for NAD+ Only). You may cancel at any time. 
-						<br /><br />
-						<strong>Note:</strong> If you are not approved for renewal by the healthcare provider, you will receive a refund.
-					</li>
-					<li>In most states, the completion of your intake form may be sufficient for approval by a healthcare provider. A telephone consultation is not required in all states. If additional information is needed, the healthcare provider will contact you.</li>
-					<li>Please ensure you provide accurate information about your prior GLP-1 medication use, as healthcare providers rely on this to determine the appropriate dosage. If accurate information is not provided on the intake form, and the healthcare provider issued a prescription based on the information, changes will not be allowed and refunds will not be issued.</li>
-					<li><strong>**Cancellation policy:**</strong> If the patient wishes to cancel and the provider-led health review is completed and a prescription has been written, Brello may refund the total amount paid, less a <strong>$50 professional fee</strong>.<br>
-					This will only apply if the patient sends a written notice via email to <a href="mailto:info@brellohealth.com">info@brellohealth.com</a> within 24 hours from the time the provider-led health review was completed.</li>
-					<li><strong>**Post-Dispatch:**</strong> Due to the nature of compounded medications and in accordance with pharmacy regulations, dispensed medications are non-refundable. If you have concerns about your medication or suspect a dispensing error, please contact the dispensing pharmacy within 48 hours of receiving your medication.
-						<br><strong>Note:</strong> The dispensing pharmacy contact information can be found on the prescription label.
-					</li>
-					<li>Please ensure the shipping address is entered correctly during checkout. A refund will not be issued if the shipping address was entered incorrectly and the medications have been shipped.</li>
-					<li><strong>**Replacement Policy**</strong><br>
-						Once a delivery confirmation is recorded by the carrier, the fulfillment of the order is considered complete. Please note that we are unable to reship medications for orders that have been marked as delivered by the carrier.
+						<strong>3-Month Plan Pricing and Renewal Terms</strong>. You will be charged the applicable rate for the plan selected at checkout as set forth below. Your subscription will automatically renew at the same rate on the renewal cycle corresponding to your plan. You may cancel at any time.
 						<br>
-						If a patient reports non-receipt of a medication despite the delivery confirmation, the patient will be required to pay for a new order but can file a claim directly with the courier for any lost or stolen packages
+						<br>
+						<strong>Medication-Only Plans (3-Month):</strong>
+						<ul>
+							<li>Compounded Tirzepatide – $499 (renews every 10 weeks)</li>
+							<li>Compounded Semaglutide – $399 (renews every 10 weeks)</li>
+							<li>Compounded NAD+ – $239 (renews every 10 weeks)</li>
+							<li>Compounded Sermorelin – $349 (renews every 11 weeks)</li>
+						</ul>
+						<br>
+						<strong>Longevity Lifestyle Plans (3-Month):</strong>
+						<ul>
+							<li>Empowered+ Longevity Lifestyle Plan - Tirzepatide + NAD+ – $698 (renews every 10 weeks)</li>
+							<li>Empowered+ Longevity Lifestyle Plan - Semaglutide + NAD+ – $598 (renews every 10 weeks)</li>
+							<li>Thrive Forward Longevity Lifestyle Plan - Tirzepatide + Sermorelin + NAD+ – $997 (renews every 11 weeks)</li>
+							<li>Thrive Forward Longevity Lifestyle Plan - Semaglutide + Sermorelin + NAD+ – $897 (renews every 11 weeks)</li>
+						</ul>
+						<br>
+						<strong>The Metabolic Compass Plan:</strong>
+						<ul>
+							<li>The Metabolic Compass Plan - Semaglutide & Lumen Metabolism Tracker Device - $499 today (renews every 10 weeks at $399) </li>
+							<li>The Metabolic Compass Plan - Tirzepatide & Lumen Metabolism Tracker Device - $599 today (renews every 10 weeks at $499)</li>
+						</ul>
+						<br>
+						After 90 days, the Lumen app renews at $19.90/month, or save with an annual plan at $9.90/month ($119/year, billed annually). Cancel anytime and keep your device for lifetime breath measurements.**
+						<br>
+						<br>
+						<strong>Note:</strong> If you are not approved for renewal by the healthcare provider, you will receive a refund as it relates to your Brello subscription. Please refer to the Lumen website at https://www.lumen.me/subscription-policy for all information regarding cancellation of your subscription for the GLP-1 Support Program with Lumen as well as https://www.lumen.me/refund-and-return-policy regarding refunds and returns of your Lumen device and/or subscription for the GLP-1 Support Program with Lumen.
+						<br>
+						<br>
+						<i>All plans containing compounded sermorelin renew every 11 weeks. All other plans renew every 10 weeks. Renewal rates are the same as the initial charge for the applicable plan.</i>						
 
 					</li>
+					<li>In order to start receiving medications under one of our plans, a healthcare provider will review your intake form and determine the appropriate consultation type with you to determine if the plan is appropriate for you.</li>
+
+					<li>Please ensure you provide accurate information about your prior medication use, as healthcare providers rely on this to determine the appropriate dosage. If accurate information is not provided on the intake form, and the healthcare provider issued a prescription based on the information, changes will not be allowed and refunds will not be issued.</li>
+
+					<li><strong>**Cancellation policy:**</strong> If the patient wishes to cancel and the provider-led health review is completed and a prescription has been written, may refund the total amount paid, <strong>less a $50 professional fee</strong>.
+						<br>
+						<br>
+						This will only apply if the patient sends a written notice via email to <a href="mailto:info@brellohealth.com">info@brellohealth.com</a> within <strong>24 hours</strong> from the time the provider-led health review was completed. Requests submitted after this timeframe may not be eligible for a refund.
+						<br>
+						<br>
+						Please refer to the Lumen website at <a href="https://www.lumen.me/subscription-policy" target="_blank">https://www.lumen.me/subscription-policy</a> for all information regarding cancellation of your subscription for the GLP-1 Support Program with Lumen.
+					</li>
+
+					<li>
+						<strong>**Post-Dispatch:**</strong> Due to the nature of compounded medications and in accordance with pharmacy regulations, dispensed medications are non-refundable. If you have concerns about your medication or suspect a dispensing error, please contact the dispensing pharmacy within 48 hours of receiving your medication.
+						<br>
+						<br>
+						<strong>Note:</strong> The dispensing pharmacy contact information can be found on the prescription label.
+					</li>
+
+					<li>Please ensure the shipping address is entered correctly during checkout. A refund will not be issued if the shipping address was entered incorrectly and the medications have been shipped.</li>
+
+					<li>
+						<strong>**Shipments:**</strong> For subscriptions that have more than one medication the intention is to ship all products together in a single shipment where possible, there may be, however, circumstances, including circumstances beyond our control, that require the products to be shipped separately. Such circumstances could include, but are not limited to, supply chain disruptions, inventory availability, or logistical considerations. In the event that the products are shipped separately, we will do our best to notify you in advance and provide any relevant details regarding the separate shipments.
+					</li>
+
+					<li>
+						<strong>**Replacement Policy**</strong> Once a delivery confirmation is recorded by the carrier, the fulfillment of the order is considered complete. Please note that we are unable to reship medications for orders that have been marked as delivered by the carrier.
+						<br>
+						<br>
+						If a patient reports non-receipt of a medication despite the delivery confirmation, the patient will be required to pay for a new order but can file a claim directly with the courier for any lost or stolen packages.
+					</li>
+
+					<li>Brello expressly disclaims any ownership, responsibility, or liability regarding the Lumen device or the Lumen app. Brello does not manufacture, endorse, or assume any regulatory or operational responsibilities for the Lumen device or the Lumen app, and makes no representations or warranties concerning the safety, efficacy, or compliance of such products. Please refer to the Lumen websites at <a href="https://www.lumen.me/subscription-policy" target="_blank">https://www.lumen.me/subscription-policy</a> for all information regarding your subscription for the GLP-1 Support Program as well as <a href="https://www.lumen.me/refund-and-return-policy" target="_blank">https://www.lumen.me/refund-and-return-policy</a> regarding refunds and returns of your Lumen device and/or subscription for the GLP-1 Support Program.</li>
+
+					<li>Any information provided by Brello is for informational purposes only and should not be construed as medical advice; it is not a substitute for professional medical consultation, diagnosis, or treatment. All patients must consult with a healthcare provider prior to the prescription or dispensing of any medication, which will be done only pursuant to a valid prescription. Compounded drug products are not FDA-approved, and the FDA does not evaluate their safety, effectiveness, or quality. Patients are encouraged to discuss the risks, benefits, and appropriateness of any medications, including compounded products, with their healthcare provider before use.</li>
 				</ol>
 			</div>
 	

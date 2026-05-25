@@ -70,22 +70,6 @@ class AH_Rest_Api {
                 return array( 'success' => false, 'body' => $body, 'event' => null );
             }
 
-            $upload_dir = wp_upload_dir();
-            $file_path = $upload_dir['basedir'] . '/bh-logs/stripe-raw-' . time() . '.json';
-
-
-            $logger = wc_get_logger();
-            $logger->info('Stripe Webhook Received', array(
-                'source' => 'bh-stripe-webhook',
-                'file_path' => $file_path
-            ));
-
-            file_put_contents(
-                $file_path,
-                $body . PHP_EOL,
-                FILE_APPEND
-            );
-
             $payment_intent  = $event->data->object;
             $events_accepted = array(
                 'payment_intent.succeeded',
@@ -180,7 +164,7 @@ class AH_Rest_Api {
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
-    function handle_app_user_tracking($request) {
+    function handle_app_user_tracking__($request) {
 	    $params =	$request->get_params();
 	    $email 	=	sanitize_email($params['email']);
 	    $action =	sanitize_text_field($params['action']); // 'install' or 'open'
@@ -228,6 +212,82 @@ class AH_Rest_Api {
 	        )
 	    ));
 	}
+    function handle_app_user_tracking( $request ) {
+        $json    = $request->get_json_params();
+        $params  = ! empty( $json ) ? $json : $request->get_params();
+        $user_id = intval( $params['user_id'] ?? 0 );
+        $action  = sanitize_text_field( $params['action'] ?? '' );
+
+        wc_get_logger()->info(
+            sprintf(
+                'track-user IN  | ip: %s | user_id: %d | action: %s | body: %s',
+                $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                $user_id,
+                $action ?: '(empty)',
+                $request->get_body()
+            ),
+            array( 'source' => 'bh-track-user' )
+        );
+
+        if ( ! $user_id || empty( $action ) ) {
+            $response = new WP_Error( 'missing_data', 'user_id and action are required', array( 'status' => 400 ) );
+            wc_get_logger()->info(
+                sprintf( 'track-user OUT | status: 400 | reason: missing_data | user_id: %d | action: %s', $user_id, $action ?: '(empty)' ),
+                array( 'source' => 'bh-track-user' )
+            );
+            return $response;
+        }
+
+        $user = get_user_by( 'id', $user_id );
+        if ( ! $user ) {
+            $response = new WP_Error( 'user_not_found', 'User not found', array( 'status' => 404 ) );
+            wc_get_logger()->info(
+                sprintf( 'track-user OUT | status: 404 | reason: user_not_found | user_id: %d', $user_id ),
+                array( 'source' => 'bh-track-user' )
+            );
+            return $response;
+        }
+
+        $today_date = date( 'Y-m-d' );
+
+        switch ( $action ) {
+            case 'install':
+                update_user_meta( $user_id, '_app_installed_date', $today_date );
+                update_user_meta( $user_id, '_app_last_opened', $today_date );
+                update_user_meta( $user_id, '_uses_app', 'true' );
+                break;
+            case 'open':
+                update_user_meta( $user_id, '_app_last_opened', $today_date );
+                update_user_meta( $user_id, '_uses_app', 'true' );
+                break;
+            case 'uninstall':
+                update_user_meta( $user_id, '_uses_app', 'false' );
+                break;
+        }
+
+        $response_data = array(
+            'success' => true,
+            'user_id' => $user_id,
+            'action'  => $action,
+            'fields_updated' => array(
+                '_uses_app'           => get_user_meta( $user_id, '_uses_app', true ),
+                '_app_installed_date' => get_user_meta( $user_id, '_app_installed_date', true ),
+                '_app_last_opened'    => get_user_meta( $user_id, '_app_last_opened', true ),
+            ),
+        );
+
+        wc_get_logger()->info(
+            sprintf(
+                'track-user OUT | status: 200 | user_id: %d | action: %s | fields: %s',
+                $user_id,
+                $action,
+                json_encode( $response_data['fields_updated'] )
+            ),
+            array( 'source' => 'bh-track-user' )
+        );
+
+        return rest_ensure_response( $response_data );
+    }
 
 }
 

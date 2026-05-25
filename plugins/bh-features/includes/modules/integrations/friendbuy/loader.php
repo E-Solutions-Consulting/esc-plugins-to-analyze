@@ -18,6 +18,7 @@ require_once plugin_dir_path( __FILE__ ) . '/friendbuy-myaccount.php';
 require_once plugin_dir_path( __FILE__ ) . '/friendbuy-api.php';
 require_once plugin_dir_path( __FILE__ ) . '/friendbuy-admin.php';
 require_once plugin_dir_path( __FILE__ ) . '/friendbuy-coupon-generator.php';
+require_once plugin_dir_path( __FILE__ ) . '/friendbuy-referral-tracker.php';
 require_once plugin_dir_path( __FILE__ ) . '/friendbuy-events.php';
 require_once plugin_dir_path( __FILE__ ) . '/friendbuy-feature-gate.php';
 require_once plugin_dir_path( __FILE__ ) . '/friendbuy.php';
