@@ -1,5 +1,5 @@
 # INDEX -- bh-features
-# Generated  : 2026-05-25 17:07
+# Generated  : 2026-07-17 12:44
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/bh-features
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features
 #
@@ -27,18 +27,33 @@
 - `includes/modules/common/constants.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/common/constants.php
 - `includes/modules/common/db-ext.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/common/db-ext.php
 - `includes/modules/common/helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/common/helpers.php
+- `includes/modules/common/order-meta.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/common/order-meta.php
+- `includes/modules/integrations/attentive/admin-retry.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/admin-retry.php
 - `includes/modules/integrations/attentive/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/api-client.php
+- `includes/modules/integrations/attentive__/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/api-client.php
 - `includes/modules/integrations/attentive/config.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/config.php
+- `includes/modules/integrations/attentive__/config.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/config.php
 - `includes/modules/integrations/attentive/events-log.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/events-log.php
+- `includes/modules/integrations/attentive__/events-log.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/events-log.php
 - `includes/modules/integrations/attentive/field-mapper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/field-mapper.php
+- `includes/modules/integrations/attentive__/field-mapper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/field-mapper.php
 - `includes/modules/integrations/attentive/frontend-trigger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/frontend-trigger.php
+- `includes/modules/integrations/attentive__/frontend-trigger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/frontend-trigger.php
 - `includes/modules/integrations/attentive/helper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/helper.php
+- `includes/modules/integrations/attentive__/helper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/helper.php
+- `includes/modules/integrations/attentive/landing-page-form.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/landing-page-form.php
 - `includes/modules/integrations/attentive/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/loader.php
+- `includes/modules/integrations/attentive__/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/loader.php
 - `includes/modules/integrations/attentive/logger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/logger.php
+- `includes/modules/integrations/attentive__/logger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/logger.php
 - `includes/modules/integrations/attentive/questionnaire-status.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/questionnaire-status.php
+- `includes/modules/integrations/attentive__/questionnaire-status.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/questionnaire-status.php
 - `includes/modules/integrations/attentive/stripe-events.php` -- Stripe integration | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/stripe-events.php
+- `includes/modules/integrations/attentive__/stripe-events.php` -- Stripe integration | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/stripe-events.php
 - `includes/modules/integrations/attentive/unified-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/unified-events.php
+- `includes/modules/integrations/attentive__/unified-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/unified-events.php
 - `includes/modules/integrations/attentive/webhook-handler.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive/webhook-handler.php
+- `includes/modules/integrations/attentive__/webhook-handler.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/attentive__/webhook-handler.php
 - `includes/modules/integrations/everflow/everflow-async-sender.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/everflow/everflow-async-sender.php
 - `includes/modules/integrations/everflow/everflow-conversion.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/everflow/everflow-conversion.php
 - `includes/modules/integrations/everflow/everflow-tracking.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/everflow/everflow-tracking.php
@@ -48,12 +63,20 @@
 - `includes/modules/integrations/friendbuy/friendbuy-coupon-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-coupon-generator.php
 - `includes/modules/integrations/friendbuy/friendbuy-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-events.php
 - `includes/modules/integrations/friendbuy/friendbuy-feature-gate.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-feature-gate.php
+- `includes/modules/integrations/friendbuy/friendbuy-friends-lite.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-friends-lite.php
 - `includes/modules/integrations/friendbuy/friendbuy-myaccount.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-myaccount.php
 - `includes/modules/integrations/friendbuy/friendbuy.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy.php
 - `includes/modules/integrations/friendbuy/friendbuy-referral-tracker.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-referral-tracker.php
 - `includes/modules/integrations/friendbuy/friendbuy-webhook-handler.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/friendbuy-webhook-handler.php
+- `includes/modules/integrations/friendbuy/frontend.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/frontend.php
 - `includes/modules/integrations/friendbuy/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/friendbuy/loader.php
 - `includes/modules/integrations/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/loader.php
+- `includes/modules/integrations/lob/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lob/api-client.php
+- `includes/modules/integrations/lob/config.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lob/config.php
+- `includes/modules/integrations/lob/events-log.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lob/events-log.php
+- `includes/modules/integrations/lob/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lob/loader.php
+- `includes/modules/integrations/lob/logger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lob/logger.php
+- `includes/modules/integrations/lob/subscription-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lob/subscription-events.php
 - `includes/modules/integrations/lumen/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lumen/api-client.php
 - `includes/modules/integrations/lumen/config.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lumen/config.php
 - `includes/modules/integrations/lumen/events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/lumen/events.php
@@ -63,6 +86,8 @@
 - `includes/modules/integrations/mntn/mntn.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/mntn/mntn.php
 - `includes/modules/integrations/podscribe/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/podscribe/loader.php
 - `includes/modules/integrations/podscribe/podscribe.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/podscribe/podscribe.php
+- `includes/modules/integrations/snippets/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/snippets/loader.php
+- `includes/modules/integrations/snippets/snippets.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/snippets/snippets.php
 - `includes/modules/integrations/triplewhale/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/triplewhale/loader.php
 - `includes/modules/integrations/triplewhale/triplewhale.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/triplewhale/triplewhale.php
 - `includes/modules/integrations/uscreen/client-helper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/integrations/uscreen/client-helper.php
@@ -86,11 +111,15 @@
 - `includes/modules/testing/test-mode.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/testing/test-mode.php
 - `includes/modules/wc/admin/admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/admin/admin.php
 - `includes/modules/wc/cart/cart.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/cart/cart.php
+- `includes/modules/wc/checkout/__/address-flow.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/__/address-flow.php
 - `includes/modules/wc/checkout/bh-checkout-validations.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/bh-checkout-validations.php
 - `includes/modules/wc/checkout/bh-phone-standardization.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/bh-phone-standardization.php
+- `includes/modules/wc/checkout/__/checkout-gate.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/__/checkout-gate.php
+- `includes/modules/wc/checkout/__/checkout-layout.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/__/checkout-layout.php
 - `includes/modules/wc/checkout/checkout-ui.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/checkout-ui.php
-- `includes/modules/wc/checkout/tracking-bridge.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/tracking-bridge.php
-- `includes/modules/wc/checkout/tracking-pixels.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/tracking-pixels.php
+- `includes/modules/wc/checkout/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/loader.php
+- `includes/modules/wc/checkout/__/tracking-bridge.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/__/tracking-bridge.php
+- `includes/modules/wc/checkout/__/tracking-pixels.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/checkout/__/tracking-pixels.php
 - `includes/modules/wc/coupons/coupon-batch-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/coupons/coupon-batch-generator.php
 - `includes/modules/wc/coupons/coupons.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/coupons/coupons.php
 - `includes/modules/wc/coupons/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/coupons/loader.php
@@ -103,6 +132,7 @@
 - `includes/modules/wc/orders/telegra/renewal-blocker.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/orders/telegra/renewal-blocker.php
 - `includes/modules/wc/orders/telegra/renewal-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/orders/telegra/renewal-handler.php
 - `includes/modules/wc/products/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/products/loader.php
+- `includes/modules/wc/products/product-export-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/products/product-export-admin.php
 - `includes/modules/wc/products/products-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/products/products-admin.php
 - `includes/modules/wc/subscriptions/bh-renewal-endpoint.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/subscriptions/bh-renewal-endpoint.php
 - `includes/modules/wc/subscriptions/early-renewal-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/includes/modules/wc/subscriptions/early-renewal-handler.php
@@ -116,7 +146,7 @@
 - `public/class-bh-features-public.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/public/class-bh-features-public.php
 - `public/index.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/public/index.php
 - `public/partials/bh-features-public-display.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/public/partials/bh-features-public-display.php
-- `templates/checkout/form-checkout.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/templates/checkout/form-checkout.php
+- `templates/checkout__/form-checkout.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/templates/checkout__/form-checkout.php
 - `templates/woocommerce/emails/customer-subscription-reminder-2.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/templates/woocommerce/emails/customer-subscription-reminder-2.php
 - `templates/woocommerce/emails/customer-subscription-reminder-7.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/templates/woocommerce/emails/customer-subscription-reminder-7.php
 - `templates/woocommerce/emails/plain/customer-subscription-reminder.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-features/templates/woocommerce/emails/plain/customer-subscription-reminder.php
@@ -124,8 +154,8 @@
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-bh-features.md
-# Total PHP files indexed : 115
-# Total lines in this file: 123
-# Generated               : 2026-05-25 17:07
+# Total PHP files indexed : 145
+# Total lines in this file: 153
+# Generated               : 2026-07-17 12:44
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

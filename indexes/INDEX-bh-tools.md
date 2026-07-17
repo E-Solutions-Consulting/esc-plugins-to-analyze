@@ -1,5 +1,5 @@
 # INDEX -- bh-tools
-# Generated  : 2026-04-07 17:32
+# Generated  : 2026-07-17 12:44
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/bh-tools
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools
 #
@@ -10,7 +10,9 @@
 - `admin/index.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/index.php
 - `admin/partials/bh-tools-admin-display-page-export-gender.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-export-gender.php
 - `admin/partials/bh-tools-admin-display-page-export.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-export.php
+- `admin/partials/bh-tools-admin-display-page-json-analyzer.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-json-analyzer.php
 - `admin/partials/bh-tools-admin-display-page-notifications.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-notifications.php
+- `admin/partials/bh-tools-admin-display-page-order-billing-analyzer.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-order-billing-analyzer.php
 - `admin/partials/bh-tools-admin-display-page-order-inspector.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-order-inspector.php
 - `admin/partials/bh-tools-admin-display-page-payments.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-payments.php
 - `admin/partials/bh-tools-admin-display-page-prepare-order-to-northbeam.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/bh-tools/admin/partials/bh-tools-admin-display-page-prepare-order-to-northbeam.php
@@ -38,8 +40,8 @@
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-bh-tools.md
-# Total PHP files indexed : 29
-# Total lines in this file: 37
-# Generated               : 2026-04-07 17:32
+# Total PHP files indexed : 31
+# Total lines in this file: 39
+# Generated               : 2026-07-17 12:44
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

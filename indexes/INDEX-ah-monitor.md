@@ -1,5 +1,5 @@
 # INDEX -- ah-monitor
-# Generated  : 2026-04-07 17:32
+# Generated  : 2026-07-17 12:44
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/ah-monitor
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor
 #
@@ -10,6 +10,7 @@
 - `includes/core/class-error-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/core/class-error-handler.php
 - `includes/core/class-plugin.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/core/class-plugin.php
 - `includes/core/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/core/loader.php
+- `includes/modules/daily-summary/daily-summary.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/modules/daily-summary/daily-summary.php
 - `includes/modules/debug/class-debug.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/modules/debug/class-debug.php
 - `includes/modules/debug/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/modules/debug/loader.php
 - `includes/modules/monitor/class-cli.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/ah-monitor/includes/modules/monitor/class-cli.php
@@ -21,8 +22,8 @@
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-ah-monitor.md
-# Total PHP files indexed : 12
-# Total lines in this file: 20
-# Generated               : 2026-04-07 17:32
+# Total PHP files indexed : 13
+# Total lines in this file: 21
+# Generated               : 2026-07-17 12:44
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------
