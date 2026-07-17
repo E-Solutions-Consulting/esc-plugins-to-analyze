@@ -1,5 +1,5 @@
 # INDEX -- sg-security
-# Generated  : 2026-07-17 12:44
+# Generated  : 2026-07-17 13:08
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/sg-security
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/sg-security
 #
@@ -103,6 +103,6 @@
 # EOF -- INDEX-sg-security.md
 # Total PHP files indexed : 92
 # Total lines in this file: 100
-# Generated               : 2026-07-17 12:44
+# Generated               : 2026-07-17 13:08
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

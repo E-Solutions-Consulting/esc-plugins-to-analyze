@@ -1,5 +1,5 @@
 # INDEX -- metorik-helper
-# Generated  : 2026-07-17 12:44
+# Generated  : 2026-07-17 13:08
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/metorik-helper
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/metorik-helper
 #
@@ -28,6 +28,6 @@
 # EOF -- INDEX-metorik-helper.md
 # Total PHP files indexed : 17
 # Total lines in this file: 25
-# Generated               : 2026-07-17 12:44
+# Generated               : 2026-07-17 13:08
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

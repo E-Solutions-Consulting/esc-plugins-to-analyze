@@ -1,5 +1,5 @@
 # INDEX -- sg-cachepress
-# Generated  : 2026-07-17 12:44
+# Generated  : 2026-07-17 13:08
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/sg-cachepress
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/sg-cachepress
 #
@@ -137,6 +137,6 @@
 # EOF -- INDEX-sg-cachepress.md
 # Total PHP files indexed : 126
 # Total lines in this file: 134
-# Generated               : 2026-07-17 12:44
+# Generated               : 2026-07-17 13:08
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 # INDEX -- checkout-for-woocommerce-part1
-# Generated  : 2026-07-17 12:44
+# Generated  : 2026-07-17 13:08
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/checkout-for-woocommerce (part 1 of 5)
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/checkout-for-woocommerce
 #
@@ -211,6 +211,6 @@
 # EOF -- INDEX-checkout-for-woocommerce-part1.md
 # Total PHP files indexed : 200
 # Total lines in this file: 208
-# Generated               : 2026-07-17 12:44
+# Generated               : 2026-07-17 13:08
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------
