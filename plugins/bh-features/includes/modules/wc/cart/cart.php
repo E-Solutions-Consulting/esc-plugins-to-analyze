@@ -15,7 +15,7 @@ class AH_Cart {
         /**
 		 *	Remove Notice about success add to cart product
 		 */
-		add_filter( 'woocommerce_notice_types', [$this, 'woocommerce_notice_types'], 100);
+		// add_filter( 'woocommerce_notice_types', [$this, 'woocommerce_notice_types'], 100);
 
 		add_filter( 'woocommerce_add_notice', [$this, 'remove_subscription_messages'], 100 );
 
@@ -25,6 +25,7 @@ class AH_Cart {
 		add_filter( 'woocommerce_add_to_cart_validation', [$this, 'strict_cart_restrictions'], 30, 6);
 
 		// add_filter( 'woocommerce_product_single_add_to_cart_text', [$this, 'change_product_single_add_to_cart_text'], 10, 2);
+		add_filter( 'wc_add_to_cart_message_html', '__return_empty_string' );
 
     }
 

@@ -201,6 +201,17 @@ class Bh_Tools {
 		$this->loader->add_action( 'wp_ajax_process_order_inspector_batch', $plugin_admin, 'process_order_inspector_batch' );
 		$this->loader->add_action( 'wp_ajax_process_order_inspector_export_file', $plugin_admin, 'process_order_inspector_export_file');
 
+		$this->loader->add_action( 'wp_ajax_process_export_orders_batch', $plugin_admin, 'process_export_orders_batch' );
+		$this->loader->add_action( 'wp_ajax_check_export_orders_file', $plugin_admin, 'check_export_orders_file');
+
+		// Billing Analyzer AJAX actions
+		$this->loader->add_action( 'wp_ajax_process_billing_analyzer_batch', $plugin_admin, 'process_billing_analyzer_batch' );
+		$this->loader->add_action( 'wp_ajax_process_billing_analyzer_export_file', $plugin_admin, 'process_billing_analyzer_export_file');
+
+		// JSON Analyzer AJAX actions
+		$this->loader->add_action( 'wp_ajax_scan_telegra_json_files', $plugin_admin, 'scan_telegra_json_files' );
+		$this->loader->add_action( 'wp_ajax_analyze_visit_types_from_json', $plugin_admin, 'analyze_visit_types_from_json' );
+
 		$this->loader->add_action( 'wp_ajax_process_telegra_wc_sync_batch',       $plugin_admin, 'process_telegra_wc_sync_batch' );
 		$this->loader->add_action( 'wp_ajax_process_telegra_wc_sync_export_file', $plugin_admin, 'process_telegra_wc_sync_export_file' );
 

@@ -37,42 +37,56 @@ class BH_Checkout_UI {
 		/**
 		 * Remove the Error Messages from top of checkout pages
 		 */
-		add_action('init', [ $this, 'hb_init_remove_wc_hooks'], 999999);
+		//add_action('init', [ $this, 'hb_init_remove_wc_hooks'], 999999);
 
-        add_filter('gettext', [ $this, 'change_ship_to_different_address_text'], 20, 3);
-        add_action( 'woocommerce_checkout_before_order_review', [ $this, 'add_billing_shipping_summary' ], 20 );
-        add_action( 'woocommerce_order_review', [$this, 'woocommerce_review_order_before_cart_contents'], 1 );
-        add_filter('woocommerce_cart_item_name', [ $this, 'bh_woocommerce_cart_item_name'], 10, 3);
+        //add_filter('gettext', [ $this, 'change_ship_to_different_address_text'], 20, 3);
+        //add_action( 'woocommerce_checkout_before_order_review', [ $this, 'add_billing_shipping_summary' ], 20 );
+        //add_action( 'woocommerce_order_review', [$this, 'woocommerce_review_order_before_cart_contents'], 1 );
+        //add_filter('woocommerce_cart_item_name', [ $this, 'bh_woocommerce_cart_item_name'], 10, 3);
 
         /**
 		 * Add Terms & Conditions to Tab Checkout
 		 */
-		add_filter('arg-mc-init-options', [ $this, 'bh_arg_mc_init_options_add_step_terms_conditions']);
-		add_action('arg-mc-checkout-step', [ $this, 'bh_arg_mc_checkout_step_add_content_terms_conditions']);
+		//add_filter('arg-mc-init-options', [ $this, 'bh_arg_mc_init_options_add_step_terms_conditions']);
+		//add_action('arg-mc-checkout-step', [ $this, 'bh_arg_mc_checkout_step_add_content_terms_conditions']);
 		/*
 		*	Print Custom Text depend of Subscription Variation
 		*/
-		add_filter( 'arg-mc-init-options', [$this, 'arg_mc_init_options'] );
-		add_shortcode('_bh_disclaimer_plan_selected', [ $this, 'disclaimer_plan_selected_shortcode']);
+		//add_filter( 'arg-mc-init-options', [$this, 'arg_mc_init_options'] );
+		//add_shortcode('_bh_disclaimer_plan_selected', [ $this, 'disclaimer_plan_selected_shortcode']);
 
 		add_filter('woocommerce_states', [$this, 'restrict_us_states']);
 		add_filter( 'woocommerce_states', [ $this, 'augment_state_labels_for_checkout' ], 999 );
 
 
-		add_action('wp_enqueue_scripts', [ $this, 'enqueue_google_places_and_states']);
+		//add_action('wp_enqueue_scripts', [ $this, 'enqueue_google_places_and_states']);
 
-		add_filter('woocommerce_billing_fields', [$this, 'reorder_billing_fields'], 9999999);
+		//add_filter('woocommerce_billing_fields', [$this, 'reorder_billing_fields'], 9999999);
 		/**
 		 * Hide company field in WooCommerce checkout
 		 * */
-		add_filter( 'woocommerce_checkout_fields', [$this, 'hide_company_field_checkout'] );
+		//add_filter( 'woocommerce_checkout_fields', [$this, 'hide_company_field_checkout'] );
 
 		add_filter('woocommerce_checkout_fields', [ $this, 'bh_woocommerce_checkout_fields_phone_validation']);
 		add_filter('woocommerce_checkout_fields', [ $this, 'bh_woocommerce_checkout_fields_kl_newsletter_checkbox'], 99999);
 
 		add_filter( 'woocommerce_add_error', [ $this, 'sanitize_state_validation_error' ], 10, 1 );
 
-		add_action('wp_footer', [$this, 'inject_checkout_coupon_sync_script'], 999);
+		// Handle marketing subscription checkbox
+		add_action('woocommerce_checkout_update_order_meta', [ $this, 'save_marketing_subscription_checkbox' ]);
+
+		//add_action('wp_footer', [$this, 'inject_checkout_coupon_sync_script'], 999);
+
+		/**
+		 * Remove WC Terms & Conditions checkbox from Checkout Page
+		 */
+		add_filter( 'woocommerce_checkout_show_terms', [$this, 'remove_wc_checkout_terms'] );
+		add_action( 'cfw_checkout_before_payment_method_terms_checkbox', [$this, 'render_terms_checkbox'] );
+
+		add_filter( 'woocommerce_cart_item_name', [ $this, 'bh_checkout_item_name_with_price' ], 20, 3 );
+
+		add_action('wp_footer', [$this, 'inject_coupon_toggle_disclaimer_script'], 1000 );
+		add_action('wp_head', [$this, 'add_custom_style_on_order_received']);
 
 	}
 
@@ -626,6 +640,17 @@ class BH_Checkout_UI {
 			$fields['billing']['kl_newsletter_checkbox']['label']	=	'<span>' . $fields['billing']['kl_newsletter_checkbox']['label'] . '</span>';
 		}
 
+		// Add marketing subscription checkbox
+		$fields['billing']['bh_marketing_subscription'] = array(
+			'type'        => 'checkbox',
+			'label'       => '<span>Subscribe to email and SMS marketing</span>',
+			'description' => 'Get exclusive offers, product updates, and health tips via email and text messages.',
+			'required'    => false,
+			'class'       => array('form-row-wide'),
+			'priority'    => 125,
+			'default'     => 1
+		);
+
 		return $fields;
 	}
 
@@ -774,23 +799,233 @@ class BH_Checkout_UI {
 	    </script>
 	    <?php
 	}
-	
-}
 
-//new BH_Checkout_UI();
-// add_action('woocommerce_init', function() {
-//     new BH_Checkout_UI();
-// });
-// add_action('init', function () {
-//     if (class_exists('WooCommerce')) {
-//         new BH_Checkout_UI();
-//     }
-// }, 30);
-// add_action('init', function() {
-//     if (class_exists('WooCommerce') && did_action('woocommerce_loaded')) {
-//         new BH_Checkout_UI();
-//     }
-// }, 20);
+	/**
+	 * Save marketing subscription checkbox to order meta and user meta
+	 */
+	function save_marketing_subscription_checkbox( $order_id ) {
+		$logger = wc_get_logger();
+		$context = array( 'source' => 'bh_marketing' );
+		
+		$marketing_checked = isset( $_POST['bh_marketing_subscription'] ) && $_POST['bh_marketing_subscription'] === '1';
+		
+		update_post_meta( $order_id, '_bh_marketing_subscription_checkout', $marketing_checked ? 'yes' : 'no' );
+		AH_Order_Meta::set( $order_id, '_bh_marketing_subscription_checkout', $marketing_checked ? 'yes' : 'no' );
+
+		if ( $marketing_checked ) {
+			$order = wc_get_order( $order_id );
+			$user_id = $order ? $order->get_user_id() : 0;
+			
+			$logger->info( "CHECKOUT MARKETING: User opted in for marketing - Order: {$order_id}, User: {$user_id}, Email: " . ($order ? $order->get_billing_email() : 'unknown') . ", Phone: " . ($order ? $order->get_billing_phone() : 'unknown'), $context );
+			
+			// Save to user meta if user exists
+			if ( $user_id ) {
+				update_user_meta( $user_id, 'bh_marketing_subscription', 'yes' );
+				update_user_meta( $user_id, 'bh_marketing_subscription_updated', current_time( 'mysql' ) );
+				
+				$logger->info( "CHECKOUT MARKETING: Updated user meta - Order: {$order_id}, User: {$user_id}, Preference: yes", $context );
+			}
+			
+			// Mark order for marketing subscription processing
+			update_post_meta( $order_id, '_bh_marketing_subscription', 'yes' );
+			AH_Order_Meta::set( $order_id, '_bh_marketing_subscription_checkout_consent', 'yes' );
+			
+		} else {			
+			update_post_meta( $order_id, '_bh_marketing_subscription', 'no' );
+			AH_Order_Meta::set( $order_id, '_bh_marketing_subscription_checkout_consent', 'no' );
+		}
+	}
+
+	function remove_wc_checkout_terms($show){
+		return false;
+	}
+
+	public function render_terms_checkbox() {
+	    $terms_page_id = 671478;//wc_get_page_id( 'checkout-terms-conditions' );
+	    $terms_url     = $terms_page_id ? get_permalink( $terms_page_id ) : '#';
+	    echo '<div class="cfw-custom-terms" style="margin-bottom:15px;">
+	        <label>
+	            <input type="checkbox" name="bh_accept_terms" id="bh_accept_terms" value="on" checked />
+	            ' . sprintf(
+	                __( 'I have read and agree to the website <a href="%s" target="_blank">Terms & Conditions</a>.', 'hw-features' ),
+	                esc_url( $terms_url )
+	            ) . '
+	        </label>
+	    </div>';
+	}
+
+	/**
+	 * Append variation interval and price breakdown to cart item name in checkout order review.
+	 * Format: Parent Name - N Month(s) for $Price ($Price/Month)
+	 *
+	 * @param string $product_name
+	 * @param array  $cart_item
+	 * @param string $cart_item_key
+	 * @return string
+	 */
+	public function bh_checkout_item_name_with_price( $product_name, $cart_item, $cart_item_key ) {
+
+	    if ( ! is_checkout() ) {
+	        return $product_name;
+	    }
+
+	    $product = $cart_item['data'] ?? null;
+	    if ( ! $product instanceof WC_Product || ! $product->is_type( 'variation' ) ) {
+	        return $product_name;
+	    }
+
+	    $parent = wc_get_product( $product->get_parent_id() );
+	    if ( ! $parent ) {
+	        return $product_name;
+	    }
+
+	    $interval = (int) get_post_meta( $product->get_id(), '_subscription_period_interval', true );
+	    if ( $interval < 1 ) {
+	        return $product_name;
+	    }
+
+	    $price       = (float) ( $product->get_sale_price() ?: $product->get_regular_price() );
+	    $per_month   = round( $price / $interval );
+	    $month_label = $interval === 1 ? '1 Month' : "{$interval} Months";
+
+	    return esc_html( sprintf(
+	        '%s - %s for $%s ($%s/Month)',
+	        $parent->get_name(),
+	        $month_label,
+	        number_format( $price, 0 ),
+	        number_format( $per_month, 0 )
+	    ) );
+	}
+
+	/**
+	 * Inject JavaScript to add disclaimer when CFW coupon toggle is opened
+	 */
+	function inject_coupon_toggle_disclaimer_script(){
+		if ( ! is_checkout() || is_order_received_page() ) return;
+		?>
+		<script>
+		jQuery(function($){
+			var disclaimerText = 'If a coupon code is not successfully applied during checkout—it cannot be applied retroactively or used for future orders. Please ensure the discount is reflected in your order\'s Total before completing your payment.';
+			
+			console.log('CFW Coupon Disclaimer Script Loaded');
+			
+			function addDisclaimerToCFWCoupon() {
+				// Target the specific CFW coupon structure
+				var couponWrapper = $('#cfw-cart-summary-coupons .wrapper');
+				
+				if (couponWrapper.length && !couponWrapper.find('.coupon-code-disclaimer').length) {
+					var disclaimer = '<div class="coupon-code-disclaimer">' + disclaimerText + '</div>';
+					
+					// Add disclaimer at the end of the wrapper, after the promo row
+					couponWrapper.append(disclaimer);
+					console.log('CFW Disclaimer added to coupon wrapper');
+				}
+			}
+			
+			// Monitor clicks on the specific CFW show coupons link
+			$(document).on('click', '.cfw-show-coupons-module', function(e) {
+				console.log('CFW coupon toggle clicked');
+				// Add small delay for animation to complete
+				setTimeout(addDisclaimerToCFWCoupon, 300);
+			});
+			
+			// Monitor for height changes on the slide-toggle div
+			if (typeof MutationObserver !== 'undefined') {
+				var observer = new MutationObserver(function(mutations) {
+					mutations.forEach(function(mutation) {
+						if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+							var target = $(mutation.target);
+							
+							// Check if this is the slide-toggle div with height change
+							if (target.parent().hasClass('slide-toggle') && target.css('height') !== '0px') {
+								console.log('CFW coupon area expanded - height:', target.css('height'));
+								setTimeout(addDisclaimerToCFWCoupon, 100);
+							}
+						}
+					});
+				});
+				
+				// Observe the specific CFW coupon area
+				var cfwCouponArea = document.getElementById('cfw-cart-summary-coupons');
+				if (cfwCouponArea) {
+					observer.observe(cfwCouponArea, {
+						childList: true,
+						subtree: true,
+						attributes: true,
+						attributeFilter: ['style']
+					});
+					console.log('CFW Coupon MutationObserver initialized');
+				}
+			}
+			
+			// Fallback: Check every 2 seconds if coupon area is open
+			setInterval(function() {
+				var slideToggleDiv = $('#cfw-cart-summary-coupons .slide-toggle > div');
+				if (slideToggleDiv.length && slideToggleDiv.css('height') !== '0px') {
+					addDisclaimerToCFWCoupon();
+				}
+			}, 2000);
+		});
+		</script>
+		<style>
+			.coupon-code-disclaimer {
+				font-size: 12px;
+				padding: 1rem 1rem 1rem 3rem;
+				font-style: italic;
+				position: relative;
+				line-height: 1.125rem;
+				border-left: 5px solid #1b254f;
+				background: #ede9ff;
+				color: #666;
+			}
+
+			.coupon-code-disclaimer:before {
+				content: "⚠️";
+				position: absolute;
+				font-style: normal;
+				left: 1rem;
+				font-size: 1rem;
+			}
+			</style>
+		<?php
+	}
+
+	function add_custom_style_on_order_received($endpoint) {
+
+		if (!is_wc_endpoint_url('order-received')) {
+			return;
+		}
+
+		?>
+		<style>
+			body.woocommerce-order-received .page-header .entry-title{display:none;}
+			body.woocommerce-order-received .woocommerce-order{display:none}
+			body.woocommerce-order-received .page-content{min-height:50vh;}
+			body.woocommerce-order-received .page-content{position:relative;display:flex;gap: 1rem;flex-direction:column;align-items: center;justify-content: center;text-align:center;}
+			body.woocommerce-order-received.logged-in .page-content:before {
+				content:"Preparing your order. Please don't close this window...";
+			}
+			body.woocommerce-order-received.logged-in .page-content:after {
+				content:"";
+				width: 40px;
+				height: 40px;
+				border: 4px solid #ddd;
+				border-top-color: #333;
+				border-radius: 50%;	
+				animation: telemdnow-spin 1s linear infinite;
+			}
+			@keyframes telemdnow-spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+
+		</style>
+		<?php
+
+	}
+
+}
 
 /**
  * Instantiate the module ONLY after WooCommerce is fully loaded

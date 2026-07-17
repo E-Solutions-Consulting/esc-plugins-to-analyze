@@ -1,25 +1,75 @@
 <form method="post" id="export-form" class="box-form">
-    <label for="states"><?php esc_html_e('US States', 'your-textdomain'); ?>
-        <select id="states" name="states[]" multiple="multiple" class="wc-enhanced-select" style="width: 100%">
-            <option value="">All</option>
-            <?php foreach ($states as $code => $name) : ?>
-                <option data-state="<?php echo esc_attr($code); ?>" value="<?php echo esc_attr($code); ?>"><?php echo esc_html($name); ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
+    <div class="input-filters">
+        Export Type:
+        <label>
+            <input type="radio" id="export_subscriptions" name="export_type" value="subscriptions" checked>
+            Subscriptions
+        </label>
+        <label>
+            <input type="radio" id="export_orders" name="export_type" value="orders">
+            Orders
+        </label>
+    </div>
 
-    <label for="subscription_status"><?php esc_html_e('Status', 'your-textdomain'); ?>
+    <div class="input-filters col-2">
+
+        <label for="states"><?php esc_html_e('US States', 'your-textdomain'); ?>
+            <select id="states" name="states[]" multiple="multiple" class="wc-enhanced-select" style="width: 100%">
+                <option value="">All</option>
+                <?php foreach ($states as $code => $name) : ?>
+                    <option data-state="<?php echo esc_attr($code); ?>" value="<?php echo esc_attr($code); ?>"><?php echo esc_html($name); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+
+        <label for="subscription_status"><?php esc_html_e('Subscription Status', 'your-textdomain'); ?>
+        <?php
+            $statuses = wcs_get_subscription_statuses();
+            echo '<select name="subscription_status[]" id="subscription_status"  multiple="multiple" class="wc-enhanced-select">';
+            echo '<option value="">' . esc_html__( 'All statuses', 'text-domain' ) . '</option>';
+            foreach ( $statuses as $status_key => $status_label ) {
+                $clean_key = $status_key;
+                printf(
+                    '<option value="%1$s" %2$s>%3$s</option>',
+                    esc_attr( $clean_key ),
+                    selected( $selected, $clean_key, false ),
+                    esc_html( $status_label )
+                );
+            }
+            echo '</select>';
+        ?>
+        </label>
+
+        <label for="order_status"><?php esc_html_e('Order Status', 'your-textdomain'); ?>
+        <?php
+            $order_statuses = wc_get_order_statuses();
+            echo '<select name="order_status[]" id="order_status" multiple="multiple" class="wc-enhanced-select">';
+            echo '<option value="">' . esc_html__( 'All statuses', 'text-domain' ) . '</option>';
+            foreach ( $order_statuses as $status_key => $status_label ) {
+                printf(
+                    '<option value="%1$s">%2$s</option>',
+                    esc_attr( $status_key ),
+                    esc_html( $status_label )
+                );
+            }
+            echo '</select>';
+        ?>
+        </label>
+    </div>
+
+    <label for="products"><?php esc_html_e('Products', 'your-textdomain'); ?>
     <?php
-        $statuses = wcs_get_subscription_statuses();
-        echo '<select name="subscription_status[]" id="subscription_status"  multiple="multiple" class="wc-enhanced-select">';
-        echo '<option value="">' . esc_html__( 'All statuses', 'text-domain' ) . '</option>';
-        foreach ( $statuses as $status_key => $status_label ) {
-            $clean_key = $status_key;
+        $products = wc_get_products(array(
+            'limit' => -1,
+            'status' => 'publish'
+        ));
+        echo '<select name="products[]" id="products" multiple="multiple" class="wc-enhanced-select">';
+        echo '<option value="">' . esc_html__( 'All products', 'text-domain' ) . '</option>';
+        foreach ( $products as $product ) {
             printf(
-                '<option value="%1$s" %2$s>%3$s</option>',
-                esc_attr( $clean_key ),
-                selected( $selected, $clean_key, false ),
-                esc_html( $status_label )
+                '<option value="%1$s">%2$s</option>',
+                esc_attr( $product->get_id() ),
+                esc_html( $product->get_name() )
             );
         }
         echo '</select>';
@@ -48,7 +98,9 @@
         <div>
             <label>Batch size:</label>
             <select name="batch_size">
-                <option value="100" selected>100 records</option>
+                <option value="100">100 records</option>
+                <option value="50" selected>50 records</option>
+                <option value="25">25 records</option>
             </select>					
         </div>
         <div>
@@ -119,6 +171,27 @@
     }
     jQuery(document).ready(function($) {
         progress = document.getElementById("new-progress-bar");
+        
+        // Handle export type change
+        $('input[name="export_type"]').change(function() {
+            var exportType = $(this).val();
+            if (exportType === 'orders') {
+                $('#subscription_status').closest('label').hide();
+                $('#order_status').closest('label').show();
+                $('#products').closest('label').show();
+                $('.input-filters').has('input[name="filter_type"]').hide();
+                $('.input-filters').has('#include-amount-paid').hide();
+            } else {
+                $('#subscription_status').closest('label').show();
+                $('#order_status').closest('label').hide();
+                $('#products').closest('label').show();
+                $('.input-filters').has('input[name="filter_type"]').show();
+                $('.input-filters').has('#include-amount-paid').show();
+            }
+        });
+        
+        // Initialize visibility
+        $('input[name="export_type"]:checked').trigger('change');
 
         $('#export-form').on('submit', function(e) {
             e.preventDefault();
@@ -160,11 +233,22 @@
                 finishExport(true);
                 return;
             }
-            var _action	=	'process_export_subscriptions_batch';
-            let checkbox = document.getElementById('include-amount-paid');
-            console.log('checkbox.checked', checkbox.checked);
-            if (checkbox.checked) {							
-                _action	=	'pprocess_subscriptions_batch';
+            var exportType = $('input[name="export_type"]:checked').val();
+            var _action, _checkAction;
+            
+            if (exportType === 'orders') {
+                _action = 'process_export_orders_batch';
+                _checkAction = 'check_export_orders_file';
+            } else {
+                _action = 'process_export_subscriptions_batch';
+                _checkAction = 'check_export_file';
+                
+                let checkbox = document.getElementById('include-amount-paid');
+                console.log('checkbox.checked', checkbox.checked);
+                if (checkbox.checked) {							
+                    _action	=	'pprocess_subscriptions_batch';
+                    _checkAction = 'ccheck_export_file';
+                }
             }
             $.post(ajaxurl, {
                 action: _action,
@@ -232,11 +316,18 @@
                     progress.value = 100;
                 }
 
-                var _action	=	'check_export_file';
-                let checkbox = document.getElementById('include-amount-paid');
-                console.log('checkbox.checked', checkbox.checked);
-                if (checkbox.checked) {								
-                    _action	=	'ccheck_export_file';
+                var exportType = $('input[name="export_type"]:checked').val();
+                var _action;
+                
+                if (exportType === 'orders') {
+                    _action = 'check_export_orders_file';
+                } else {
+                    _action = 'check_export_file';
+                    let checkbox = document.getElementById('include-amount-paid');
+                    console.log('checkbox.checked', checkbox.checked);
+                    if (checkbox.checked) {								
+                        _action	=	'ccheck_export_file';
+                    }
                 }
                 $.post(ajaxurl, {
                     action: _action

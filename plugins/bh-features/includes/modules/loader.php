@@ -39,6 +39,7 @@ class BH_Modules_Loader {
         $this->safe_require( $base . 'common/constants.php' );
         $this->safe_require( $base . 'common/helpers.php' );
         $this->safe_require( $base . 'common/db-ext.php' );
+        $this->safe_require( $base . 'common/order-meta.php' );
 
 
         /**
@@ -135,11 +136,7 @@ class BH_Modules_Loader {
          * CHECKOUT
          * --------------------------------
          */
-        $this->safe_require( $base . 'wc/checkout/bh-checkout-validations.php' );
-        $this->safe_require( $base . 'wc/checkout/bh-phone-standardization.php' );
-        $this->safe_require( $base . 'wc/checkout/checkout-ui.php' );
-        //$this->safe_require( $base . 'wc/checkout/bh-checkout.php' );
-        // $this->safe_require( $base . 'wc/checkout/__bh-us-phone-standardization.php' );
+        $this->safe_require( $base . 'wc/checkout/loader.php' );
 
 
         /**

@@ -1,0 +1,72 @@
+<?php
+
+namespace CheckoutWC;
+
+require_once __DIR__ . '/../src/ClientBuilder.php';
+require_once __DIR__ . '/../src/US_Street/Lookup.php';
+require_once __DIR__ . '/../src/BasicAuthCredentials.php';
+// require_once(__DIR__ . '/../src/SharedCredentials.php');
+use CheckoutWC\SmartyStreets\PhpSdk\Exceptions\SmartyException;
+use CheckoutWC\SmartyStreets\PhpSdk\BasicAuthCredentials;
+// use SmartyStreets\PhpSdk\SharedCredentials;
+use CheckoutWC\SmartyStreets\PhpSdk\ClientBuilder;
+use CheckoutWC\SmartyStreets\PhpSdk\US_Street\Lookup;
+$lookupExample = new UsStreetSingleAddressExample();
+$lookupExample->run();
+class UsStreetSingleAddressExample
+{
+    public function run()
+    {
+        // $authId = 'Your SmartyStreets Auth ID here';
+        // $authToken = 'Your SmartyStreets Auth Token here';
+        // We recommend storing your secret keys in environment variables instead---it's safer!
+        $authId = \getenv('SMARTY_AUTH_ID');
+        $authToken = \getenv('SMARTY_AUTH_TOKEN');
+        // For client-side requests (browser/mobile), use SharedCredentials:
+        // $credentials = new SharedCredentials($key, $hostname);
+        $credentials = new BasicAuthCredentials($authId, $authToken);
+        $client = (new ClientBuilder($credentials))->buildUsStreetApiClient();
+        // Documentation for input fields can be found at:
+        // https://smartystreets.com/docs/cloud/us-street-api
+        $lookup = new Lookup();
+        $lookup->setInputId("24601");
+        // Optional ID from your system
+        $lookup->setAddressee("John Doe");
+        $lookup->setStreet("1600 Amphitheatre Pkwy");
+        $lookup->setStreet2("closet under the stairs");
+        $lookup->setSecondary("APT 2");
+        $lookup->setUrbanization("");
+        // Only applies to Puerto Rico addresses
+        $lookup->setCity("Mountain View");
+        $lookup->setState("CA");
+        $lookup->setZipcode("21229");
+        $lookup->setMaxCandidates(3);
+        $lookup->setCountySource(lookup::GEOGRAPHIC);
+        $lookup->setMatchStrategy(Lookup::INVALID);
+        // "invalid" is the most permissive match,
+        // this will always return at least one result even if the address is invalid.
+        // Refer to the documentation for additional MatchStrategy options.
+        // Uncomment the below line to add a custom parameter to the API call
+        // $lookup->addCustomParameter("parameter","value");
+        try {
+            $client->sendLookup($lookup);
+            $this->displayResults($lookup);
+        } catch (\Exception $ex) {
+            echo $ex->getMessage();
+        }
+    }
+    public function displayResults(Lookup $lookup)
+    {
+        $results = $lookup->getResult();
+        if (empty($results)) {
+            echo "\nNo candidates. This means the address is not valid.";
+            return;
+        }
+        $firstCandidate = $results[0];
+        echo "\nThere is at least one candidate. If the match parameter is set to STRICT, the address is valid. Otherwise, check the Analysis output fields to see if the address is valid.\n";
+        echo "\nZIP Code: " . $firstCandidate->getComponents()->getZIPCode();
+        echo "\nCounty: " . $firstCandidate->getMetadata()->getCountyName();
+        echo "\nLatitude: " . $firstCandidate->getMetadata()->getLatitude();
+        echo "\nLongitude: " . $firstCandidate->getMetadata()->getLongitude();
+    }
+}

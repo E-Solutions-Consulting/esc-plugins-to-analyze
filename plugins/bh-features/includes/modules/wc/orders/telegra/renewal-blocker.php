@@ -128,6 +128,7 @@ class AH_Orders_Telegra_Renewal_Blocker {
 
             $renewal_order->update_status( 'wc-cancelled', $reason );
             $renewal_order->update_meta_data( '_mark_for_cleanup', 1 );
+            AH_Order_Meta::set( $renewal_order->get_id(), '_mark_for_cleanup', 1 );
             $renewal_order->save();
 
             $this->log("Marked renewal order #{$renewal_order->get_id()} for cleanup.");
@@ -181,6 +182,7 @@ class AH_Orders_Telegra_Renewal_Blocker {
 
             $renewal_order->update_status( 'wc-cancelled', $reason );
             $renewal_order->update_meta_data( '_mark_for_cleanup', 1 );
+            AH_Order_Meta::set( $renewal_order->get_id(), '_mark_for_cleanup', 1 );
             $renewal_order->save();
 
             $subscription->update_status('on-hold');

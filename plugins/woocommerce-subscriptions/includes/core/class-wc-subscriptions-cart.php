@@ -121,6 +121,10 @@ class WC_Subscriptions_Cart {
 		// Add Subscriptions data to cart items.
 		add_filter( 'woocommerce_get_item_data', __CLASS__ . '::woocommerce_get_item_data', 10, 2 );
 
+		// On the classic checkout, surface the recurring price and the trial / sign-up fee detail lines in the
+		// Product column (there is no separate Price column), matching the block checkout presentation.
+		add_filter( 'woocommerce_checkout_cart_item_quantity', __CLASS__ . '::checkout_cart_item_details', 10, 3 );
+
 		// Redirect the user immediately to the checkout page after clicking "Sign Up Now" buttons to encourage immediate checkout
 		add_filter( 'woocommerce_add_to_cart_redirect', array( __CLASS__, 'add_to_cart_redirect' ) );
 
@@ -136,11 +140,7 @@ class WC_Subscriptions_Cart {
 	 */
 	public static function attach_dependant_hooks() {
 		// WooCommerce determines if free shipping is available using the WC->cart total and coupons, we need to recalculate its availability when obtaining shipping methods for a recurring cart
-		if ( wcs_is_woocommerce_pre( '3.2' ) ) {
-			add_filter( 'woocommerce_shipping_free_shipping_is_available', array( __CLASS__, 'maybe_recalculate_shipping_method_availability' ), 10, 2 );
-		} else {
-			add_filter( 'woocommerce_shipping_free_shipping_is_available', array( __CLASS__, 'recalculate_shipping_method_availability' ), 10, 3 );
-		}
+		add_filter( 'woocommerce_shipping_free_shipping_is_available', array( __CLASS__, 'recalculate_shipping_method_availability' ), 10, 3 );
 	}
 
 	/**
@@ -739,46 +739,91 @@ class WC_Subscriptions_Cart {
 	 *
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.0
 	 */
-	public static function get_formatted_product_subtotal( $product_subtotal, $product, $quantity, $cart ) {
+	public static function get_formatted_product_subtotal( $product_subtotal, $product, $quantity, $cart ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 
-		if ( WC_Subscriptions_Product::is_subscription( $product ) && ! wcs_cart_contains_renewal() ) {
-			$product_price_filter = is_a( $product, 'WC_Product_Variation' ) ? 'woocommerce_product_variation_get_price' : 'woocommerce_product_get_price';
-
-			// Avoid infinite loop
-			remove_filter( 'woocommerce_cart_product_subtotal', __CLASS__ . '::get_formatted_product_subtotal', 11 );
-
-			add_filter( $product_price_filter, 'WC_Subscriptions_Product::get_sign_up_fee_filter', 100, 2 );
-
-			// And get the appropriate sign up fee string
-			$sign_up_fee_string = $cart->get_product_subtotal( $product, $quantity );
-
-			remove_filter( $product_price_filter, 'WC_Subscriptions_Product::get_sign_up_fee_filter', 100 );
-
-			add_filter( 'woocommerce_cart_product_subtotal', __CLASS__ . '::get_formatted_product_subtotal', 11, 4 );
-
-			$product_subtotal = WC_Subscriptions_Product::get_price_string(
-				$product,
-				array(
-					'price'           => $product_subtotal,
-					'sign_up_fee'     => $sign_up_fee_string,
-					'tax_calculation' => wcs_is_woocommerce_pre( '4.4' ) ? WC()->cart->tax_display_cart : WC()->cart->get_tax_price_display_mode(),
-				)
-			);
-
-			$inc_tax_or_vat_string = WC()->countries->inc_tax_or_vat();
-			$ex_tax_or_vat_string  = WC()->countries->ex_tax_or_vat();
-
-			if ( ! empty( $inc_tax_or_vat_string ) && false !== strpos( $product_subtotal, $inc_tax_or_vat_string ) ) {
-				$product_subtotal = str_replace( WC()->countries->inc_tax_or_vat(), '', $product_subtotal ) . ' <small class="tax_label">' . WC()->countries->inc_tax_or_vat() . '</small>';
-			}
-			if ( ! empty( $ex_tax_or_vat_string ) && false !== strpos( $product_subtotal, $ex_tax_or_vat_string ) ) {
-				$product_subtotal = str_replace( WC()->countries->ex_tax_or_vat(), '', $product_subtotal ) . ' <small class="tax_label">' . WC()->countries->ex_tax_or_vat() . '</small>';
-			}
-
-			$product_subtotal = '<span class="subscription-price">' . $product_subtotal . '</span>';
+		if ( ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+			return $product_subtotal;
 		}
 
-		return $product_subtotal;
+		// The first period is the product's own recurring price for this line (the default when no 'price' arg is
+		// passed), matching the line subtotal WooCommerce computes for display.
+		$get_recurring_amount = function ( $incl_tax ) use ( $product, $quantity ) {
+			$recurring_args = array( 'qty' => $quantity );
+			return $incl_tax ? wcs_get_price_including_tax( $product, $recurring_args ) : wcs_get_price_excluding_tax( $product, $recurring_args );
+		};
+
+		return self::get_due_today_subtotal( $product, $quantity, $get_recurring_amount, $product_subtotal );
+	}
+
+	/**
+	 * Builds the per-item "$X due today" subtotal for a subscription line item, matching the block cart/checkout
+	 * presentation. The amount is the first payment: the first period plus the sign-up fee when there is no trial, or
+	 * just the sign-up fee when a trial defers the first period. The `$fallback` is returned unchanged when no
+	 * "due today" amount should be shown — on a renewal cart, or for items with no sign-up fee (matching the block
+	 * gate; even trial-only items keep the standard subtotal with no label).
+	 *
+	 * Shared by the classic cart/checkout subtotal for regular subscription products
+	 * (see get_formatted_product_subtotal) and for bundle/composite containers
+	 * (see WCS_ATT_Integration_PB_CP::container_due_today_subtotal), which differ only in how the first-period amount
+	 * is sourced.
+	 *
+	 * @since 9.1.0
+	 *
+	 * @param  WC_Product $product              The subscription product (or bundle/composite container product).
+	 * @param  int        $quantity             The line quantity.
+	 * @param  callable   $get_recurring_amount Given a boolean $incl_tax, returns the tax-adjusted first-period amount
+	 *                                          for the whole line. Only called when there is no trial.
+	 * @param  string     $fallback             The markup to return unchanged when no "due today" amount applies.
+	 * @return string
+	 */
+	public static function get_due_today_subtotal( $product, $quantity, callable $get_recurring_amount, $fallback ) {
+
+		if ( wcs_cart_contains_renewal() ) {
+			return $fallback;
+		}
+
+		$sign_up_fee = WC_Subscriptions_Product::get_sign_up_fee( $product );
+
+		// Only items with a sign-up fee show the per-item "… due today" amount, matching the block cart/checkout gate.
+		if ( $sign_up_fee <= 0 ) {
+			return $fallback;
+		}
+
+		$tax_display_mode = self::get_tax_display_mode();
+		$incl_tax         = 'incl' === $tax_display_mode;
+
+		// The sign-up fee is always due today.
+		$fee_args   = array(
+			'qty'   => $quantity,
+			'price' => $sign_up_fee,
+		);
+		$amount_due = $incl_tax ? wcs_get_price_including_tax( $product, $fee_args ) : wcs_get_price_excluding_tax( $product, $fee_args );
+
+		// A trial defers the first payment, so only the sign-up fee is due today. Without a trial the first period is
+		// also due today.
+		if ( 0 === WC_Subscriptions_Product::get_trial_length( $product ) ) {
+			$amount_due += (float) call_user_func( $get_recurring_amount, $incl_tax );
+		}
+
+		$amount_due = sprintf(
+			// translators: %s is the amount payable immediately (e.g. "$30.00").
+			__( '%s due today', 'woocommerce-subscriptions' ),
+			wc_price( $amount_due )
+		);
+
+		return '<span class="subscription-price">' . $amount_due . '</span>';
+	}
+
+	/**
+	 * Returns the cart's tax price display mode ('incl' or 'excl'), with a fallback for WooCommerce versions before
+	 * 4.4 where WC_Cart::get_tax_price_display_mode() did not yet exist. Centralised so the classic cart/checkout
+	 * presentation resolves the mode the same way everywhere.
+	 *
+	 * @since 9.1.0
+	 * @return string
+	 */
+	public static function get_tax_display_mode() {
+		return wcs_is_woocommerce_pre( '4.4' ) ? WC()->cart->tax_display_cart : WC()->cart->get_tax_price_display_mode();
 	}
 
 	/*
@@ -952,22 +997,125 @@ class WC_Subscriptions_Cart {
 	/**
 	 * Make sure cart product prices correctly include/exclude taxes.
 	 *
+	 * On the classic cart page the trial and sign-up fee are surfaced as dedicated detail lines below the price
+	 * (matching the block cart, @see should_surface_detail_lines()) instead of the inline price-string suffix. Every
+	 * other context that runs this filter (the mini-cart, page builders, ...) keeps the long-standing inline suffix.
+	 *
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.5.8
 	 */
 	public static function cart_product_price( $price, $product ) {
 
 		if ( WC_Subscriptions_Product::is_subscription( $product ) ) {
-			$tax_price_display_mode = wcs_is_woocommerce_pre( '4.4' ) ? WC()->cart->tax_display_cart : WC()->cart->get_tax_price_display_mode();
-			$price                  = WC_Subscriptions_Product::get_price_string(
-				$product,
-				array(
-					'price'           => $price,
-					'tax_calculation' => $tax_price_display_mode,
-				)
+			$tax_price_display_mode = self::get_tax_display_mode();
+			$surface_detail_lines   = self::should_surface_detail_lines() && is_cart();
+
+			$price_args = array(
+				'price'           => $price,
+				'tax_calculation' => $tax_price_display_mode,
 			);
+
+			// On the cart page, drop the inline trial / sign-up fee suffix; they are appended as detail lines below.
+			if ( $surface_detail_lines ) {
+				$price_args['sign_up_fee']  = false;
+				$price_args['trial_length'] = false;
+			}
+
+			$price = WC_Subscriptions_Product::get_price_string( $product, $price_args );
+
+			if ( $surface_detail_lines ) {
+				$price .= WC_Subscriptions_Product::get_subscription_price_details_html( $product, $tax_price_display_mode );
+			}
 		}
 
 		return $price;
+	}
+
+	/**
+	 * Whether the classic cart/checkout should surface the trial & sign-up fee as dedicated detail lines,
+	 * matching the block cart/checkout presentation, rather than the inline price-string suffix.
+	 *
+	 * The mini-cart keeps the long-standing inline suffix, so it is excluded even when rendered on the cart page.
+	 *
+	 * @since 9.1.0
+	 * @return bool
+	 */
+	protected static function should_surface_detail_lines() {
+		$is_mini_cart = did_action( 'woocommerce_before_mini_cart' ) !== did_action( 'woocommerce_after_mini_cart' );
+
+		return ! $is_mini_cart;
+	}
+
+	/**
+	 * Appends the recurring price and the trial / sign-up fee detail lines below a cart item on the classic checkout.
+	 *
+	 * The classic checkout consolidates everything into a single Product column (no separate Price column), so the
+	 * recurring amount and the "Free trial:" / "Sign-up fee:" lines are appended after the "name × qty" markup — the
+	 * same information the cart page shows in its Price column, matching the block checkout presentation.
+	 *
+	 * @since 9.1.0
+	 *
+	 * @param  string $quantity_html The "× qty" markup rendered before this filter.
+	 * @param  array  $cart_item     The cart item.
+	 * @param  string $cart_item_key The cart item key.
+	 * @return string
+	 */
+	public static function checkout_cart_item_details( $quantity_html, $cart_item, $cart_item_key ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+
+		if ( ! isset( $cart_item['data'] ) ) {
+			return $quantity_html;
+		}
+
+		$product = $cart_item['data'];
+
+		if ( ! WC_Subscriptions_Product::is_subscription( $product ) || wcs_cart_contains_renewal() ) {
+			return $quantity_html;
+		}
+
+		// Bundle/composite items are handled by WCS_ATT_Integration_PB_CP, which knows how to aggregate the
+		// container's price and skip child rows. Both container and child items are left untouched here.
+		if ( class_exists( 'WCS_ATT_Integration_PB_CP' )
+			&& ( WCS_ATT_Integration_PB_CP::is_bundle_type_cart_item( $cart_item ) || WCS_ATT_Integration_PB_CP::is_bundle_type_container_cart_item( $cart_item ) ) ) {
+			return $quantity_html;
+		}
+
+		$tax_display_mode = self::get_tax_display_mode();
+		$recurring_amount = 'incl' === $tax_display_mode ? wcs_get_price_including_tax( $product ) : wcs_get_price_excluding_tax( $product );
+
+		return self::build_checkout_item_details( $quantity_html, $product, $recurring_amount, $tax_display_mode );
+	}
+
+	/**
+	 * Builds the classic-checkout Product-column markup for a subscription line item: the recurring price followed by
+	 * the trial / sign-up fee detail lines, appended after the "name × qty" markup. Shared by the regular subscription
+	 * path (see checkout_cart_item_details) and the bundle/composite container path in the PB/CP integration, which
+	 * differ only in how the recurring amount is sourced.
+	 *
+	 * @since 9.1.0
+	 *
+	 * @param  string     $quantity_html    The "× qty" markup rendered before this filter.
+	 * @param  WC_Product $product          The subscription product (or bundle/composite container product).
+	 * @param  float      $recurring_amount The tax-adjusted recurring amount for the line.
+	 * @param  string     $tax_display_mode The cart tax display mode ('incl' or 'excl').
+	 * @return string
+	 */
+	public static function build_checkout_item_details( $quantity_html, $product, $recurring_amount, $tax_display_mode ) {
+
+		// Recurring price only — the trial and sign-up fee are rendered as their own detail lines below. The renderer
+		// expects a pre-formatted 'price' (as the cart Price column and the product page both pass), otherwise it
+		// emits the raw, unformatted amount.
+		$price_string = WC_Subscriptions_Product::get_price_string(
+			$product,
+			array(
+				'price'           => wc_price( $recurring_amount ),
+				'tax_calculation' => $tax_display_mode,
+				'sign_up_fee'     => false,
+				'trial_length'    => false,
+			)
+		);
+
+		$details_html = WC_Subscriptions_Product::get_subscription_price_details_html( $product, $tax_display_mode );
+
+		return $quantity_html . '<div class="wcs-checkout-item-price">' . $price_string . '</div>' . $details_html;
 	}
 
 	/**
@@ -1204,48 +1352,6 @@ class WC_Subscriptions_Cart {
 
 		// Return false because no other subscription product was found in the cart.
 		return false;
-	}
-
-	/**
-	 * When calculating the free shipping method availability, WC uses the WC->cart object. During shipping calculations for
-	 * recurring carts we need the recurring cart's total and coupons to be the base for checking its availability
-	 *
-	 * @param bool  $is_available
-	 * @param array $package
-	 * @return bool $is_available a revised version of is_available based off the recurring cart object
-	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.0.20
-	 */
-	public static function maybe_recalculate_shipping_method_availability( $is_available, $package ) {
-
-		if ( ! isset( $package['recurring_cart_key'], self::$cached_recurring_cart ) || $package['recurring_cart_key'] !== self::$cached_recurring_cart->recurring_cart_key ) {
-			return $is_available;
-		}
-
-		if ( ! wcs_is_woocommerce_pre( '3.2' ) ) {
-			wcs_doing_it_wrong( __METHOD__, 'This method should no longer be used on WC 3.2.0 and newer. Use WC_Subscriptions_Cart::recalculate_shipping_method_availability() and pass the specific shipping method as the third parameter instead.', '2.5.6' );
-		}
-
-		// Take a copy of the WC global cart object so we can temporarily set it to base shipping method availability on the cached recurring cart
-		$global_cart      = WC()->cart;
-		WC()->cart        = self::$cached_recurring_cart;
-		$shipping_methods = WC()->shipping->get_shipping_methods();
-		$is_available     = false;
-
-		remove_filter( 'woocommerce_shipping_free_shipping_is_available', __METHOD__ );
-
-		foreach ( $shipping_methods as $shipping_method ) {
-			if ( 'free_shipping' === $shipping_method->id && $shipping_method->get_instance_id() && $shipping_method->is_available( $package ) ) {
-				$is_available = true;
-				break;
-			}
-		}
-
-		add_filter( 'woocommerce_shipping_free_shipping_is_available', __METHOD__, 10, 2 );
-
-		WC()->cart = $global_cart;
-
-		return $is_available;
 	}
 
 	/**
@@ -2452,6 +2558,11 @@ class WC_Subscriptions_Cart {
 			return $other_data;
 		}
 
+		// Skip subscription meta for child items of bundle/composite products — the container item displays this info.
+		if ( class_exists( 'WCS_ATT_Integration_PB_CP' ) && WCS_ATT_Integration_PB_CP::is_bundle_type_cart_item( $cart_item ) ) {
+			return $other_data;
+		}
+
 		$trial_length = WC_Subscriptions_Product::get_trial_length( $product );
 		if ( $trial_length ) {
 			$other_data[] = array(
@@ -2459,16 +2570,26 @@ class WC_Subscriptions_Cart {
 				'value'                                    => self::format_free_trial_period( $trial_length, WC_Subscriptions_Product::get_trial_period( $product ) ),
 				'hidden'                                   => true,
 				'__experimental_woocommerce_blocks_hidden' => false,
+				'wcs_subscription_detail'                  => true,
 			);
 		}
 
 		$sign_up_fee = WC_Subscriptions_Product::get_sign_up_fee( $product );
 		if ( $sign_up_fee ) {
+			$sign_up_fee_for_display = wc_get_price_to_display(
+				$product,
+				array(
+					'qty'   => 1,
+					'price' => $sign_up_fee,
+				)
+			);
+
 			$other_data[] = array(
-				'name'                                     => __( 'Sign up fee', 'woocommerce-subscriptions' ),
-				'value'                                    => wc_price( $sign_up_fee ),
+				'name'                                     => __( 'Sign-up fee', 'woocommerce-subscriptions' ),
+				'value'                                    => wc_price( $sign_up_fee_for_display ),
 				'hidden'                                   => true,
 				'__experimental_woocommerce_blocks_hidden' => false,
+				'wcs_subscription_detail'                  => true,
 			);
 		}
 
@@ -2479,6 +2600,7 @@ class WC_Subscriptions_Cart {
 				'value'                                    => self::format_sync_period( $product, WC_Subscriptions_Product::get_period( $product ), WC_Subscriptions_Product::get_interval( $product ) ),
 				'hidden'                                   => true,
 				'__experimental_woocommerce_blocks_hidden' => false,
+				'wcs_subscription_detail'                  => true,
 			);
 		}
 

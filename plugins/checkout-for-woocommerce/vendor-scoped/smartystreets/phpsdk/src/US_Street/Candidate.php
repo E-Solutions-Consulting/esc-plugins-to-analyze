@@ -1,0 +1,96 @@
+<?php
+
+namespace CheckoutWC\SmartyStreets\PhpSdk\US_Street;
+
+require_once __DIR__ . '/Components.php';
+require_once __DIR__ . '/Metadata.php';
+require_once __DIR__ . '/Analysis.php';
+require_once __DIR__ . '/../ArrayUtil.php';
+use CheckoutWC\SmartyStreets\PhpSdk\ArrayUtil;
+/**
+ * A candidate is a possible match for an address that was submitted.<br>
+ *     A lookup can have multiple candidates if the address was ambiguous, and<br>
+ *     the maxCandidates field is set higher than 1.
+ *
+ * @see "https://smartystreets.com/docs/cloud/us-street-api#root"
+ */
+class Candidate
+{
+    private $inputId, $inputIndex, $candidateIndex, $addressee, $deliveryLine1, $deliveryLine2, $deliveryPointBarcode, $lastLine, $smartyKey, $smartyKeyEXT, $metadata, $components, $analysis;
+    public function __construct($obj = null)
+    {
+        if ($obj == null) {
+            return;
+        }
+        if (!array_key_exists('input_index', $obj)) {
+            print_r($obj);
+        }
+        $this->inputIndex = $obj['input_index'];
+        $this->candidateIndex = $obj['candidate_index'];
+        $this->inputId = ArrayUtil::getField($obj, 'input_id');
+        $this->addressee = ArrayUtil::getField($obj, 'addressee');
+        $this->deliveryLine1 = ArrayUtil::getField($obj, 'delivery_line_1');
+        $this->deliveryLine2 = ArrayUtil::getField($obj, 'delivery_line_2');
+        $this->lastLine = ArrayUtil::getField($obj, 'last_line');
+        $this->deliveryPointBarcode = ArrayUtil::getField($obj, 'delivery_point_barcode');
+        $this->smartyKey = ArrayUtil::getField($obj, 'smarty_key');
+        $this->smartyKeyEXT = ArrayUtil::getField($obj, 'smarty_key_ext');
+        $this->components = new Components(ArrayUtil::getField($obj, 'components', array()));
+        $this->metadata = new Metadata(ArrayUtil::getField($obj, 'metadata', array()));
+        $this->analysis = new Analysis(ArrayUtil::getField($obj, 'analysis', array()));
+    }
+    //region [Getters]
+    public function getInputId()
+    {
+        return $this->inputId;
+    }
+    public function getInputIndex()
+    {
+        return $this->inputIndex;
+    }
+    public function getCandidateIndex()
+    {
+        return $this->candidateIndex;
+    }
+    public function getAddressee()
+    {
+        return $this->addressee;
+    }
+    public function getDeliveryLine1()
+    {
+        return $this->deliveryLine1;
+    }
+    public function getDeliveryLine2()
+    {
+        return $this->deliveryLine2;
+    }
+    public function getDeliveryPointBarcode()
+    {
+        return $this->deliveryPointBarcode;
+    }
+    public function getLastLine()
+    {
+        return $this->lastLine;
+    }
+    public function getSmartyKey()
+    {
+        return $this->smartyKey;
+    }
+    public function getSmartyKeyEXT()
+    {
+        return $this->smartyKeyEXT;
+    }
+    public function getMetadata()
+    {
+        return $this->metadata;
+    }
+    public function getComponents()
+    {
+        return $this->components;
+    }
+    public function getAnalysis()
+    {
+        return $this->analysis;
+    }
+    //endregion
+}

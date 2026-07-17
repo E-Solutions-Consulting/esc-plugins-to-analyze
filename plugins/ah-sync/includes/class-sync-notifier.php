@@ -57,9 +57,11 @@ class AH_Sync_Notifier {
      */
     private function build_message( array $stats, bool $dry_run ): string {
         $mode      = $dry_run ? 'DRY RUN' : 'LIVE';
-        $timestamp = current_time( 'Y-m-d H:i' );
+        //$timestamp = current_time( 'Y-m-d H:i' );
+        $timestamp = current_time('F j, Y g:i a');
 
-        $header = sprintf( '[AH Sync] %s | %s | %s', $timestamp, $mode, $this->source );
+        //$header = sprintf( '[AH Sync] %s | %s | %s', $timestamp, $mode, $this->source );
+        $header = sprintf( '*Telegra WC Sync* `%s`', $timestamp );
 
         $summary = sprintf(
             'Updated: %d | Pharmacy OK: %d | Conflicts: %d | Errors: %d | In sync: %d | Skipped: %d',
@@ -71,7 +73,7 @@ class AH_Sync_Notifier {
             $stats['skipped']         ?? 0
         );
 
-        return $header . "\n" . $summary;
+        return ":gear: " . $header . "\n" . '```' . $summary . '```';
     }
 
     /**

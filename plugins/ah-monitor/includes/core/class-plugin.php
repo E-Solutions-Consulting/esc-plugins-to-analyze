@@ -27,6 +27,7 @@ class AH_Plugin {
         self::load_slack_module();
         self::load_monitor_module();
         self::load_debug_module();
+        self::load_daily_summary_module();
 
     }
 
@@ -54,6 +55,16 @@ class AH_Plugin {
     private static function load_debug_module() {
 
         require_once AH_MONITOR_PATH . 'includes/modules/debug/loader.php';
+
+    }
+
+
+    /**
+     * Load monitor module.
+     */
+    private static function load_daily_summary_module() {
+
+        require_once AH_MONITOR_PATH . 'includes/modules/daily-summary/daily-summary.php';
 
     }
 

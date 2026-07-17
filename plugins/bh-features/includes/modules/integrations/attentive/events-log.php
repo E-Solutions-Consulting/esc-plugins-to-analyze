@@ -56,6 +56,9 @@ class BH_Attentive_Events_Log {
     const EVENT_PAYMENT_RECOVERED     = 'payment_recovered';
     const EVENT_CARD_EXPIRING         = 'card_expiring';
     const EVENT_QUESTIONNAIRE_PENDING = 'questionnaire_pending';
+    const EVENT_RENEWAL_QUESTIONNAIRE_PENDING = 'renewal_questionnaire_pending';
+    const EVENT_ORDER_PROCESSED       = 'order_processed';
+    const EVENT_STATUS_FIRED          = 'status_fired';
 
     /**
      * Resolved reason values.

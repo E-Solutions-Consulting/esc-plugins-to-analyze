@@ -56,7 +56,11 @@ class WCS_Orders_Table_Subscription_Data_Store extends \Automattic\WooCommerce\I
 	/**
 	 * Table column to WC_Subscription mapping for wc_orders table.
 	 *
-	 * All columns are inherited from orders except the `transaction_id` column isn't used for subscriptions.
+	 * All columns are inherited from orders. The `transaction_id` column isn't used for subscriptions
+	 * but is included in the mapping to ensure cached data objects have all the properties the parent
+	 * order data store expects, preventing PHP warnings when HPOS Data Caching is enabled.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce/issues/63272
 	 *
 	 * @var string[]
 	 */
@@ -113,6 +117,10 @@ class WCS_Orders_Table_Subscription_Data_Store extends \Automattic\WooCommerce\I
 			'type' => 'string',
 			'name' => 'payment_method_title',
 		),
+		'transaction_id'       => array(
+			'type' => 'string',
+			'name' => 'transaction_id',
+		),
 		'ip_address'           => array(
 			'type' => 'string',
 			'name' => 'customer_ip_address',
@@ -130,14 +138,13 @@ class WCS_Orders_Table_Subscription_Data_Store extends \Automattic\WooCommerce\I
 	/**
 	 * Table column to WC_Subscription mapping for wc_operational_data table.
 	 *
-	 * For subscriptions, all columns are inherited from orders except for the following columns:
+	 * All columns are inherited from orders. Some columns (cart_hash, new_order_email_sent,
+	 * order_stock_reduced, date_paid_gmt, recorded_sales, date_completed_gmt) aren't used for
+	 * subscriptions but are included in the mapping to ensure cached data objects have all the
+	 * properties the parent order data store expects, preventing PHP warnings when HPOS Data
+	 * Caching is enabled.
 	 *
-	 * - cart_hash
-	 * - new_order_email_sent
-	 * - order_stock_reduced
-	 * - date_paid_gmt
-	 * - recorded_sales
-	 * - date_completed_gmt
+	 * @see https://github.com/woocommerce/woocommerce/issues/63272
 	 *
 	 * @var string[]
 	 */
@@ -164,9 +171,29 @@ class WCS_Orders_Table_Subscription_Data_Store extends \Automattic\WooCommerce\I
 			'type' => 'bool',
 			'name' => 'download_permissions_granted',
 		),
+		'cart_hash'                   => array(
+			'type' => 'string',
+			'name' => 'cart_hash',
+		),
+		'new_order_email_sent'        => array(
+			'type' => 'bool',
+			'name' => 'new_order_email_sent',
+		),
 		'order_key'                   => array(
 			'type' => 'string',
 			'name' => 'order_key',
+		),
+		'order_stock_reduced'         => array(
+			'type' => 'bool',
+			'name' => 'order_stock_reduced',
+		),
+		'date_paid_gmt'               => array(
+			'type' => 'date',
+			'name' => 'date_paid',
+		),
+		'date_completed_gmt'          => array(
+			'type' => 'date',
+			'name' => 'date_completed',
 		),
 		'shipping_tax_amount'         => array(
 			'type' => 'decimal',
@@ -183,6 +210,10 @@ class WCS_Orders_Table_Subscription_Data_Store extends \Automattic\WooCommerce\I
 		'discount_total_amount'       => array(
 			'type' => 'decimal',
 			'name' => 'discount_total',
+		),
+		'recorded_sales'              => array(
+			'type' => 'bool',
+			'name' => 'recorded_sales',
 		),
 	);
 
@@ -898,6 +929,27 @@ class WCS_Orders_Table_Subscription_Data_Store extends \Automattic\WooCommerce\I
 		$results = $wpdb->get_results( "SELECT status, COUNT(*) AS cnt FROM {$table} WHERE type = 'shop_subscription' GROUP BY status", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $results ? array_combine( array_column( $results, 'status' ), array_map( 'absint', array_column( $results, 'cnt' ) ) ) : array();
+	}
+
+	/**
+	 * Get a subscription's raw stored status directly from the orders table.
+	 *
+	 * Unlike WC_Subscription::get_status(), this bypasses the in-memory conversion of the
+	 * 'draft' and 'auto-draft' statuses to 'pending' that WC_Subscription::set_status() applies
+	 * when a subscription object is read.
+	 *
+	 * @since 9.0.0
+	 *
+	 * @param int $subscription_id The subscription ID.
+	 * @return string The raw stored status (e.g. 'auto-draft', 'draft', 'wc-active'), or an empty string if it could not be determined.
+	 */
+	public function get_subscription_raw_status( $subscription_id ) {
+		global $wpdb;
+
+		$table  = self::get_orders_table_name();
+		$status = $wpdb->get_var( $wpdb->prepare( "SELECT status FROM {$table} WHERE id = %d", $subscription_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_string( $status ) ? $status : '';
 	}
 
 	/**

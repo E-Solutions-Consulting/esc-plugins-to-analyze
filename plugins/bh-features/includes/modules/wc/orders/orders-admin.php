@@ -30,6 +30,7 @@ class AH_Orders_Admin {
         // add_action( 'woocommerce_shop_order_list_table_prepare_items_query_args', [ 'AH_Date_Range_Filter', 'apply_query_args' ]);
 
 		add_filter( 'woocommerce_json_search_found_products', [ $this, 'filter_published_products_only' ] );
+		add_filter('woocommerce_order_note_class', [$this, 'custom_order_note_class'], 10, 2);
     }
 
 	/**
@@ -152,6 +153,13 @@ class AH_Orders_Admin {
 		}
 
 		return $filtered;
+	}
+
+	function custom_order_note_class($classes, $note) {
+	    if (strpos($note->content, 'Stripe charge complete') !== false) {
+	        $classes[] = 'stripe-note';
+	    }
+	    return $classes;
 	}
 
 }

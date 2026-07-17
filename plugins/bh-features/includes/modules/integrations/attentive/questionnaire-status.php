@@ -46,6 +46,15 @@ class BH_Attentive_Questionnaire_Status {
     const ATTENTIVE_EVENT = 'Questionnaire_Incomplete';
 
     /**
+     * Renewal flow — separate Attentive event + attribute so subscription
+     * renewals (the ~day-84 renewal questionnaire) drive their OWN Journey,
+     * distinct from a first-time customer's questionnaire. With these, the
+     * existing event above fires for NEW customers only.
+     */
+    const ATTENTIVE_ATTRIBUTE_RENEWAL = 'renewal_questionnaire_status';
+    const ATTENTIVE_EVENT_RENEWAL     = 'Renewal_Questionnaire_Incomplete';
+
+    /**
      * Action Scheduler hook names.
      */
     const ACTION_ENTERED = 'bh_attentive_questionnaire_entered';
@@ -202,9 +211,13 @@ class BH_Attentive_Questionnaire_Status {
             return;
         }
 
-        // Guard: only fire once per order lifetime.
-        if ( BH_Attentive_Events_Log::order_was_triggered( $order_id, BH_Attentive_Events_Log::EVENT_QUESTIONNAIRE_PENDING ) ) {
-            $this->log( "process_entered: Order {$order_id} already triggered — skipping." );
+        // New customer vs subscription renewal — separate events/attributes so
+        // each drives its own Attentive Journey.
+        $flow = $this->get_flow( $order );
+
+        // Guard: only fire once per order lifetime (per flow).
+        if ( BH_Attentive_Events_Log::order_was_triggered( $order_id, $flow['event_key'] ) ) {
+            $this->log( "process_entered: Order {$order_id} ({$flow['label']}) already triggered — skipping." );
             return;
         }
 
@@ -222,31 +235,32 @@ class BH_Attentive_Questionnaire_Status {
 
         // 1. Send event → triggers the Attentive Journey.
         BH_Attentive_Helper::send_event(
-            self::ATTENTIVE_EVENT,
+            $flow['event'],
             $phone,
             $email,
             [
                 'order_id'     => (string) $order_id,
                 'order_number' => $order->get_order_number(),
+                'is_renewal'   => $flow['label'] === 'renewal' ? 'yes' : 'no',
             ]
         );
 
         // 2. Set attribute → Attentive Journey checks this before each message.
         BH_Attentive_Helper::set_attributes( $phone, $email, [
-            self::ATTENTIVE_ATTRIBUTE => 'pending',
+            $flow['attribute'] => 'pending',
         ]);
 
         // 3. Record in external DB → prevents future duplicate triggers.
         BH_Attentive_Events_Log::order_mark_triggered(
             $order_id,
-            BH_Attentive_Events_Log::EVENT_QUESTIONNAIRE_PENDING,
+            $flow['event_key'],
             [
                 'phone' => $phone,
                 'email' => $email,
             ]
         );
 
-        $this->log( "process_entered: Order {$order_id} — questionnaire_status set to pending." );
+        $this->log( "process_entered: Order {$order_id} ({$flow['label']}) — {$flow['attribute']} set to pending." );
     }
 
     /**
@@ -264,15 +278,17 @@ class BH_Attentive_Questionnaire_Status {
             return;
         }
 
-        // Guard: if questionnaire was never triggered (no telemdnow_entity_id
-        // at the time of entering), nothing to resolve in Attentive.
-        if ( ! BH_Attentive_Events_Log::order_was_triggered( $order_id, BH_Attentive_Events_Log::EVENT_QUESTIONNAIRE_PENDING ) ) {
-            $this->log( "process_left: Order {$order_id} was never triggered — nothing to resolve." );
+        // New customer vs subscription renewal — resolve the matching flow.
+        $flow = $this->get_flow( $order );
+
+        // Guard: if questionnaire was never triggered, nothing to resolve.
+        if ( ! BH_Attentive_Events_Log::order_was_triggered( $order_id, $flow['event_key'] ) ) {
+            $this->log( "process_left: Order {$order_id} ({$flow['label']}) was never triggered — nothing to resolve." );
             return;
         }
 
         // Guard: already resolved — prevent double processing.
-        $event = BH_Attentive_Events_Log::order_get_event( $order_id, BH_Attentive_Events_Log::EVENT_QUESTIONNAIRE_PENDING );
+        $event = BH_Attentive_Events_Log::order_get_event( $order_id, $flow['event_key'] );
         if ( $event && ! empty( $event['resolved_at'] ) ) {
             $this->log( "process_left: Order {$order_id} already resolved ({$event['resolved_reason']}) — skipping." );
             return;
@@ -304,17 +320,59 @@ class BH_Attentive_Questionnaire_Status {
 
         // Update attribute in Attentive → stops the Journey before next message.
         BH_Attentive_Helper::set_attributes( $phone, $email, [
-            self::ATTENTIVE_ATTRIBUTE => $attribute_value,
+            $flow['attribute'] => $attribute_value,
         ]);
 
         // Mark as resolved in external DB.
         BH_Attentive_Events_Log::order_mark_resolved(
             $order_id,
-            BH_Attentive_Events_Log::EVENT_QUESTIONNAIRE_PENDING,
+            $flow['event_key'],
             $resolved_reason
         );
 
-        $this->log( "process_left: Order {$order_id} moved to {$new_status} — questionnaire_status set to {$attribute_value}." );
+        $this->log( "process_left: Order {$order_id} ({$flow['label']}) moved to {$new_status} — {$flow['attribute']} set to {$attribute_value}." );
+    }
+
+    // =========================================================================
+    // FLOW DETECTION (new customer vs subscription renewal)
+    // =========================================================================
+
+    /**
+     * Resolve the Attentive flow for this order. A subscription renewal uses a
+     * separate event/attribute/dedup-key from a first-time customer, so each can
+     * drive its own Journey and be tracked independently.
+     *
+     * @param WC_Order $order
+     * @return array  [ 'event' => string, 'attribute' => string, 'event_key' => string, 'label' => string ]
+     */
+    private function get_flow( $order ): array {
+
+        if ( $this->is_renewal_order( $order ) ) {
+            return [
+                'event'     => self::ATTENTIVE_EVENT_RENEWAL,
+                'attribute' => self::ATTENTIVE_ATTRIBUTE_RENEWAL,
+                'event_key' => BH_Attentive_Events_Log::EVENT_RENEWAL_QUESTIONNAIRE_PENDING,
+                'label'     => 'renewal',
+            ];
+        }
+
+        return [
+            'event'     => self::ATTENTIVE_EVENT,
+            'attribute' => self::ATTENTIVE_ATTRIBUTE,
+            'event_key' => BH_Attentive_Events_Log::EVENT_QUESTIONNAIRE_PENDING,
+            'label'     => 'new',
+        ];
+    }
+
+    /**
+     * Whether this order is a WooCommerce Subscriptions renewal order.
+     *
+     * @param WC_Order $order
+     * @return bool
+     */
+    private function is_renewal_order( $order ): bool {
+        return function_exists( 'wcs_order_contains_renewal' )
+            && wcs_order_contains_renewal( $order );
     }
 
     // =========================================================================

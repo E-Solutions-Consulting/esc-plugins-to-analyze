@@ -230,7 +230,10 @@ function get_authenticationToken() {
     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
     CURLOPT_CUSTOMREQUEST => 'POST',
     CURLOPT_HTTPHEADER => array(
-      'Authorization: Basic ' . $authenticationToken
+      'Authorization: Basic ' . $authenticationToken,
+      'Origin: ' . get_site_url(),
+      'Referer: ' . get_site_url(),
+      'Content-Type: application/json',
     ),
   ));
   $response = curl_exec($curl);
@@ -453,7 +456,7 @@ function send_order_to_telegra($order_id) {
   ));
 
   $response = curl_exec($curl);
-  update_post_meta($order_id, 'telemdnow_order_res', $response);
+  // update_post_meta($order_id, 'telemdnow_order_res', $response);
   $res = json_decode($response);
 
   $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -520,8 +523,9 @@ function send_order_to_telegra($order_id) {
     $order->update_meta_data('telemdnow_order_creation','false');
     $order->save();
   }
-
+  $is_customer  = false;
   if (isset($res->id)) {
+    $is_customer  = true;
     $telemdnow_patient_url = get_option('telemdnow_patient_url');
     $telemdnow_affiliate_id = get_option('telemdnow_affiliate_id');
     update_post_meta($order_id, 'telemdnow_entity_id', $res->id);
@@ -541,7 +545,7 @@ function send_order_to_telegra($order_id) {
   }
   curl_close($curl);
 
-  $order->add_order_note($final_result["message"]);
+  $order->add_order_note($final_result["message"], $is_customer);
   if ($final_result["status"] === "error") {
     send_slack_message($final_result["message"], 'error', $final_result["error"]);
   }
@@ -627,7 +631,7 @@ a.patirnd_email_remder {
   }
 }
 
-add_action('add_meta_boxes_shop_order', 'slider_metaboxes');
+// add_action('add_meta_boxes_shop_order', 'slider_metaboxes');
 
 
 add_action("wp_ajax_affiliate_product_action", "affiliate_product_action");

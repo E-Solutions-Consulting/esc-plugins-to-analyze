@@ -146,7 +146,7 @@ class Bh_Tools_Admin {
 		);
 	}
 
-	function current_user_can_manage_brello_tools() {
+	function current_user_can_manage_brello_tools__original() {
 		if (!current_user_can('manage_options')) {
 			return false;
 		}
@@ -158,6 +158,43 @@ class Bh_Tools_Admin {
 		$allowed_admin_ids = array(5, 2183, 22851);
 		
 		return in_array(get_current_user_id(), $allowed_admin_ids);
+	}
+	function current_user_can_manage_brello_tools() {
+		$user_id = get_current_user_id();
+		$user = get_user_by('id', $user_id);
+		
+		if (!$user) {
+			return false;
+		}
+		
+		// Check primary roles
+		$all_roles = $user->roles;
+		
+		// Check additional roles from User Role Editor
+		if (function_exists('ure_get_user_additional_roles')) {
+			$additional_roles = ure_get_user_additional_roles($user_id);
+			if (is_array($additional_roles)) {
+				$all_roles = array_merge($all_roles, $additional_roles);
+			}
+		}
+		
+		// Allow admin_tools role (full access)
+		if (in_array('admin_tools', $all_roles)) {
+			return true;
+		}
+		
+		// Allow user_tools role (will be filtered by submenu permissions)
+		if (in_array('user_tools', $all_roles)) {
+			return true;
+		}
+		
+		// Fallback: original admin IDs for backward compatibility
+		if (!current_user_can('manage_options')) {
+			return false;
+		}
+		
+		$allowed_admin_ids = array(5, 2183, 22851);
+		return in_array($user_id, $allowed_admin_ids);
 	}
 
 	/**
@@ -337,6 +374,15 @@ class Bh_Tools_Admin {
 			[$this, 'order_inspector_page']
 		);
 
+		add_submenu_page(
+			PARENT_MENU_SLUG,
+			'Order Billing Analyzer',
+			'Billing Analyzer',
+			'manage_options',
+			PARENT_MENU_SLUG . '--tools-billing-analyzer',
+			[$this, 'billing_analyzer_page']
+		);
+
 		// add_submenu_page(
 		// 	PARENT_MENU_SLUG,
 		// 	'Telegra WC Sync',
@@ -373,14 +419,14 @@ class Bh_Tools_Admin {
 			[$this, 'check_questionaries_status_page']
 		);
 
-		// add_submenu_page(
-		// 	PARENT_MENU_SLUG,
-		// 	'Export Gender',
-		// 	'Export Gender',
-		// 	'manage_options',
-		// 	PARENT_MENU_SLUG . '--tools-export-gender',
-		// 	[$this, 'export_gender_subscriptions_page']
-		// );
+		add_submenu_page(
+			PARENT_MENU_SLUG,
+			'Export Gender',
+			'Export Gender',
+			'manage_options',
+			PARENT_MENU_SLUG . '--tools-export-gender',
+			[$this, 'export_gender_subscriptions_page']
+		);
 
 		/*
 
@@ -434,7 +480,7 @@ class Bh_Tools_Admin {
 		$states			=	WC()->countries->get_states('US');
 		$active_process =	get_transient('process_export_subscriptions_active');
 
-		wp_enqueue_script('jquery-ui-tabs');
+		//wp_enqueue_script('jquery-ui-tabs');
 		wp_enqueue_style( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css' );
 		wp_enqueue_script( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), null, true );
 		wp_enqueue_script( 'checkbox-states', plugin_dir_url( __DIR__ ) . 'admin/js/bh-select2.js', array('jquery', 'hb-select2'), null, true );
@@ -660,7 +706,7 @@ class Bh_Tools_Admin {
 				$headers = [
 					'Subscription ID', 'Status', 'Date Created', 'Next Payment Date',
 					'First Name', 'Last Name', 'Customer Email', 'Phone', 'State',
-					'State Name', 'City'
+					'State Name', 'City', 'Postcode', 'Product Names', 'Product IDs'
 				];
 				if ($form_data['filter_date'] !== 'date_next_payment')
 					$headers[]	=	'Type';
@@ -725,7 +771,21 @@ class Bh_Tools_Admin {
 			* ALWAYS EXCLUDE: FL, CT
 			* -------------------- */
 			//$where[] = "a.state NOT IN ('FL','CT')";
-			$where[] = "a.state NOT IN ('CT')";
+			//$where[] = "a.state NOT IN ('CT')";
+
+			/* --------------------
+			* FILTER: PRODUCTS
+			* -------------------- */
+			$product_join = '';
+			if (!empty($form_data['products'])) {
+				$products_filter = array_filter($form_data['products']);
+				if (count($products_filter) > 0) {
+					$product_join = "INNER JOIN {$wpdb->prefix}woocommerce_order_items oi ON oi.order_id = o.id AND oi.order_item_type = 'line_item'
+									 INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta oim ON oim.order_item_id = oi.order_item_id AND oim.meta_key = '_product_id'";
+					$placeholders = implode(',', array_fill(0, count($products_filter), '%d'));
+					$where[] = $wpdb->prepare("oim.meta_value IN ($placeholders)", ...$products_filter);
+				}
+			}
 
 			/* --------------------
 			* FILTER: DATE RANGE
@@ -754,9 +814,10 @@ class Bh_Tools_Admin {
 			* ========================================================== */
 			if ($offset === 0) {
 				$sql_total = "
-					SELECT COUNT(DISTINCT o.id) 
-					FROM {$wpdb->prefix}wc_orders o 
-					" . implode(' ', $joins) . " 
+					SELECT COUNT(DISTINCT o.id)
+					FROM {$wpdb->prefix}wc_orders o
+					" . $product_join . "
+					" . implode(' ', $joins) . "
 					WHERE " . implode(' AND ', $where);
 
 				$total = $wpdb->get_var($sql_total);
@@ -778,6 +839,7 @@ class Bh_Tools_Admin {
 				'pm.meta_value AS phone',
 				'a.state',
 				'a.city',
+				'a.postcode',
 				'om_renew.meta_value AS renewal_ids_cache'
 			];
 
@@ -785,16 +847,17 @@ class Bh_Tools_Admin {
 			* FINAL QUERY
 			* ========================================================== */
 			$sql = $wpdb->prepare(
-				"SELECT " . implode(', ', $select) . " 
-				FROM {$wpdb->prefix}wc_orders o 
-				" . implode(' ', $joins) . " 
-				WHERE " . implode(' AND ', $where) . " 
-				GROUP BY o.id $order_by 
+				"SELECT " . implode(', ', $select) . "
+				FROM {$wpdb->prefix}wc_orders o
+				" . $product_join . "
+				" . implode(' ', $joins) . "
+				WHERE " . implode(' AND ', $where) . "
+				GROUP BY o.id $order_by
 				LIMIT %d OFFSET %d",
 				$batch_size,
 				$offset
 			);
-			bh_plugins_log('SQL Export Subscriptions: ' . $sql);
+			//bh_plugins_log('SQL Export Subscriptions: ' . $sql);
 			$subscriptions = $wpdb->get_results($sql);
 
 			/* ==========================================================
@@ -847,6 +910,22 @@ class Bh_Tools_Admin {
 					$type='Renewal';
 
 				/* ----------------------------
+				* FETCH PRODUCT NAMES / IDs
+				* ---------------------------- */
+				$sub_order = wc_get_order($sub->id);
+				$product_names = [];
+				$product_ids   = [];
+				if ($sub_order) {
+					foreach ($sub_order->get_items() as $item) {
+						$product = $item->get_product();
+						if ($product) {
+							$product_names[] = $product->get_name();
+							$product_ids[]   = $product->get_id();
+						}
+					}
+				}
+
+				/* ----------------------------
 				* WRITE ROW
 				* ---------------------------- */
 				$target_status = str_replace('wc-', '', strtolower($sub->status));
@@ -861,7 +940,10 @@ class Bh_Tools_Admin {
 					$sub->phone,
 					$sub->state,
 					$state_name,
-					$sub->city
+					$sub->city,
+					$sub->postcode,
+					implode('|', $product_names),
+					implode('|', $product_ids)
 				];
 
 				if ($form_data['filter_date'] !== 'date_next_payment')
@@ -1066,7 +1148,7 @@ class Bh_Tools_Admin {
 						$sub->id
 					);
 				$address = $wpdb->get_row($sql);
-				bh_plugins_log($sql);
+				//bh_plugins_log($sql);
 		
 				$parent_order = $wpdb->get_row($wpdb->prepare(
 					"SELECT id, total_amount, date_created_gmt 
@@ -1168,6 +1250,276 @@ class Bh_Tools_Admin {
 		}
 	}
 
+	/*
+	*	Export Orders With Product and Status Filtering
+	*/
+	function process_export_orders_batch() {
+		global $wpdb;
+
+		try {
+			set_transient('process_export_orders_active', true, 3600);
+
+			parse_str($_POST['form_data'], $form_data);
+			$offset     = intval($_POST['offset']);
+			$batch_size = intval($form_data['batch_size']);
+
+			$upload_dir     = wp_upload_dir();
+			$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+			$file_path      = $base_file_path . 'orders_export_temp.csv';
+
+			/* ==========================================================
+			* CREATE CSV HEADER ON FIRST RUN
+			* ========================================================== */
+			if ($offset === 0) {
+				if (!file_exists($base_file_path)) {
+					wp_mkdir_p($base_file_path);
+				}
+
+				$headers = [
+					'Order ID', 'Status', 'Date Created', 'Total', 'stripe_transaction_id', 'Currency',
+					'First Name', 'Last Name', 'Customer Email', 'Phone', 
+					'Billing State', 'Billing City', 'Shipping State', 'Shipping City',
+					'Product Names', 'Product IDs', 'Payment Method', 'Order Type'
+				];
+				
+				$file = fopen($file_path, 'w');
+				fputcsv($file, $headers);
+				fclose($file);
+			}
+
+			/* ==========================================================
+			* JOINS
+			* ========================================================== */
+			$joins = [
+				"LEFT JOIN {$wpdb->prefix}wc_order_addresses ba ON ba.order_id=o.id AND ba.address_type = 'billing'",
+				"LEFT JOIN {$wpdb->prefix}wc_order_addresses sa ON sa.order_id=o.id AND sa.address_type = 'shipping'",
+				"LEFT JOIN {$wpdb->prefix}postmeta pm ON pm.post_id = o.id AND pm.meta_key = '_payment_method_title'"
+			];
+
+			/* ==========================================================
+			* WHERE CONDITIONS
+			* ========================================================== */
+			$where = [
+				"o.type = 'shop_order'",
+			];
+
+			/* --------------------
+			* FILTER: ORDER STATUS
+			* -------------------- */
+			if (!empty($form_data['order_status'])) {
+				$order_status = array_filter($form_data['order_status']);
+				if (count($order_status) > 0) {
+					$placeholders = implode(',', array_fill(0, count($order_status), '%s'));
+					$where[] = $wpdb->prepare("o.status IN ($placeholders)", ...$order_status);
+				}
+			}
+
+			/* --------------------
+			* FILTER: STATES
+			* -------------------- */
+			if (!empty($form_data['states'])) {
+				$states = array_filter($form_data['states']);
+				if (count($states) > 0) {
+					$placeholders = implode(',', array_fill(0, count($states), '%s'));
+					$where[] = $wpdb->prepare("(ba.state IN ($placeholders) OR sa.state IN ($placeholders))", ...$states, ...$states);
+				}
+			}
+
+			/* --------------------
+			* FILTER: PRODUCTS
+			* -------------------- */
+			$product_join = '';
+			if (!empty($form_data['products'])) {
+				$products = array_filter($form_data['products']);
+				if (count($products) > 0) {
+					$product_join = "INNER JOIN {$wpdb->prefix}woocommerce_order_items oi ON oi.order_id = o.id AND oi.order_item_type = 'line_item'
+									 INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta oim ON oim.order_item_id = oi.order_item_id AND oim.meta_key = '_product_id'";
+					$placeholders = implode(',', array_fill(0, count($products), '%d'));
+					$where[] = $wpdb->prepare("oim.meta_value IN ($placeholders)", ...$products);
+				}
+			}
+
+			/* --------------------
+			* FILTER: DATE RANGE
+			* -------------------- */
+			if (!empty($form_data['start_date'])) {
+				$where[] = $wpdb->prepare("o.date_created_gmt >= %s", $form_data['start_date']);
+			}
+
+			if (!empty($form_data['end_date'])) {
+				$where[] = $wpdb->prepare("o.date_created_gmt <= %s", $form_data['end_date']);
+			}
+
+			/* ==========================================================
+			* TOTAL COUNT (FIRST RUN ONLY)
+			* ========================================================== */
+			if ($offset === 0) {
+				$sql_total = "
+					SELECT COUNT(DISTINCT o.id) 
+					FROM {$wpdb->prefix}wc_orders o 
+					" . $product_join . "
+					" . implode(' ', $joins) . " 
+					WHERE " . implode(' AND ', $where);
+
+				$total = $wpdb->get_var($sql_total);
+			} else {
+				$total = intval($_POST['total']);
+			}
+
+			/* ==========================================================
+			* SELECT FIELDS
+			* ========================================================== */
+			$select = [
+				'DISTINCT o.id',
+				'o.status',
+				'o.date_created_gmt',
+				'o.total_amount',
+				'o.transaction_id',
+				'o.currency',
+				'ba.first_name AS billing_first_name',
+				'ba.last_name AS billing_last_name',
+				'o.billing_email',
+				'ba.phone AS billing_phone',
+				'ba.state AS billing_state',
+				'ba.city AS billing_city',
+				'sa.state AS shipping_state',
+				'sa.city AS shipping_city',
+				'pm.meta_value AS payment_method'
+			];
+
+			/* ==========================================================
+			* FINAL QUERY
+			* ========================================================== */
+			$sql = $wpdb->prepare(
+				"SELECT " . implode(', ', $select) . " 
+				FROM {$wpdb->prefix}wc_orders o 
+				" . $product_join . "
+				" . implode(' ', $joins) . " 
+				WHERE " . implode(' AND ', $where) . " 
+				ORDER BY o.date_created_gmt DESC 
+				LIMIT %d OFFSET %d",
+				$batch_size,
+				$offset
+			);
+			
+			//bh_plugins_log('SQL Export Orders: ' . $sql);
+			$orders = $wpdb->get_results($sql);
+
+			/* ==========================================================
+			* PROCESS ROWS
+			* ========================================================== */
+			$file = fopen($file_path, 'a');
+			$processed = $offset;
+
+			foreach ($orders as $order_data) {
+				// Get order object to fetch products
+				$order = wc_get_order($order_data->id);
+				if (!$order) continue;
+
+				$product_names = [];
+				$product_ids = [];
+				
+				foreach ($order->get_items() as $item) {
+					$product = $item->get_product();
+					if ($product) {
+						$product_names[] = $product->get_name();
+						$product_ids[] = $product->get_id();
+					}
+				}
+
+
+				// Determine if this is a renewal or new order
+				$order_type = 'New';
+				if (function_exists('wcs_order_contains_renewal')) {
+					if (wcs_order_contains_renewal($order)) {
+						$order_type = 'Renewal';
+					}
+				} else {
+					// Fallback method: check for subscription metadata
+					$subscription_renewal = $order->get_meta('_subscription_renewal');
+					if (!empty($subscription_renewal)) {
+						$order_type = 'Renewal';
+					}
+				}
+
+				$row = [
+					$order_data->id,
+					str_replace('wc-', '', $order_data->status),
+					$order_data->date_created_gmt,
+					$order_data->total_amount,
+					$order_data->transaction_id,
+					$order_data->currency,
+					$order_data->billing_first_name,
+					$order_data->billing_last_name,
+					$order_data->billing_email,
+					$order_data->billing_phone,
+					$order_data->billing_state,
+					$order_data->billing_city,
+					$order_data->shipping_state,
+					$order_data->shipping_city,
+					implode('|', $product_names),
+					implode('|', $product_ids),
+					$order_data->payment_method,
+					$order_type
+				];
+
+				fputcsv($file, $row);
+				$processed++;
+			}
+
+			fclose($file);
+
+			/* ==========================================================
+			* FINISH
+			* ========================================================== */
+			$next_offset = $offset + $batch_size;
+			$complete    = $processed >= $total;
+
+			if ($complete) {
+				$final_filename = 'orders_export_' . date('Y-m-d-His') . '.csv';
+				$final_path     = $base_file_path . $final_filename;
+
+				rename($file_path, $final_path);
+
+				$file_url = $upload_dir['baseurl'] . '/bh-exports/' . $final_filename;
+
+				delete_transient('process_export_orders_active');
+			}
+
+			wp_send_json_success([
+				'processed'    => $processed,
+				'total'        => intval($total),
+				'next_offset'  => $next_offset,
+				'complete'     => $complete,
+				'query'        => $sql,
+				'file_url'     => $complete ? $file_url : ''
+			]);
+
+		} catch (\Throwable $th) {
+			bh_plugins_log($th);
+			delete_transient('process_export_orders_active');
+			wp_send_json_error($th->getMessage());
+		}
+	}
+
+	function check_export_orders_file() {
+		delete_transient('process_export_orders_active');
+
+		$upload_dir = wp_upload_dir();
+		$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+		$file_path = $base_file_path . 'orders_export_temp.csv';
+		
+		if (file_exists($file_path)) {
+			$partial_path = $base_file_path . 'orders_export_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			rename($file_path, $partial_path);
+			$file_url = $upload_dir['baseurl'] . '/bh-exports/orders_export_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			
+			wp_send_json_success(['file_url' => $file_url]);
+		} else {			
+			wp_send_json_error(['message' => 'No se encontró archivo parcial']);
+		}
+	}
+
 
 	function process_subscriptions_renewal_batch() {
 		global $wpdb;
@@ -1259,7 +1611,7 @@ class Bh_Tools_Admin {
 							$batch_size,
 							$offset
 						);
-			bh_plugins_log(['process_subscriptions_renewal_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
+			//bh_plugins_log(['process_subscriptions_renewal_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
 			//bh_plugins_log($sql);
 			$subscriptions = $wpdb->get_results($sql);
 			
@@ -1286,7 +1638,7 @@ class Bh_Tools_Admin {
 					$extend_next_payment_interval.=	's';
 
 				$time_to_add	=	'+' . $extend_next_payment_value . ' ' . $extend_next_payment_interval;
-				bh_plugins_log('time_to_add=' . $time_to_add);
+				//bh_plugins_log('time_to_add=' . $time_to_add);
 				//$new_next_payment		=	date('Y-m-d H:i:s', strtotime("+3 weeks", strtotime($sub->next_payment_date)));
 				//$new_next_payment		=	date('Y-m-d H:i:s', strtotime($time_to_add, strtotime($sub->next_payment_date)));
 				$new_next_payment		=	date('m/d/Y H:i:s', strtotime($time_to_add, strtotime($sub->next_payment_date)));
@@ -1563,7 +1915,7 @@ class Bh_Tools_Admin {
 				$action				=	'';
 
 				$body = json_decode(wp_remote_retrieve_body($response), true);				
-				bh_plugins_log([$api_url, $body]);				
+				//bh_plugins_log([$api_url, $body]);				
 				if (isset($body['prescriptionFulfillments'][0]['shippingDetails']['trackingNumber'])) {
 					$tracking_number	=	$body['prescriptionFulfillments'][0]['shippingDetails']['trackingNumber'];
 				}else {					
@@ -2049,7 +2401,7 @@ class Bh_Tools_Admin {
 							$offset
 						);
 			
-			bh_plugins_log(['process_send_notifications_to_complete_subscription_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
+			//bh_plugins_log(['process_send_notifications_to_complete_subscription_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
 			$orders = $wpdb->get_results($sql);
 			$processed = $offset;
 
@@ -2178,7 +2530,7 @@ class Bh_Tools_Admin {
 				$file_url = $upload_dir['baseurl'] . '/reminder_complete_questionnarie_subscription_export_' . date('Y-m-d-His') . '.csv';
 				delete_transient($transient_name);
 			}
-			bh_plugins_log('$processed=' . $processed . ', $next_offset=' . $next_offset . ', $complete=' . $complete);		
+			//bh_plugins_log('$processed=' . $processed . ', $next_offset=' . $next_offset . ', $complete=' . $complete);		
 
 			$return	=	[
 				'processed' 	=>	$processed,
@@ -2375,7 +2727,7 @@ class Bh_Tools_Admin {
 							$offset
 						);
 			
-			bh_plugins_log(['process_check_questionaries_status_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
+			//bh_plugins_log(['process_check_questionaries_status_batch($offset=' . $offset . ', $batch_size=' . $batch_size . ', $total='. $total . ')', $sql]);
 			$orders = $wpdb->get_results($sql);
 			$processed = $offset;
 
@@ -2505,7 +2857,7 @@ class Bh_Tools_Admin {
 				$file_url = $upload_dir['baseurl'] . '/bh-csv/check_questionaries_status_export_' . date('Y-m-d-His') . '.csv';
 				delete_transient($transient_name);
 			}
-			bh_plugins_log('$processed=' . $processed . ', $next_offset=' . $next_offset . ', $complete=' . $complete);		
+			//bh_plugins_log('$processed=' . $processed . ', $next_offset=' . $next_offset . ', $complete=' . $complete);		
 
 			$return	=	[
 				'processed' 	=>	$processed,
@@ -3349,7 +3701,7 @@ class Bh_Tools_Admin {
 	/**
 	 * Get Gender of Patient
 	 */
-	function export_gender_subscriptions_page() {
+	function export_gender_subscriptions_page__() {
 		//delete_transient('process_export_gender_subscriptions_active');
 		$states			=	WC()->countries->get_states('US');
 		$active_process =	get_transient('process_export_gender_subscriptions_active');
@@ -3370,8 +3722,45 @@ class Bh_Tools_Admin {
 		</div>
 		<?php
 	}
+	function export_gender_subscriptions_page() {
+		//delete_transient('process_export_gender_subscriptions_active');
+		$states			=	WC()->countries->get_states('US');
+		$display_statuses = true;
+		$subscription_statuses = wcs_get_subscription_statuses();
+		$active_process =	get_transient('process_export_gender_subscriptions_active');
 
-	function process_export_gender_subscriptions_batch() {
+		wp_enqueue_script('jquery-ui-tabs');
+		wp_enqueue_style( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css' );
+		wp_enqueue_script( 'hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), null, true );
+		wp_enqueue_script( 'checkbox-states', plugin_dir_url( __DIR__ ) . 'admin/js/bh-select2.js', array('jquery', 'hb-select2'), null, true );
+		wp_localize_script('checkbox-states', 'ajaxurl', admin_url('admin-ajax.php'));
+
+		add_action('input_filters', function() use ($subscription_statuses) {
+		?>
+			<div>
+				<label for="status"><?php esc_html_e('Subscription Status', 'your-textdomain'); ?></label>
+				<select name="status[]" id="status" multiple="multiple" class="wc-enhanced-select" style="width: 100%">
+					<option value="">All Statuses</option>
+					<?php foreach ($subscription_statuses as $status_key => $status_label) : ?>
+						<option value="<?php echo esc_attr($status_key); ?>"><?php echo esc_html($status_label); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+		<?php
+		});
+
+		?>
+		<div class="wrap">
+			<h1>Brello Export Gender Customers Tools</h1>
+			<?php 
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-page-export-gender.php';
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-progress-bar.php';
+			?>
+		</div>
+		<?php
+	}
+
+	function process_export_gender_subscriptions_batch__() {
 		global $wpdb;
 
 		try {
@@ -3490,7 +3879,7 @@ class Bh_Tools_Admin {
 				$batch_size,
 				$offset
 			);
-			bh_plugins_log('SQL Export Gender Subscriptions: ' . $sql);
+			//bh_plugins_log('SQL Export Gender Subscriptions: ' . $sql);
 			$subscriptions = $wpdb->get_results($sql);
 
 			/* ==========================================================
@@ -3522,7 +3911,7 @@ class Bh_Tools_Admin {
 				$email	=	trim($sub->billing_email);
 				$api_url	=	$telemdnow_rest_url . '/patients/actions/getByEmail/' . $email . '?access_token='. $telegramd_token;
 				$response	=	wp_remote_get($api_url);
-				bh_plugins_log([$api_url, $response]);
+				//bh_plugins_log([$api_url, $response]);
 				/*
 				  {
 					"_id": "pat::65cf907f-636a-4468-b70f-7f11acf28296",
@@ -3539,7 +3928,7 @@ class Bh_Tools_Admin {
 				 */
 				if (!is_wp_error($response)){
 					$jsonData		=	json_decode(wp_remote_retrieve_body($response), true);
-					bh_plugins_log(['Subscription #' . $sub->id, $jsonData], 'bh_plugins_gender_subscriptions_export');
+					//bh_plugins_log(['Subscription #' . $sub->id, $jsonData], 'bh_plugins_gender_subscriptions_export');
 					if(isset($jsonData['genderBiological'])){
 						$gender	=	$jsonData['genderBiological'];
 					}
@@ -3629,6 +4018,301 @@ class Bh_Tools_Admin {
 			delete_transient('process_export_gender_subscriptions_active');
 
 			wp_send_json_error($th->getMessage());
+		}
+	}
+
+	function process_export_gender_subscriptions_batch() {
+		global $wpdb;
+
+		try {
+			set_transient('process_export_gender_subscriptions_active', true, 3600);
+
+			parse_str($_POST['form_data'], $form_data);
+			$offset     = intval($_POST['offset']);
+			$batch_size = intval($form_data['batch_size']);
+			$test_mode	=	boolval($form_data['test_mode']);
+
+			$upload_dir     = wp_upload_dir();
+			$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+			$file_path      = $base_file_path . 'subscriptions_export_gender_temp.csv';
+
+			/* ==========================================================
+			* CREATE CSV HEADER ON FIRST RUN
+			* ========================================================== */
+			if ($offset === 0) {
+				if (!file_exists($base_file_path)) {
+					wp_mkdir_p($base_file_path);
+				}
+
+				$headers = [
+					'Subscription ID', 'Status', 'Date Created', 
+					'Gender', 'First Name', 'Last Name', 'Customer Email', 'State',
+					'State Name', 'City'
+				];
+
+				$file = fopen($file_path, 'w');
+				fputcsv($file, $headers);
+				fclose($file);
+			}
+
+			/* ==========================================================
+			* JOINS
+			* ========================================================== */
+			$joins = [
+				// shipping address
+				"LEFT JOIN {$wpdb->prefix}wc_order_addresses a ON a.order_id=o.id AND a.address_type = 'shipping'",
+			];
+
+			/* ==========================================================
+			* WHERE CONDITIONS
+			* ========================================================== */
+			$where = [
+				"o.type = 'shop_subscription'"
+			];
+
+			/* --------------------
+			* FILTER: STATES
+			* -------------------- */
+			if (!empty($form_data['states'])) {
+				$states = array_filter($form_data['states']);
+				if (count($states) > 0) {
+					$placeholders = implode(',', array_fill(0, count($states), '%s'));
+					$where[] = $wpdb->prepare("a.state IN ($placeholders)", ...$states);
+				}
+			}
+
+			/* --------------------
+			* FILTER: DATE RANGE
+			* -------------------- */
+			if (!empty($form_data['start_date'])) {
+				$where[] = $wpdb->prepare("o.date_created_gmt >= %s", $form_data['start_date']);
+			}
+
+			if (!empty($form_data['end_date'])) {
+				$where[] = $wpdb->prepare("o.date_created_gmt <= %s", $form_data['end_date']);
+			}
+
+			/* --------------------
+			* FILTER: SUBSCRIPTION STATUSES
+			* -------------------- */
+			if ( ! empty( $form_data['status'] ) ) {
+				if ( is_array( $form_data['status'] ) ) {
+					$statuses = array_filter($form_data['status']);
+					if ( count( $statuses ) > 0 ) {
+						$placeholders = implode(',', array_fill(0, count($statuses), '%s'));
+						$where[] = $wpdb->prepare("o.status IN ($placeholders)", ...$statuses);
+					}
+				} else {
+					$where[] = $wpdb->prepare( "o.status = %s", $form_data['status'] );
+				}
+			} else {
+				$where[] = "o.status = 'wc-active'";
+			}
+
+			/* --------------------
+			* ALWAYS EXCLUDE: FL, CT
+			* -------------------- */
+			//$where[] = "a.state NOT IN ('FL','CT')";
+
+			/* ==========================================================
+			* TOTAL COUNT (FIRST RUN ONLY)
+			* ========================================================== */
+			if ($offset === 0) {
+				$sql_total = "
+					SELECT COUNT(DISTINCT o.id)
+					FROM {$wpdb->prefix}wc_orders o
+					" . implode(' ', $joins) . "
+					WHERE " . implode(' AND ', $where);
+
+				$total = $wpdb->get_var($sql_total);
+			} else {
+				$total = intval($_POST['total']);
+			}
+
+			/* ==========================================================
+			* SELECT FIELDS
+			* ========================================================== */
+			$select = [
+				'o.id',
+				'o.status',
+				'o.date_created_gmt',
+				'a.first_name',
+				'a.last_name',
+				'o.billing_email',
+				'a.state',
+				'a.city',
+			];
+
+			/* ==========================================================
+			* FINAL QUERY
+			* ========================================================== */
+			$sql = $wpdb->prepare(
+				"SELECT " . implode(', ', $select) . "
+				FROM {$wpdb->prefix}wc_orders o
+				" . implode(' ', $joins) . "
+				WHERE " . implode(' AND ', $where) . "
+				GROUP BY o.id
+				LIMIT %d OFFSET %d",
+				$batch_size,
+				$offset
+			);
+			//bh_plugins_log('SQL Export Gender Subscriptions: ' . $sql);
+			$subscriptions = $wpdb->get_results($sql);
+
+			/* ==========================================================
+			* PROCESS ROWS
+			* ========================================================== */
+			// $file = fopen($file_path, 'a');
+			if(!$test_mode)
+				$file = fopen($file_path, 'a');
+			$processed = $offset;
+
+			$base_country  = WC()->countries->get_base_country();
+			$country_states = WC()->countries->get_states($base_country);
+
+			$telegramd_token = get_transient('telemdnow_auth_token');
+			
+			$telemdnow_rest_url	=	'https://telegramd-rest.telegramd.com';
+
+			foreach ($subscriptions as $sub) {
+
+				// ------------------------------------------
+				// FORMATO STATE NAME
+				// ------------------------------------------
+				$state_name = $sub->state;
+				if ($sub->state) {
+					$state_name = $country_states[$sub->state] ?? $sub->state;
+				}
+
+				$gender	=	'N/A';
+				$email	=	trim($sub->billing_email);
+				$api_url	=	$telemdnow_rest_url . '/patients/actions/getByEmail/' . $email . '?access_token='. $telegramd_token;
+				$response	=	wp_remote_get($api_url);
+				//bh_plugins_log([$api_url, $response]);
+				/*
+				  {
+					"_id": "pat::65cf907f-636a-4468-b70f-7f11acf28296",
+					"email": "marianamaglioni@gmail.com",
+					"firstName": "Mariana",
+					"lastName": "Maglioni",
+					"patientMedications": [],
+					"medicationAllergies": [],
+					"name": "Mariana Maglioni",
+					"dateOfBirth": "2000-05-26T00:00:00.000Z",
+					"genderBiological": "female",
+					"id": "pat::65cf907f-636a-4468-b70f-7f11acf28296"
+				}
+				 */
+				if (!is_wp_error($response)){
+					$jsonData		=	json_decode(wp_remote_retrieve_body($response), true);
+					//bh_plugins_log(['Subscription #' . $sub->id, $jsonData], 'bh_plugins_gender_subscriptions_export');
+					if(isset($jsonData['genderBiological'])){
+						$gender	=	$jsonData['genderBiological'];
+					}
+				}
+
+				$order_id	=	$sub->id;
+				$customer_email	=	$sub->billing_email;
+				$_row = array(
+							'link'				=> admin_url( 'admin.php?page=wc-orders--shop_subscription&action=edit&id=' . $order_id ),
+							'id'				=> $order_id,	
+							'status'			=> $sub->status,
+							'date_created'	=>	$sub->date_created_gmt,
+							'customer_email'	=>	$customer_email,
+							'gender'			=>	$gender,
+							'first_name'		=>	$sub->first_name,
+							'last_name'			=>	$sub->last_name,
+							'state'				=>	$sub->state,
+							'state_name'		=>	$state_name,
+							'city'				=>	$sub->city
+						);
+				$rows[] = $_row;
+				/* ----------------------------
+				* WRITE ROW
+				* ---------------------------- */
+				if(!$test_mode){
+					fputcsv($file, [
+						$sub->id,
+						$sub->status,
+						$sub->date_created_gmt,
+						$gender,
+						$sub->first_name,
+						$sub->last_name,
+						$sub->billing_email,
+						$sub->state,
+						$state_name,
+						$sub->city
+					]);
+				}
+
+				$processed++;
+			}
+
+			// fclose($file);
+
+			/* ==========================================================
+			* FINISH
+			* ========================================================== */
+			// $next_offset = $offset + $batch_size;
+			// $complete    = $processed >= $total;
+			if(!$test_mode){
+				fclose($file);
+				$next_offset = $offset + $batch_size;
+				$complete = $processed >= $total;
+			}else{
+				$next_offset = 0;
+				$complete = true;
+			}
+
+			if ($complete) {
+				$final_filename = 'subscriptions_export_gender_' . date('Y-m-d-His') . '.csv';
+				$final_path     = $base_file_path . $final_filename;
+
+				rename($file_path, $final_path);
+
+				$file_url = $upload_dir['baseurl'] . '/bh-exports/' . $final_filename;
+
+				delete_transient('process_export_gender_subscriptions_active');
+			}
+
+			$return = [
+				'processed'    => $processed,
+				'total'        => intval($total),
+				'next_offset'  => $next_offset,
+				'complete'     => $complete,
+				'query'        => $sql,
+				'file_url'     => $complete ? $file_url : ''
+			];
+
+			if($test_mode) {
+				$return['rows']	=	$rows;
+				$return['preview']	=	true;
+			}
+			wp_send_json_success($return);
+
+		} catch (\Throwable $th) {
+			bh_plugins_log($th);
+			delete_transient('process_export_gender_subscriptions_active');
+
+			wp_send_json_error($th->getMessage());
+		}
+	}
+
+	function process_export_gender_file__() {
+
+		delete_transient('process_export_gender_subscriptions_active');
+
+		$upload_dir = wp_upload_dir();
+		$base_file_path	=	 $upload_dir['basedir'] . '/bh-exports/';
+		$file_path = $base_file_path . 'subscriptions_export_gender_temp.csv';
+		if (file_exists($file_path)) {
+			$partial_path = $base_file_path . 'subscriptions_export_gender_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			rename($file_path, $partial_path);
+			$file_url = $upload_dir['baseurl'] . '/bh-exports/subscriptions_export_gender_PARTIAL_' . date('Y-m-d-His') . '.csv';
+			
+			wp_send_json_success(['file_url' => $file_url]);
+		} else {			
+			wp_send_json_error(['message' => 'Partial File Not Found']);
 		}
 	}
 
@@ -6310,6 +6994,623 @@ class Bh_Tools_Admin {
 		}
 
 		return json_decode( wp_remote_retrieve_body( $response ), true );
+	}
+
+	/**
+	 * Order Billing Analyzer - Admin page
+	 */
+	function billing_analyzer_page() {
+		$states = WC()->countries->get_states('US');
+		$active_process = get_transient('process_billing_analyzer_active');
+
+		wp_enqueue_script('jquery-ui-tabs');
+		wp_enqueue_style('hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css');
+		wp_enqueue_script('hb-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), null, true);
+		wp_enqueue_script('checkbox-states', plugin_dir_url(__DIR__) . 'admin/js/bh-select2.js', array('jquery', 'hb-select2'), null, true);
+		wp_localize_script('checkbox-states', 'ajaxurl', admin_url('admin-ajax.php'));
+
+		add_action('input_filters', function() {
+			?>
+			<div>
+				<label>WC Status filter:</label>
+				<select name="status" id="order_status">
+					<option value="">— Any status —</option>
+					<?php
+					if (function_exists('wc_get_order_statuses')) {
+						foreach (wc_get_order_statuses() as $value => $label) {
+							echo '<option value="' . esc_attr($value) . '">' . esc_html($label) . '</option>';
+						}
+					}
+					?>
+				</select>
+			</div>
+			<?php
+		});
+
+		?>
+		<div class="wrap">
+			<h1>Order Billing Analyzer</h1>
+			<p>Analyze orders with focus on Telegra billing costs ($18 async / $28 sync) and payment discrepancies.</p>
+			<?php
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-page-order-billing-analyzer.php';
+				require_once plugin_dir_path(__FILE__) . 'partials/bh-tools-admin-display-progress-bar.php';
+			?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Process billing analyzer batch - AJAX handler
+	 */
+	function process_billing_analyzer_batch() {
+		global $wpdb;
+		$transient_name = 'process_billing_analyzer_active';
+
+		try {
+			set_transient($transient_name, true, 3600);
+			parse_str($_POST['form_data'], $form_data);
+			$offset = intval($_POST['offset']);
+			$batch_size = intval($form_data['batch_size']);
+			$test_mode = boolval($form_data['test_mode']);
+			
+			$include_telegra_billing = boolval($form_data['include_telegra_billing']);
+			$include_stripe_details = boolval($form_data['include_stripe_details']);
+			$include_visit_type = boolval($form_data['include_visit_type']);
+			$only_billing_discrepancies = boolval($form_data['only_billing_discrepancies']);
+			$group_by_state = boolval($form_data['group_by_state']);
+			$save_telegra_jsons = boolval($form_data['save_telegra_jsons']);
+
+			$upload_dir = wp_upload_dir();
+			$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+			$json_storage_path = $base_file_path . 'telegra-json-responses/';
+			
+			// Crear directorios si no existen
+			if (!file_exists($base_file_path)) {
+				wp_mkdir_p($base_file_path);
+			}
+			if ($save_telegra_jsons && !file_exists($json_storage_path)) {
+				wp_mkdir_p($json_storage_path);
+			}
+			
+			$file_path = $base_file_path . 'billing_analyzer_export_temp.csv';
+
+			if ($offset === 0) {
+				$file = fopen($file_path, 'w');
+
+				$headers = [
+					'WC Order', '', '', '', '', 'Telegra', '', '', '', 'Stripe', '', '', 'Billing Analysis', '', ''
+				];
+				fputcsv($file, $headers);
+
+				$headers = [
+					'ID', 'Status', 'Amount', 'State', 'Created', 'Status', 'Visit ID', 'Visit Type', 'URL', 'Status', 'Captured', 'URL', 'Expected Cost', 'Actual Cost', 'Has Discrepancy'
+				];
+				fputcsv($file, $headers);
+				fclose($file);
+			}
+
+			$joins = [
+				"INNER JOIN {$wpdb->prefix}wc_orders_meta om ON om.order_id=o.id",
+				"LEFT JOIN {$wpdb->prefix}wc_order_addresses a ON a.order_id=o.id AND a.address_type='shipping'"
+			];
+
+			$where = [
+				"o.type='shop_order'",
+				"om.meta_key='telemdnow_entity_id'",
+				"om.meta_value IS NOT NULL"
+			];
+
+			// Apply filters from form
+			if (!empty($form_data['states']) && count($form_data['states']) == 1 && $form_data['states'][0] !== '') {
+				$states_placeholders = implode(',', array_fill(0, count($form_data['states']), '%s'));
+				$where[] = $wpdb->prepare("a.state IN ($states_placeholders)", $form_data['states']);
+			}
+
+			if (!empty($form_data['start_date'])) {
+				$start_date = $form_data['start_date'];
+				// Si no tiene hora, agregar 00:00:00
+				if (strlen($start_date) === 10) {
+					$start_date .= ' 00:00:00';
+				}
+				$where[] = $wpdb->prepare("o.date_created_gmt >= %s", $start_date);
+			}
+
+			if (!empty($form_data['end_date'])) {
+				$end_date = $form_data['end_date'];
+				// Si no tiene hora, agregar 23:59:59 para incluir todo el día
+				if (strlen($end_date) === 10) {
+					$end_date .= ' 23:59:59';
+				}
+				$where[] = $wpdb->prepare("o.date_created_gmt <= %s", $end_date);
+			}
+
+			if (!empty($form_data['status'])) {
+				$where[] = $wpdb->prepare("o.status = %s", $form_data['status']);
+			}
+
+			// Get total count
+			if ($offset === 0) {
+				$sql = "SELECT COUNT(DISTINCT o.id) 
+						FROM {$wpdb->prefix}wc_orders o 
+						" . implode(' ', $joins) . "
+						WHERE " . implode(' AND ', $where);
+				$total = $wpdb->get_var($sql);
+			} else {
+				$total = intval($_POST['total']);
+			}
+
+			// Get orders batch
+			$sql = $wpdb->prepare(
+				"SELECT DISTINCT o.*, om.meta_value as telemdnow_entity_id, a.state as shipping_state
+				FROM {$wpdb->prefix}wc_orders o 
+				" . implode(' ', $joins) . " 
+				WHERE " . implode(' AND ', $where) . "
+				ORDER BY o.id DESC
+				LIMIT %d OFFSET %d",
+				$batch_size,
+				$offset
+			);
+
+			$orders = $wpdb->get_results($sql);
+			$processed = $offset;
+			$rows = [];
+			$summary = [
+				'total_orders' => 0,
+				'async_count' => 0,
+				'sync_count' => 0,
+				'expected_revenue' => 0,
+				'discrepancies_count' => 0,
+				'unknown_visits' => 0
+			];
+
+			//$telemdnow_rest_url = get_option( 'telemdnow_rest_url' );
+			$telemdnow_rest_url	=	'https://telegramd-rest.telegramd.com';
+			//$telemdnow_token    = get_option( 'telemdnow_token' );
+			global $telegramd_token;
+			if(empty($telegramd_token))
+				$telegramd_token	=	$this->telegramd_getToken();
+
+			foreach ($orders as $order_data) {
+				$order = wc_get_order($order_data->id);
+				if (!$order) continue;
+
+				$processed++;
+				$summary['total_orders']++;
+
+				$row_data = [
+					'order' => [
+						'id' => $order->get_id(),
+						'status' => $order->get_status(),
+						'total' => $order->get_total(),
+						'currency' => $order->get_currency(),
+						'date_created' => $order->get_date_created()->format('Y-m-d H:i'),
+						'shipping_state' => $order_data->shipping_state,
+						'link' => admin_url('post.php?post=' . $order->get_id() . '&action=edit'),
+						'telemdnow_entity_id' => $order_data->telemdnow_entity_id
+					],
+					'telegra' => [
+						'status' => 'unknown',
+						'visit_id' => '',
+						'visit_type' => '',
+					],
+					'stripe' => [
+						'status' => 'unknown',
+						'captured' => false,
+						'intent_id' => ''
+					],
+					'billing_analysis' => [
+						'expected_cost' => 0,
+						'actual_cost' => 0,
+						'has_discrepancy' => false
+					]
+				];
+
+				// Get Telegra data if enabled
+				if ( $include_telegra_billing || $include_visit_type ) {
+					$json_path = $save_telegra_jsons ? $json_storage_path : '';
+					$telegra_data = $this->get_telegra_order_data( $order_data->telemdnow_entity_id, $order_data->shipping_state, $json_path );
+
+					if ( $telegra_data ) {
+						$row_data['telegra'] = array_merge( $row_data['telegra'], $telegra_data );
+
+						$visit_type = strtolower( $telegra_data['visit_type'] );
+
+						if ( strpos( $visit_type, 'async' ) !== false ) {
+							$row_data['billing_analysis']['expected_cost'] = 18;
+							$row_data['billing_analysis']['actual_cost']   = 18;
+							$summary['async_count']++;
+							$summary['expected_revenue'] += 18;
+						} elseif ( strpos( $visit_type, 'sync' ) !== false ) {
+							$row_data['billing_analysis']['expected_cost'] = 28;
+							$row_data['billing_analysis']['actual_cost']   = 28;
+							$summary['sync_count']++;
+							$summary['expected_revenue'] += 28;
+						} else {
+							$summary['unknown_visits']++;
+						}
+					} else {
+						$summary['unknown_visits']++;
+					}
+				}
+
+				// Get Stripe data if enabled
+				if ($include_stripe_details) {
+					$stripe_intent_id = $order->get_meta('_stripe_intent_id');
+					if ($stripe_intent_id) {
+						$row_data['stripe']['intent_id'] = $stripe_intent_id;
+						$row_data['stripe']['status'] = $order->get_meta('_stripe_charge_captured') === 'yes' ? 'succeeded' : 'pending';
+						$row_data['stripe']['captured'] = $order->get_meta('_stripe_charge_captured') === 'yes';
+					}
+				}
+
+				// Check for discrepancies
+				if ( $only_billing_discrepancies ) {
+					$has_discrepancy = false;
+
+					// Visit creada pero sin tipo conocido — Telegra no pudo determinar si es sync o async
+					if ( empty( $row_data['telegra']['visit_type'] ) && ! empty( $row_data['telegra']['visit_id'] ) ) {
+						$has_discrepancy = true;
+					}
+
+					// Orden completed en WC pero Telegra no la tiene como completed
+					if (
+						$order->get_status() === 'completed' &&
+						! empty( $row_data['telegra']['status'] ) &&
+						$row_data['telegra']['status'] !== 'completed'
+					) {
+						$has_discrepancy = true;
+					}
+
+					// Pago capturado en Stripe pero la orden sigue en on-hold
+					if ( $row_data['stripe']['captured'] && $order->get_status() === 'on-hold' ) {
+						$has_discrepancy = true;
+					}
+
+					// Orden en estado final de WC pero sin visit en Telegra (se cobró sin consulta médica)
+					if (
+						in_array( $order->get_status(), [ 'completed', 'processing' ], true ) &&
+						empty( $row_data['telegra']['visit_id'] )
+					) {
+						$has_discrepancy = true;
+					}
+
+					$row_data['billing_analysis']['has_discrepancy'] = $has_discrepancy;
+
+					if ( $has_discrepancy ) {
+						$summary['discrepancies_count']++;
+					}
+
+					if ( ! $has_discrepancy ) {
+						continue;
+					}
+				}
+
+				$rows[] = $row_data;
+
+				// Write to CSV
+				$csv_row = [
+					$row_data['order']['id'],
+					$row_data['order']['status'],
+					$row_data['order']['total'] . ' ' . $row_data['order']['currency'],
+					$row_data['order']['shipping_state'],
+					$row_data['order']['date_created'],
+					$row_data['telegra']['status'],
+					$row_data['telegra']['visit_id'],
+					$row_data['telegra']['visit_type'],
+					'https://affiliate-admin.telegramd.com/orders/' . $row_data['order']['telemdnow_entity_id'],
+					$row_data['stripe']['status'],
+					$row_data['stripe']['captured'] ? 'Yes' : 'No',
+					$row_data['stripe']['intent_id'] ? 'https://dashboard.stripe.com/payments/' . $row_data['stripe']['intent_id'] : '',
+					'$' . $row_data['billing_analysis']['expected_cost'],
+					'$' . $row_data['billing_analysis']['actual_cost'],
+					$row_data['billing_analysis']['has_discrepancy'] ? 'YES' : 'NO'
+				];
+
+				$file = fopen($file_path, 'a');
+				fputcsv($file, $csv_row);
+				fclose($file);
+			}
+
+			$is_complete = $processed >= $total;
+			
+			// Solo eliminar transient si el procesamiento ha completado
+			if ($is_complete) {
+				delete_transient($transient_name);
+			}
+
+			$response_data = [
+				'rows' => $rows,
+				'offset' => $processed,
+				'total' => $total,
+				'processed' => $processed,
+				'next_offset' => $processed,
+				'summary' => $summary,
+				'complete' => $is_complete,
+				'preview' => true
+			];
+
+			// Si está completo, generar el archivo final
+			if ($is_complete) {
+				$upload_dir = wp_upload_dir();
+				$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+				$temp_file_path = $base_file_path . 'billing_analyzer_export_temp.csv';
+				
+				if (file_exists($temp_file_path)) {
+					$final_filename = 'billing_analyzer_export_' . date('Y-m-d-His') . '.csv';
+					$final_path = $base_file_path . $final_filename;
+					rename($temp_file_path, $final_path);
+					$response_data['file_url'] = $upload_dir['baseurl'] . '/bh-exports/' . $final_filename;
+					$response_data['preview'] = false;
+				}
+			}
+
+			wp_send_json_success($response_data);
+
+		} catch (Throwable $th) {
+			delete_transient($transient_name);
+			wp_send_json_error($th->getMessage());
+		}
+	}
+
+	/**
+	 * Export billing analyzer file - AJAX handler
+	 */
+	function process_billing_analyzer_export_file() {
+		$upload_dir = wp_upload_dir();
+		$base_file_path = $upload_dir['basedir'] . '/bh-exports/';
+		$file_path = $base_file_path . 'billing_analyzer_export_temp.csv';
+
+		if (file_exists($file_path)) {
+			$final_path = $base_file_path . 'billing_analyzer_export_' . date('Y-m-d-His') . '.csv';
+			rename($file_path, $final_path);
+			$file_url = $upload_dir['baseurl'] . '/bh-exports/billing_analyzer_export_' . date('Y-m-d-His') . '.csv';
+
+			delete_transient('process_billing_analyzer_active');
+			wp_send_json_success(['file_url' => $file_url]);
+		} else {
+			wp_send_json_error(['message' => 'No export file found']);
+		}
+	}
+
+	/**
+	 * Get Telegra order data via API and save JSON responses for analysis
+	 */
+	private function get_telegra_order_data( string $telegra_order_id, ?string $shipping_state = '', string $json_storage_path = '' ): ?array {
+		if ( empty( $telegra_order_id ) ) {
+			return null;
+		}
+
+		// Get Telegra API credentials
+		// $telemdnow_rest_url = get_option( 'telemdnow_rest_url' );
+		// $telemdnow_token    = get_option( 'telemdnow_token' );
+		$telemdnow_rest_url	=	'https://telegramd-rest.telegramd.com';
+			//$telemdnow_token    = get_option( 'telemdnow_token' );
+		global $telegramd_token;
+		if(empty($telegramd_token))
+			$telegramd_token	=	$this->telegramd_getToken();
+		
+		if (empty($telemdnow_rest_url) || empty($telegramd_token)) {
+			return [
+				'status' => 'api_not_configured',
+				'visit_id' => 'vst_' . substr($telegra_order_id, -8),
+			];
+		}
+
+		$api_url = $telemdnow_rest_url . '/orders/' . $telegra_order_id . '?access_token=' . $telegramd_token;
+		$response = wp_remote_get( $api_url, [ 'timeout' => 15 ] );
+
+		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+			return null;
+		}
+
+		$raw_body = wp_remote_retrieve_body( $response );
+		$body = json_decode( $raw_body, true );
+		if ( empty( $body ) ) {
+			return null;
+		}
+
+		// Save JSON response for posterior analysis
+		if (!empty($json_storage_path)) {
+			$timestamp = date('Y-m-d_H-i-s');
+			$json_filename = $json_storage_path . "telegra_order_{$telegra_order_id}_{$timestamp}.json";
+			
+			$json_data = [
+				'request_info' => [
+					'telegra_order_id' => $telegra_order_id,
+					'shipping_state' => $shipping_state ?? '',
+					'api_url' => $api_url,
+					'timestamp' => $timestamp,
+					'response_code' => wp_remote_retrieve_response_code( $response )
+				],
+				'response_headers' => wp_remote_retrieve_headers( $response )->getAll(),
+				'response_body' => $body
+			];
+			
+			file_put_contents($json_filename, json_encode($json_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		}
+
+		$telegra_status = $body['status'] ?? 'unknown';
+		$visit_id       = '';
+		$visit_type     = '';
+
+		$fulfillments = $body['prescriptionFulfillments'] ?? [];
+		if ( ! empty( $fulfillments ) ) {
+			$visit = $fulfillments[0]['prescription']['visit'] ?? null;
+			if ( ! empty( $visit ) ) {
+				$visit_id   = $visit['_id'] ?? $visit['id'] ?? '';
+				$visit_type = $visit['visitType'] ?? '';
+			}
+		}
+
+		return [
+			'status'     => $telegra_status,
+			'visit_id'   => $visit_id,
+			'visit_type' => $visit_type,
+		];
+	}
+
+	/**
+	 * Scan saved Telegra JSON files
+	 */
+	function scan_telegra_json_files() {
+		if (!wp_verify_nonce($_POST['nonce'], 'scan_telegra_json_files')) {
+			wp_send_json_error(['message' => 'Invalid nonce']);
+		}
+
+		$upload_dir = wp_upload_dir();
+		$json_storage_path = $upload_dir['basedir'] . '/bh-exports/telegra-json-responses/';
+
+		if (!file_exists($json_storage_path)) {
+			wp_send_json_error(['message' => 'JSON storage directory does not exist']);
+		}
+
+		$json_files = glob($json_storage_path . '*.json');
+		$total_files = count($json_files);
+
+		if ($total_files === 0) {
+			wp_send_json_success([
+				'total_files' => 0,
+				'message' => 'No JSON files found'
+			]);
+			return;
+		}
+
+		$scan_results = [
+			'total_files' => $total_files,
+			'unique_orders' => 0,
+			'date_range' => ['earliest' => null, 'latest' => null],
+			'total_size_mb' => 0,
+			'response_codes' => [],
+			'sample_files' => []
+		];
+
+		$unique_orders = [];
+		$timestamps = [];
+		$total_size = 0;
+
+		// Sample first 10 files for preview
+		$sample_files = array_slice($json_files, 0, 10);
+
+		foreach ($sample_files as $file_path) {
+			$filename = basename($file_path);
+			$file_size = filesize($file_path);
+			$total_size += $file_size;
+
+			// Parse filename: telegra_order_{ORDER_ID}_{TIMESTAMP}.json
+			if (preg_match('/telegra_order_([^_]+)_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.json/', $filename, $matches)) {
+				$order_id = $matches[1];
+				$timestamp = $matches[2];
+				$unique_orders[$order_id] = true;
+				$timestamps[] = $timestamp;
+
+				// Try to read JSON for additional info
+				$json_content = json_decode(file_get_contents($file_path), true);
+				$state = $json_content['request_info']['shipping_state'] ?? 'Unknown';
+				$response_code = $json_content['request_info']['response_code'] ?? 'Unknown';
+
+				if (!isset($scan_results['response_codes'][$response_code])) {
+					$scan_results['response_codes'][$response_code] = 0;
+				}
+				$scan_results['response_codes'][$response_code]++;
+
+				$scan_results['sample_files'][] = [
+					'name' => $filename,
+					'order_id' => $order_id,
+					'state' => $state,
+					'timestamp' => $timestamp,
+					'size_kb' => round($file_size / 1024, 2)
+				];
+			}
+		}
+
+		// Count all unique orders from all files (just from filenames for performance)
+		foreach ($json_files as $file_path) {
+			$filename = basename($file_path);
+			if (preg_match('/telegra_order_([^_]+)_/', $filename, $matches)) {
+				$unique_orders[$matches[1]] = true;
+			}
+			$total_size += filesize($file_path);
+		}
+
+		$scan_results['unique_orders'] = count($unique_orders);
+		$scan_results['total_size_mb'] = round($total_size / (1024 * 1024), 2);
+
+		if (!empty($timestamps)) {
+			sort($timestamps);
+			$scan_results['date_range']['earliest'] = $timestamps[0];
+			$scan_results['date_range']['latest'] = end($timestamps);
+		}
+
+		wp_send_json_success($scan_results);
+	}
+
+	/**
+	 * Analyze visit types from saved JSON files
+	 */
+	function analyze_visit_types_from_json() {
+		if (!wp_verify_nonce($_POST['nonce'], 'analyze_visit_types_from_json')) {
+			wp_send_json_error(['message' => 'Invalid nonce']);
+		}
+
+		$upload_dir = wp_upload_dir();
+		$json_storage_path = $upload_dir['basedir'] . '/bh-exports/telegra-json-responses/';
+
+		if (!file_exists($json_storage_path)) {
+			wp_send_json_error(['message' => 'JSON storage directory does not exist']);
+		}
+
+		$json_files = glob($json_storage_path . '*.json');
+		$analysis_results = [
+			'visit_types' => [],
+			'by_state' => [],
+			'revenue_calculation' => [
+				'async' => 0,
+				'sync' => 0,
+				'total' => 0
+			]
+		];
+
+		foreach ($json_files as $file_path) {
+			$json_content = json_decode(file_get_contents($file_path), true);
+			
+			if (!$json_content) continue;
+
+			$state = $json_content['request_info']['shipping_state'] ?? 'Unknown';
+			$response_body = $json_content['response_body'] ?? [];
+			
+			// Extract visit type
+			$visit_type = 'unknown';
+			if (isset($response_body['prescriptionFulfillments'][0]['prescription']['visit']['visitType'])) {
+				$visit_type = $response_body['prescriptionFulfillments'][0]['prescription']['visit']['visitType'];
+			}
+
+			// Count visit types
+			if (!isset($analysis_results['visit_types'][$visit_type])) {
+				$analysis_results['visit_types'][$visit_type] = 0;
+			}
+			$analysis_results['visit_types'][$visit_type]++;
+
+			// Count by state
+			if (!isset($analysis_results['by_state'][$state])) {
+				$analysis_results['by_state'][$state] = ['count' => 0, 'async' => 0, 'sync' => 0];
+			}
+			$analysis_results['by_state'][$state]['count']++;
+
+			// Calculate revenue
+			if (strpos(strtolower($visit_type), 'async') !== false) {
+				$analysis_results['by_state'][$state]['async']++;
+				$analysis_results['revenue_calculation']['async'] += 18;
+			} elseif (strpos(strtolower($visit_type), 'sync') !== false) {
+				$analysis_results['by_state'][$state]['sync']++;
+				$analysis_results['revenue_calculation']['sync'] += 28;
+			}
+		}
+
+		$analysis_results['revenue_calculation']['total'] = 
+			$analysis_results['revenue_calculation']['async'] + 
+			$analysis_results['revenue_calculation']['sync'];
+
+		wp_send_json_success($analysis_results);
 	}
 
 }

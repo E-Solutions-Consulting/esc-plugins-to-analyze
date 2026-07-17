@@ -381,17 +381,14 @@ jQuery( function ( $ ) {
 		},
 		moveSubscriptionVariationFields: function () {
 			$( '#variable_product_options .variable_subscription_pricing' )
-				.not( 'wcs_moved' )
+				.not( '.wcs_moved' )
 				.each( function () {
-					var $regularPriceRow = $( this ).siblings(
-							'.variable_pricing'
-						),
-						$trialSignUpRow = $( this ).siblings(
-							'.variable_subscription_trial_sign_up'
-						),
-						$saleDatesRow;
-
-					$saleDatesRow = $( this ).siblings( '.variable_pricing' );
+					// Use .first() to target only the original pricing row, not additional
+					// .variable_pricing divs added by other features (e.g., COGS).
+					// Without .first(), jQuery's insertBefore() clones elements when
+					// multiple targets exist, causing duplicate fields.
+					var $regularPriceRow = $( this ).siblings( '.variable_pricing' ).first(),
+						$trialSignUpRow = $( this ).siblings( '.variable_subscription_trial_sign_up' );
 
 					// Add the subscription price fields above the standard price fields
 					$( this ).insertBefore( $regularPriceRow );
@@ -400,7 +397,8 @@ jQuery( function ( $ ) {
 
 					// Replace the regular price field with the trial period field
 					$regularPriceRow
-						.children( ':first' )
+						.children()
+						.first()
 						.addClass( 'hide_if_variable-subscription' );
 
 					$( this ).addClass( 'wcs_moved' );
@@ -695,7 +693,7 @@ jQuery( function ( $ ) {
 		.not(
 			'.variable_subscription_pricing .options_group.subscription_pricing'
 		)
-		.insertBefore( $( '.options_group.pricing:first' ) );
+		.insertBefore( $( '.options_group.pricing' ).first() );
 	$( '.show_if_subscription.clear' ).insertAfter(
 		$( '.options_group.subscription_pricing' )
 	);
@@ -854,7 +852,7 @@ jQuery( function ( $ ) {
 			'select#product-type option[value="' +
 				WCSubscriptions.productType +
 				'"]'
-		).attr( 'selected', 'selected' );
+		).prop( 'selected', true );
 		$( 'select#product-type' ).trigger( 'select' ).trigger( 'change' );
 	}
 
@@ -1010,9 +1008,6 @@ jQuery( function ( $ ) {
 				'woocommerce_subscriptions_allow_switching'
 			)
 		),
-		$syncRenewals = $(
-			document.getElementById( 'woocommerce_subscriptions_sync_payments' )
-		),
 		$customerNotifications = $(
 			document.getElementById( 'woocommerce_subscriptions_customer_notifications_enabled' )
 		);
@@ -1024,15 +1019,19 @@ jQuery( function ( $ ) {
 			$switchSettingsRows = $allowSwitching
 				.parents( 'tr' )
 				.siblings( 'tr' ),
-			$prorateFirstRenewal = $(
+			$firstBillingBehavior = $(
 				document.getElementById(
-					'woocommerce_subscriptions_prorate_synced_payments'
+					'woocommerce_subscriptions_first_billing_behavior'
 				)
 			),
-			$syncRows = $syncRenewals.parents( 'tr' ).siblings( 'tr' ),
 			$daysNoFeeRow = $(
 				document.getElementById(
 					'woocommerce_subscriptions_days_no_fee'
+				)
+			).parents( 'tr' ),
+			$prorateOptionsRow = $(
+				document.getElementById(
+					'woocommerce_subscriptions_prorate_virtual'
 				)
 			).parents( 'tr' ),
 			$suspensionExtensionRow = $(
@@ -1070,30 +1069,33 @@ jQuery( function ( $ ) {
 			} )
 			.trigger( 'change' );
 
-		// No animation when initially hiding prorated rows.
-		if ( ! $syncRenewals.is( ':checked' ) ) {
-			$syncRows.hide();
-		} else if ( 'recurring' !== $prorateFirstRenewal.val() ) {
-			$daysNoFeeRow.hide();
+		// Show/hide sub-fields based on the "First billing behavior" selection.
+		var $firstBillingBehaviorDesc = $firstBillingBehavior.siblings( '.description' ),
+			firstBillingBehaviorDescriptions = $firstBillingBehavior.data( 'descriptions' ) || {};
+
+		function updateFirstBillingBehaviorRows( animate ) {
+			var val = $firstBillingBehavior.val();
+
+			$firstBillingBehaviorDesc.text( firstBillingBehaviorDescriptions[ val ] || '' );
+
+			if ( 'full' === val ) {
+				animate ? $daysNoFeeRow.fadeIn() : $daysNoFeeRow.show();
+				animate ? $prorateOptionsRow.fadeOut() : $prorateOptionsRow.hide();
+			} else if ( 'prorate' === val ) {
+				animate ? $daysNoFeeRow.fadeOut() : $daysNoFeeRow.hide();
+				animate ? $prorateOptionsRow.fadeIn() : $prorateOptionsRow.show();
+			} else {
+				animate ? $daysNoFeeRow.fadeOut() : $daysNoFeeRow.hide();
+				animate ? $prorateOptionsRow.fadeOut() : $prorateOptionsRow.hide();
+			}
 		}
 
-		// Animate showing and hiding the synchronization rows.
-		$syncRenewals.on( 'change', function () {
-			if ( $( this ).is( ':checked' ) ) {
-				$syncRows.not( $daysNoFeeRow ).fadeIn();
-				$prorateFirstRenewal.trigger( 'change' );
-			} else {
-				$syncRows.fadeOut();
-			}
-		} );
+		// No animation on initial page load.
+		updateFirstBillingBehaviorRows( false );
 
-		// Watch the Prorate First Renewal field for changes.
-		$prorateFirstRenewal.on( 'change', function () {
-			if ( 'recurring' === $( this ).val() ) {
-				$daysNoFeeRow.fadeIn();
-			} else {
-				$daysNoFeeRow.fadeOut();
-			}
+		// Animate on change.
+		$firstBillingBehavior.on( 'change', function () {
+			updateFirstBillingBehaviorRows( true );
 		} );
 
 		// No animation when initially hiding customer notification offset row.
@@ -1143,6 +1145,48 @@ jQuery( function ( $ ) {
 		} );
 
 		toggleGiftingCheckbox( $giftingEnableCheckbox.is( ':checked' ) );
+	}
+
+	// Toggle "Show shared downloadable products" checkbox visibility based on the "Enable downloadable file sharing" checkbox.
+	var $downloadsEnableCheckbox = $(
+			document.getElementById(
+				'woocommerce_subscriptions_enable_downloadable_file_linking'
+			)
+		),
+		$downloadsAddLineItems = $(
+			'.wc-settings-row-downloads-add-line-items'
+		);
+
+	if ( $downloadsEnableCheckbox.length > 0 ) {
+		function toggleDownloadsLineItems( checked ) {
+			if ( checked ) {
+				$downloadsAddLineItems.show();
+			} else {
+				$downloadsAddLineItems.hide();
+			}
+		}
+
+		$downloadsEnableCheckbox.on( 'change', function () {
+			toggleDownloadsLineItems( this.checked );
+		} );
+
+		toggleDownloadsLineItems( $downloadsEnableCheckbox.is( ':checked' ) );
+	}
+
+	// Obtain references to the 'Enable web cron support' input checkbox, and to its sibling row containing the 'Web cron URL' field.
+	const externalTriggerEnabled  = document.getElementById( 'woocommerce_subscriptions_external_trigger_enabled' );
+	const externalTriggerUrlInput = document.getElementById( 'woocommerce_subscriptions_external_trigger_options_url_display' );
+	const externalTriggerUrlRow   = externalTriggerUrlInput ? externalTriggerUrlInput.closest( 'tr' ) : null;
+
+	if ( externalTriggerEnabled && externalTriggerUrlRow ) {
+		// Selectively show or hide the 'Web cron URL' field (it isn't needed if web cron support is disabled).
+		const toggleExternalTriggerUrlRow = () => {
+			externalTriggerUrlRow.style.display = externalTriggerEnabled.checked ? '' : 'none';
+		};
+
+		// Set the visibility initially, then again everytime the checkbox is toggled.
+		toggleExternalTriggerUrlRow();
+		externalTriggerEnabled.addEventListener( 'change', toggleExternalTriggerUrlRow );
 	}
 
 	// Don't display the variation notice for variable subscription products

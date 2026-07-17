@@ -165,7 +165,7 @@ class Bh_Features {
 		$plugin_emails	=	new Bh_Features_Emails($plugin_common);
 		$plugin_admin = new Bh_Features_Admin( $this->get_plugin_name(), $this->get_version(), $plugin_common );
 
-		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
+		//$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 
 		$this->loader->add_action( 'init', $plugin_admin, 'add_customer_services_role' );
@@ -262,8 +262,8 @@ class Bh_Features {
 		$plugin_common = new Bh_Features_Common();
 		$plugin_public = new Bh_Features_Public( $this->get_plugin_name(), $this->get_version(), $plugin_common );
 
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
+		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
 		$this->loader->add_action( 'init', $plugin_public, 'disable_password_change_admin_notification' );
 
@@ -320,7 +320,7 @@ class Bh_Features {
 		 */
 		// add_filter('arg-mc-init-options', [ $plugin_public, 'bh_arg_mc_init_options_add_step_terms_conditions']);
 		// add_action('arg-mc-checkout-step', [ $plugin_public, 'bh_arg_mc_checkout_step_add_content_terms_conditions']);
-		add_action('woocommerce_checkout_process', [ $plugin_public, 'bh_woocommerce_checkout_process_field_accept_terms']);
+		// add_action('woocommerce_checkout_process', [ $plugin_public, 'bh_woocommerce_checkout_process_field_accept_terms']);
 		
 		/**
 		 * Disable custom Variation Name
@@ -448,7 +448,7 @@ class Bh_Features {
 		/**
 		 *	Add tracking code Northbeam to Thankyou Page
 		 */
-		$this->loader->add_action('wp_head', $plugin_public, 'insert_friendbuy_tracking_customer', 999);
+		// $this->loader->add_action('wp_head', $plugin_public, 'insert_friendbuy_tracking_customer', 999);
 		//$this->loader->add_action('wp_footer', $plugin_public, 'insert_friendbuy_tracking', 100);
 
 	}

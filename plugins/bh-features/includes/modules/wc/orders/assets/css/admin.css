@@ -23,6 +23,10 @@
   --link-filter-status-tlg-provider_review-border: 1px solid #bbefff;
   --link-filter-status-tlg-provider_review-color: 1px solid #ffa500;
 
+  --order-note-bg:215, 202, 210;
+  --order-note-bg-customer-note:213, 188, 252;
+  --order-note-bg-stripe-note:214, 240, 214;
+
 }
 body.wp-admin ul.subsubsub {line-height: 1.5rem;float: none;display: flex;gap: 5px 7px;flex-wrap: wrap;}
 body.wp-admin ul.subsubsub li {font-size: 0;}
@@ -99,13 +103,15 @@ span.woocommerce-order-status__indicator.is-send_to_telegra,
 body.wp-admin .order-status.status-send_to_telegra{background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.5);color:rgba(var(--link-filter-status-tlg-send-to-telegra-color), 1);border:var(--link-filter-status-tlg-send-to-telegra-border);}
 body.wp-admin .order-status[class*="status-cancel"]{background-color: rgba(var(--link-filter-status-cancel-bgcolor), 1);color: rgba(var(--link-filter-status-cancel-color), 1);}
 
-#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content {background-color: rgba(215, 202, 210, 0.5);}
-#woocommerce-order-notes ul.order_notes li.customer-note .note_content {background-color: rgba(167, 206, 220, 0.5);}
-#woocommerce-order-notes ul.order_notes li .note_content .bh.error-message {font-weight: 500;}
-#woocommerce-order-notes ul.order_notes li .note_content a {font-weight: 700;}
-
 /*select#shipping_insurance_filter_hpos {display: none;}*/
-#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content {background-color: rgba(215, 202, 210, 0.5);}
-#woocommerce-order-notes ul.order_notes li.customer-note .note_content {background-color: rgba(167, 206, 220, 0.5);}
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content {background-color: rgba(var(--order-note-bg), 0.5);}
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note) .note_content:after {border-color: rgba(var(--order-note-bg), 0.5) transparent;}
+
+#woocommerce-order-notes ul.order_notes li.customer-note .note_content {background-color: rgba(var(--order-note-bg-customer-note), 0.5);}
+#woocommerce-order-notes ul.order_notes li.customer-note .note_content:after {border-color: rgba(var(--order-note-bg-customer-note), 0.5) transparent;}
+
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note).stripe-note > .note_content {background-color: rgba(var(--order-note-bg-stripe-note), 1);border-left: 5px solid #009600;}
+#woocommerce-order-notes ul.order_notes li.system-note:not(.customer-note).stripe-note > .note_content:after {border-color: rgba(var(--order-note-bg-stripe-note), 1) transparent;}
+
 #woocommerce-order-notes ul.order_notes li .note_content .bh.error-message {font-weight: 500;}
 #woocommerce-order-notes ul.order_notes li .note_content a {font-weight: 700;}

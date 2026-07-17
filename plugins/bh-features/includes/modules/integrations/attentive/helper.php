@@ -35,7 +35,13 @@ class BH_Attentive_Helper {
         // Remove leading + to work with just digits
         $phone = ltrim( $phone, '+' );
 
-        // Remove leading 1s (country code) - handle multiple 1s
+        // Handle US numbers: remove country code if present
+        if ( strlen( $phone ) === 11 && str_starts_with( $phone, '1' ) ) {
+            // Remove the leading 1 (US country code)
+            $phone = substr( $phone, 1 );
+        }
+        
+        // Remove any additional leading 1s that might be duplicated
         while ( strlen( $phone ) > 10 && str_starts_with( $phone, '1' ) ) {
             $phone = substr( $phone, 1 );
         }
@@ -45,13 +51,113 @@ class BH_Attentive_Helper {
             return '+1' . $phone;
         }
 
-        // If we still have 11 digits starting with 1, it's already country code + number
-        if ( strlen( $phone ) === 11 && str_starts_with( $phone, '1' ) ) {
-            return '+' . $phone;
+        // If we have other lengths, force US format
+        return '+1' . $phone;
+    }
+
+    /**
+     * Check whether a user is already opted in to Attentive.
+     *
+     * Calls Attentive's "Get Subscription Eligibility" endpoint
+     * (GET /subscriptions) so we can avoid re-running a Subscribers API
+     * (POST /subscriptions) call for someone who is already subscribed — that
+     * is what makes Attentive auto-reply with the "You are already subscribed"
+     * SMS that customers were receiving alongside our custom events.
+     *
+     * @param string $phone Normalized phone (preferred lookup key).
+     * @param string $email Email (used if no phone is available).
+     * @return bool|null  true  = already subscribed (skip the subscribe call)
+     *                    false = not subscribed (safe to subscribe)
+     *                    null  = unknown (not configured / API error) — caller should fail open
+     */
+    public static function is_subscribed( $phone, $email = '' ) {
+
+        if ( empty( $phone ) && empty( $email ) ) {
+            return null;
         }
 
-        // If less than 10 digits or invalid, return as-is with + prefix
-        return '+' . $phone;
+        $settings = BH_Attentive_Config::get_settings();
+        $api_key  = $settings['api_key'] ?? '';
+
+        if ( empty( $api_key ) ) {
+            return null;
+        }
+
+        $base  = trailingslashit( $settings['api_base_url'] ?? 'https://api.attentivemobile.com/v1' );
+        $query = ! empty( $phone )
+            ? 'phone=' . rawurlencode( $phone )
+            : 'email=' . rawurlencode( $email );
+
+        $response = wp_remote_get( $base . 'subscriptions?' . $query, [
+            'headers'  => [
+                'Authorization' => 'Bearer ' . $api_key,
+            ],
+            'timeout'  => 10,
+            'blocking' => true, // runs inside an AS worker — safe to block.
+        ] );
+
+        if ( is_wp_error( $response ) ) {
+            self::log( 'Eligibility check failed', [ 'error' => $response->get_error_message() ] );
+            return null;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+
+        // 404 = Attentive has no subscriptions on file for this user
+        // ("Subscriptions not found ...") → they are not subscribed → safe to subscribe.
+        if ( $code === 404 ) {
+            self::log( 'Eligibility check: no subscriptions found — not subscribed', [
+                'phone' => $phone,
+                'email' => $email,
+            ] );
+            return false;
+        }
+
+        if ( $code < 200 || $code >= 300 ) {
+            self::log( 'Eligibility check non-2xx', [ 'code' => $code, 'body' => $body ] );
+            return null;
+        }
+
+        $data = json_decode( $body, true );
+
+        // Attentive's Get Subscription Eligibility lists the subscriptions the
+        // user already HAS (a 404 "Subscriptions not found" is returned when they
+        // have none), each with an eligibility flag. Shape:
+        //   { "subscriptionEligibilities": [
+        //       { "subscription": { "type": "...", "channel": "TEXT" },
+        //         "eligibility": { "isEligible": true } } ] }
+        // An entry that is eligible (isEligible === true) on the TEXT (SMS)
+        // channel means the user is already an active SMS subscriber — re-running
+        // POST /subscriptions for them is exactly what triggers Attentive's
+        // "You are already subscribed" auto-reply, so we treat that as
+        // already-subscribed and skip the subscribe call.
+        $eligibilities = ( is_array( $data ) && ! empty( $data['subscriptionEligibilities'] ) && is_array( $data['subscriptionEligibilities'] ) )
+            ? $data['subscriptionEligibilities']
+            : [];
+
+        $already_subscribed = false;
+        foreach ( $eligibilities as $entry ) {
+            $channel     = $entry['subscription']['channel'] ?? '';
+            $is_eligible = $entry['eligibility']['isEligible'] ?? null;
+
+            if ( $channel === 'TEXT' && $is_eligible === true ) {
+                $already_subscribed = true;
+                break;
+            }
+        }
+
+        // Log the parsed outcome (with a trimmed raw body) so any future response
+        // shape change is diagnosable from a single log line.
+        self::log( 'Eligibility check result', [
+            'phone'              => $phone,
+            'email'              => $email,
+            'already_subscribed' => $already_subscribed,
+            'eligibility_count'  => count( $eligibilities ),
+            'raw'                => mb_substr( (string) $body, 0, 500 ),
+        ] );
+
+        return $already_subscribed;
     }
 
     /**
@@ -76,6 +182,16 @@ class BH_Attentive_Helper {
 
         if ( empty( $api_key ) ) {
             self::log( 'subscribe_user_integration: API key not configured' );
+            return null;
+        }
+
+        // Skip if already opted in — avoids the "You are already subscribed"
+        // auto-reply. Only skip on a confirmed subscription; fail open otherwise.
+        if ( self::is_subscribed( $phone, $email ) === true ) {
+            self::log( 'subscribe_user_integration: already subscribed — skipping', [
+                'phone' => $phone,
+                'email' => $email,
+            ] );
             return null;
         }
 
@@ -134,6 +250,19 @@ class BH_Attentive_Helper {
 
         if ( empty( $api_key ) ) {
             self::log( 'API key not configured - skipping subscription' );
+            return null;
+        }
+
+        // Check eligibility first (Attentive recommendation): don't re-run the
+        // Subscribers API for someone already opted in, otherwise Attentive
+        // auto-replies with the "You are already subscribed" SMS. Only skip on a
+        // confirmed subscription; on an unknown/error result we fail open and
+        // subscribe as before.
+        if ( self::is_subscribed( $phone, $email ) === true ) {
+            self::log( 'User already subscribed — skipping subscribe', [
+                'phone' => $phone,
+                'email' => $email,
+            ] );
             return null;
         }
 
@@ -199,7 +328,7 @@ class BH_Attentive_Helper {
      * @param bool $blocking Whether to wait for response (default: true for debugging)
      * @return array|WP_Error Response
      */
-    public static function send_event( $event_type, $phone, $email, $properties = [], $blocking = true ) {
+    public static function send_event( $event_type, $phone, $email, $properties = [], $blocking = false ) {
         
         $settings = BH_Attentive_Config::get_settings();
         $api_key = $settings['api_key'];
@@ -260,7 +389,7 @@ class BH_Attentive_Helper {
      * @param bool $blocking Whether to wait for response
      * @return array|WP_Error Response
      */
-    public static function set_attributes( $phone, $email, $attributes, $blocking = true ) {
+    public static function set_attributes( $phone, $email, $attributes, $blocking = false ) {
         
         $settings = BH_Attentive_Config::get_settings();
         $api_key = $settings['api_key'];

@@ -1,0 +1,43 @@
+<?php
+
+namespace CheckoutWC\SmartyStreets\PhpSdk\US_Reverse_Geo;
+
+require_once __DIR__ . '/Address.php';
+require_once __DIR__ . '/Coordinate.php';
+require_once __DIR__ . '/../ArrayUtil.php';
+use CheckoutWC\SmartyStreets\PhpSdk\ArrayUtil;
+/**
+ * A result is a possible match for an coordinates that were submitted.<br>
+ *     A response can have multiple results.
+ *
+ * @see "https://smartystreets.com/docs/cloud/us-reverse-geo-api#address"
+ */
+class Result
+{
+    //region [ Fields ]
+    private $address, $distance, $coordinate;
+    //endregion
+    public function __construct($obj = null)
+    {
+        if ($obj == null) {
+            return;
+        }
+        $this->address = new Address(ArrayUtil::getField($obj, 'address', array()));
+        $this->distance = ArrayUtil::getField($obj, 'distance');
+        $this->coordinate = new Coordinate(ArrayUtil::getField($obj, 'coordinate', array()));
+    }
+    //region [ Getters ]
+    public function getAddress()
+    {
+        return $this->address;
+    }
+    public function getDistance()
+    {
+        return $this->distance;
+    }
+    public function getCoordinate()
+    {
+        return $this->coordinate;
+    }
+    //endregion
+}

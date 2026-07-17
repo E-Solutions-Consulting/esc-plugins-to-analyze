@@ -1,0 +1,3919 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: YayMail - WooCommerce Email Customizer\n"
+"POT-Creation-Date: 2025-05-28 15:29+0700\n"
+"PO-Revision-Date: 2025-05-28 15:37+0700\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.5\n"
+"X-Poedit-Basepath: ../..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: yaymail.php\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.min.js\n"
+"X-Poedit-SearchPathExcluded-1: vendor\n"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgctxt "text direction"
+msgid "ltr"
+msgstr "ltr"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1 src/Functions.php:382
+#: src/Utils/TemplateHelpers.php:165
+msgid "Customer"
+msgstr "Klant"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "You have unsaved changes. Are you sure you want to leave?"
+msgstr "U hebt niet-opgeslagen wijzigingen. Weet je zeker dat je weg wilt?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+" This email template can be fully customized with YayMail Premium Addon. "
+msgstr ""
+" Deze e-mailsjabloon kan volledig worden aangepast met YayMail Premium Add-"
+"on. "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Buy Now"
+msgstr "Koop Nu"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid " This template is unavailable at the moment. "
+msgstr " Dit sjabloon is op dit moment niet beschikbaar. "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Contact us"
+msgstr "Neem contact op"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid " to see if it can be customized with "
+msgstr " om te zien of het kan worden aangepast met "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "YayMail Addon."
+msgstr "YayMail Add-on."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, javascript-format
+msgid "We already support several other emails for %s plugin."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Please contact us to request features."
+msgstr "Neem contact met ons op om functies aan te vragen."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid " This email template can be fully customized with YayMail Pro. "
+msgstr " Deze e-mailsjabloon kan volledig worden aangepast met YayMail Pro. "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Upgrade Now"
+msgstr "Nu Bijwerken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Are you sure you want to remove this element?"
+msgstr "Weet je zeker dat je dit element wilt verwijderen?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Duplicate"
+msgstr "Kopiëren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Copy this element"
+msgstr "Kopieer dit element"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Paste element"
+msgstr "Element plakken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Copy styles"
+msgstr "Stijlen kopiëren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Paste styles"
+msgstr "Stijlen plakken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid " This template is unavailable at the moment. "
+msgid "This feature is available in the PRO version"
+msgstr " Dit sjabloon is op dit moment niet beschikbaar. "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save to library"
+msgstr "Opslaan in bibliotheek"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Remove"
+msgstr "Verwijderen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Select parent"
+msgstr "Selecteer verzamelmap"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Featured"
+msgid "New feature"
+msgstr "Uitgelicht"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, javascript-format
+msgid ""
+"You can now select multiple elements by holding %s key while clicking on an "
+"element"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Select"
+msgstr "Selecteer"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Divider.php:35 src/Elements/ElementsHelper.php:34
+#: src/Elements/Image.php:33 src/Elements/SocialIcon.php:34
+#: src/Elements/Title.php:34
+msgid "Align"
+msgstr "Uitlijnen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Select Email"
+msgid "Select a media"
+msgstr "E-mail selecteren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Disable this template"
+msgid "Use this image"
+msgstr "Schakel deze sjabloon uit"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ElementsHelper.php:117 src/Elements/Image.php:52
+msgid "Image URL"
+msgstr "Afbeelding URL"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image URL"
+msgstr "Achtergrondafbeelding URL"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image Position"
+msgstr "Positie Achtergrondafbeelding"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image Position X"
+msgstr "Achtergrond afbeelding Positie X"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image Position Y"
+msgstr "Achtergrond afbeelding Positie Y"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image Size"
+msgstr "Formaat achtergrond afbeelding"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image Position Repeat"
+msgstr "Achtergrondafbeelding Positie Herhalen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background Image Custom Size"
+msgstr "Aangepaste grootte achtergrondafbeelding"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background position"
+msgstr "Achtergrondpositie"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "X Position"
+msgstr "X-positie"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Y Position"
+msgstr "Y-positie"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background repeat"
+msgstr "Achtergrond herhalen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Background size"
+msgstr "Achtergrond grootte"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Divider.php:54 src/Elements/ElementsHelper.php:144
+#: src/Elements/Image.php:59 src/Elements/SocialIcon.php:60
+#: src/Elements/Video.php:59
+msgid "Width"
+msgstr "Breedte"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Items"
+msgstr "Items"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Column"
+msgstr "Kolom"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Selecting column:"
+msgstr "Kolom selecteren:"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Copy content"
+msgstr "Kopieer inhoud"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "You are selecting column"
+msgstr "U selecteert een kolom"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Copy column"
+msgstr "Kolom kopiëren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "To"
+msgstr "Tot"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "From"
+msgstr "Van"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Column 1"
+msgstr "Kolom 1"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Column 2"
+msgstr "Kolom 2"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Column 3"
+msgstr "Kolom 3"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Dimension"
+msgstr "Afmeting"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Note: You can edit the heading content wherever it is used."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"This is the global header or footer element, you can customize it by go to "
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1 src/Elements/Text.php:25
+msgid "Text"
+msgstr "Tekst"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Custom"
+msgstr "Aangepast"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Custom Hook"
+msgstr "Aangepaste haak"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1 src/Elements/Hook.php:26
+msgid "Hook"
+msgstr "Haak"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Image src"
+msgstr "Afbeelding src"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Choose"
+msgstr "Kies"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Number Input"
+msgstr "Nummer invoer"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/BillingAddress.php:76 src/Elements/ElementsHelper.php:260
+#: src/Elements/Footer.php:69 src/Elements/GlobalHeader.php:45
+#: src/Elements/Heading.php:93 src/Elements/OrderDetails.php:87
+#: src/Elements/OrderDetailsDownload.php:90 src/Elements/ShippingAddress.php:88
+#: src/Elements/Text.php:67
+msgid "Content"
+msgstr "Inhoud"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Media Image Library"
+msgstr "Bibliotheek met media-afbeeldingen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Shortcode"
+msgstr "Shortcode"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Select number column"
+msgstr "Selecteer getalkolom"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Spacing"
+msgstr "Tussenruimte"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Default"
+msgstr "Standaard"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Info"
+msgstr "Info"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Success"
+msgstr "Succes"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Warning"
+msgstr "Waarschuwing"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Danger"
+msgstr "Gevaar"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Inherit"
+msgstr "Overnemen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Normal"
+msgstr "Normaal"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Bold"
+msgstr "Vet"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Bolder"
+msgstr "Bolder"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Lighter"
+msgstr "Lichter"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/PreviewEmail/PreviewEmailWoo.php:123
+msgid "Small"
+msgstr "Klein"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Medium"
+msgstr "Medium"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Large"
+msgstr "Groot"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "XL"
+msgstr "XL"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "XXL"
+msgstr "XXL"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Divider.php:96
+msgid "Solid"
+msgstr "Solid"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Divider.php:100
+msgid "Double"
+msgstr "Dubbel"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Divider.php:104
+msgid "Dotted"
+msgstr "Gestippeld"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Divider.php:108
+msgid "Dashed"
+msgstr "Gestreept"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ColumnLayout.php:41 src/Elements/Divider.php:42
+#: src/Elements/ElementsHelper.php:83 src/Elements/Footer.php:36
+#: src/Elements/Heading.php:60 src/Elements/Hook.php:35
+#: src/Elements/Image.php:40 src/Elements/OrderDetails.php:40
+#: src/Elements/OrderDetailsDownload.php:43 src/Elements/ShippingAddress.php:34
+#: src/Elements/SocialIcon.php:41 src/Elements/Text.php:34
+#: src/Elements/Title.php:69 src/Elements/Video.php:33
+msgid "Padding"
+msgstr "Padding"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ElementsHelper.php:198 src/Elements/Image.php:73
+msgid "URL"
+msgstr "URL"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1 src/Elements/Image.php:81
+#: src/Elements/Logo.php:43
+msgid "ALT text"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ElementsHelper.php:231 src/Elements/Footer.php:62
+#: src/Elements/Heading.php:86 src/Elements/Hook.php:68
+#: src/Elements/OrderDetails.php:80 src/Elements/OrderDetailsDownload.php:83
+#: src/Elements/ShippingAddress.php:74 src/Elements/Text.php:60
+#: src/Elements/Title.php:95
+msgid "Font family"
+msgstr "Lettertype"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Sortable List"
+msgstr "Sorteerbare lijst"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Add social"
+msgstr "Sociaal toevoegen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Icon List"
+msgstr "Icoon lijst"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "add"
+msgstr "toevoegen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show/Hide button"
+msgstr "Knop Tonen/Verbergen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show button in column:"
+msgstr "Toon knop in kolom:"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ElementsHelper.php:292
+msgid "Type"
+msgstr "Type"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Button Type"
+msgstr "Knop Type"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Button.php:44
+msgid "Border radius"
+msgstr "Border radius"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Button.php:61
+msgid "Button text"
+msgstr "Knop tekst"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Button.php:62 src/Elements/TextList.php:122
+#: src/Elements/TextList.php:223 src/Elements/TextList.php:324
+msgid "Click me"
+msgstr "Klik hier"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Button.php:92
+msgid "Font size"
+msgstr "Lettertype grootte"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Button.php:104 src/Elements/Divider.php:66
+#: src/Elements/Space.php:47 src/Elements/Video.php:66
+msgid "Height"
+msgstr "Hoogte"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ElementsHelper.php:324
+msgid "Weight"
+msgstr "Gewicht"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No Billing address set."
+msgstr "Er is geen factuuradres ingesteld."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No Shipping address set."
+msgstr "Geen verzendadres ingesteld."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Are you sure you want to empty this template?"
+msgstr "Weet je zeker dat je dit sjabloon leeg wilt maken?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Your template content will be empty, but it isn't saved yet."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Empty layout"
+msgstr "Lege lay-out"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "active"
+msgstr "actief"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Can't change status template"
+msgstr "Kan statussjabloon niet wijzigen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Disable this template"
+msgstr "Schakel deze sjabloon uit"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Enable this template"
+msgstr "Schakel deze sjabloon in"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Import template from"
+msgstr "Sjabloon importeren uit"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"All your current configurations for this template will be lost after you "
+"import data."
+msgstr ""
+"Al uw huidige configuraties voor deze sjabloon gaan verloren nadat u "
+"gegevens hebt geïmporteerd."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "From template"
+msgstr "Nieuw van template"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Email Preview"
+msgid "Email preview"
+msgstr "E-mail voorbeeld"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No subject"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Are you sure you want to reset this template?"
+msgstr "Weet je zeker dat je dit sjabloon opnieuw wilt instellen?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Template reset successfully."
+msgstr "Sjabloon opnieuw ingesteld."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reset failed"
+msgstr "Reset is gefaald"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reset"
+msgstr "Reset"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "All changes you made won't be saved."
+msgstr "Alle wijzigingen die u heeft aangebracht, worden niet opgeslagen."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reset template"
+msgstr "Sjabloon terugzetten"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save success"
+msgstr "Succes opslaan"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save failed"
+msgstr "Opslaan mislukt"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Saving..."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save"
+msgstr "Opslaan"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1 src/Functions.php:384
+#, fuzzy
+#| msgid "Recipient(s)"
+msgid "Recipient"
+msgstr "Ontvanger(s)"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Send Email"
+msgstr "Verstuur E-mail"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Email address for testing"
+msgstr "E-mailadres voor testen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Thank you for using YayMail."
+msgstr "Bedankt voor het gebruik van YayMail."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"We need your support to keep updating and improving the plugin. Please, "
+msgstr ""
+"We hebben uw steun nodig om de plugin te blijven updaten en verbeteren. "
+"Alstublieft "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "help us by leaving a good review"
+msgstr "Help ons door een goede review achter te laten"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid " :) Thanks!"
+msgstr " :) Bedankt!"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "To send emails to inbox, we recommend:"
+msgstr ""
+"Als je e-mails naar de inbox wilt sturen, raden we je het volgende aan:"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Send test email"
+msgstr "Verzend test e-mail"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Undo"
+msgstr "Ongedaan maken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Redo"
+msgstr "Opnieuw"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Template Not Found"
+msgstr "Sjabloon niet gevonden"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Get recent editing revisions"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Custom fields & meta support"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save custom blocks for reuse"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, javascript-format
+msgid "%s plugin integrations"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "30+ third-party"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Multilingual support"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Last Updated"
+msgid "Fast updates"
+msgstr "Laatst bijgewerkt"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "VIP live chat support"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#| msgid "YayMail"
+msgid "YayMail Pro!"
+msgstr "YayMail Pro"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Models/TemplateModel.php:182
+#, fuzzy
+#| msgid " (Pro)"
+msgid "Pro"
+msgstr " (Voor)"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Get all features when you upgrade to YayMail Pro."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#| msgid "YayMail"
+msgid "Get YayMail Pro"
+msgstr "Bestel YayMail Pro"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Smart move — you’re going to love what’s next."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save template?"
+msgstr "Sjabloon opslaan?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No, don't save"
+msgstr "Nee, niet opslaan"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Do you want to save before moving to another template?"
+msgstr "Wil je opslaan voordat je naar een ander sjabloon gaat?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Not available in this template"
+msgstr "Niet beschikbaar in deze sjabloon"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Search patterns"
+msgstr "Patronen zoeken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No pattern found."
+msgstr "Geen patroon gevonden."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid " This template is unavailable at the moment. "
+msgid "This feature available in PRO version."
+msgstr " Dit sjabloon is op dit moment niet beschikbaar. "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Patterns"
+msgid "Pattern"
+msgstr "Patronen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Patterns"
+msgstr "Patronen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Library"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "DRAG TO USE"
+msgstr "SLEPEN OM TE GEBRUIKEN"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "CSS classes"
+msgstr "CSS-classes"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Eg: classname-a classname-b"
+msgstr "Bijv.: klassenaam-a klassenaam-b"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No element found."
+msgstr "Geen element gevonden."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Search elements"
+msgstr "Zoek-elementen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Basic"
+msgstr "Basis"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "General"
+msgstr "Algemeen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "WooCommerce"
+msgstr "WooCommerce"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Blocks"
+msgstr "Blokken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/TemplatePatterns/SectionTemplates/Header.php:18
+msgid "Header"
+msgstr "Header"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/Footer.php:27
+#: src/TemplatePatterns/SectionTemplates/Footer.php:18
+msgid "Footer"
+msgstr "Footer"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/TemplatePatterns/SectionTemplates/Banner.php:18
+msgid "Banner"
+msgstr "Banner"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "saved by"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Elements/ColumnLayout.php:52 src/Elements/Divider.php:77
+#: src/Elements/ElementsHelper.php:171 src/Elements/Footer.php:48
+#: src/Elements/Heading.php:72 src/Elements/Hook.php:47
+#: src/Elements/Image.php:66 src/Elements/ImageBox.php:39
+#: src/Elements/ImageList.php:41 src/Elements/OrderDetails.php:52
+#: src/Elements/OrderDetailsDownload.php:55 src/Elements/ShippingAddress.php:46
+#: src/Elements/SocialIcon.php:53 src/Elements/Space.php:40
+#: src/Elements/Text.php:46 src/Elements/TextList.php:45
+#: src/Elements/Title.php:81 src/Elements/Video.php:45
+msgid "Background color"
+msgstr "Achtergrondkleur"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Content background color"
+msgstr "Content achtergrondkleur"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Text link color"
+msgstr "Kleur tekstlink"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "This will make a change to all elements in this email"
+msgstr "Dit zal een wijziging aanbrengen in alle elementen in deze e-mail"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Save template?"
+msgid "Save template"
+msgstr "Sjabloon opslaan?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Direction"
+msgstr "Richting"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Container width (px)"
+msgstr "Container breedte (px)"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Email width must be 480px (min) - 900px (max)"
+msgstr "De breedte van de e-mail moet 480 px (min) - 900 px (max) zijn"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Display payment instruction and details"
+msgstr "Betaalinstructie en details weergeven"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show product image"
+msgstr "Product afbeelding weergeven"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Product image position"
+msgstr "Positie van de productafbeelding"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Product image height (px)"
+msgstr "Hoogte productafbeelding (px)"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Image height must be 30px (min) - 300px (max)"
+msgstr "De hoogte van de afbeelding moet 30 px (min) - 300 px (max) zijn"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Image width (px)"
+msgstr "Breedte afbeelding (px)"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Product image width must be 30px (min) - 300px (max)"
+msgstr ""
+"De breedte van de productafbeelding moet 30 px (min) - 300 px (max) zijn"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show product SKU"
+msgstr "Toon product SKU"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Show product description"
+msgid "Show product short description"
+msgstr "Productbeschrijving weergeven"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show product Hyperlinks"
+msgstr "Toon product Hyperlinks"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show product item cost"
+msgstr "Kosten van productartikelen weergeven"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Show product regular price"
+msgstr "Toon product Normale prijs"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Use custom CSS"
+msgstr "Gebruik aangepast CSS"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Change email subject and form name"
+msgstr "Onderwerp van e-mail en formuliernaam wijzigen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Click here"
+msgstr "Klik hier"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "This will affect the current email settings"
+msgstr "Dit heeft invloed op de huidige e-mailinstellingen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Elements"
+msgstr "Elementen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Settings"
+msgstr "Instellingen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Actions"
+msgstr "Acties"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Revisions"
+msgstr "Revisies"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "WooCommerce Email Customizer"
+msgstr "WooCommerce E-mail Customizer"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#: src/Engine/Backend/SettingsPage.php:211
+msgid "Go Pro"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Back to dashboard"
+msgstr "Terug naar dashboard"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "View History"
+msgstr "Bekijk geschiedenis"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Search template name"
+msgstr "Naam van zoeksjabloon"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Loading data"
+msgstr "Laadgegevens"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Template"
+msgstr "Sjabloon"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "are"
+msgstr "zijn"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "reseted"
+msgstr "gereset"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Activate Templates"
+msgstr "Sjablonen activeren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Deactivate Templates"
+msgstr "Sjablonen deactiveren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reset Templates"
+msgstr "Sjablonen opnieuw instellen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Template Name"
+msgstr "Sjabloon Naam"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Status"
+msgstr "Status"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Recipient(s)"
+msgstr "Ontvanger(s)"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Source"
+msgstr "Bron"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Last Updated"
+msgstr "Laatst bijgewerkt"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Email Templates"
+msgstr "Email Templates"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Global Header & Footer"
+msgid "Welcome to Global Header and Footer Guidance"
+msgstr "Wereldwijde kop- en voettekst"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Design once, apply everywhere! Save time by setting up a global header and "
+"footer for all your emails."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Let's start"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Open the Editor"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Here, you can access the Global Header & Footer editor. You'll see two "
+"sections: one for the header and one for the footer."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "View footer section"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Category selections"
+msgid "Footer section"
+msgstr "Categorie selecties"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Here, you can add your footer content."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Next"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Design Your Header"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Drag elements from the left panel into the ‘Header’ area. Add logos, menus, "
+"text, or social icons."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Design Your Footer"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Now do the same for the Footer area. Include company info, phone number, "
+"shop links, or anything else you need."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Save and Apply Globally"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Click ‘Save’ to keep your designs as the ‘Global Header’ and ‘Global "
+"Footer’. You can then add them to any email template later."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "You're All Set!"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Your Global Header and Footer are saved! To use them, just open any email "
+"template and drag them in from the Elements panel."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Got it!"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "General"
+msgid "General Features"
+msgstr "Algemeen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "11 standard WooCommerce emails"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Full customizability"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Global styling options"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Live preview editor"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Send test email"
+msgid "Send test emails"
+msgstr "Verzend test e-mail"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Export templates"
+msgid "Export/Import templates"
+msgstr "Sjablonen exporteren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Shortcode for WooCommerce data"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Save new pattern"
+msgid "Predesigned patterns"
+msgstr "Nieuw patroon opslaan"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Developer API"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Advanced blocks with dynamic data"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Full edit history"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Fast updates & bug fixes"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "1-1 live chat VIP support"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Third-Party Plugins Supported"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Shipment Tracking Details"
+msgid "Shipment & order tracking"
+msgstr "Trackingsysteem Details"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Customer details"
+msgid "Custom order status"
+msgstr "Klantgegevens"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Checkout field editor"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Payment page"
+msgid "Payments & payment gateways"
+msgstr "Betaal pagina"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Custom shipping plugins"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Multi-language & translation plugins"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Language"
+msgid "Multi Language"
+msgstr "Taal"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "WPML"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Polylang"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "TranslatePress"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "GTranslate"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Weglot"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Loco Translate"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Compare Plans & Features"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Explore our clear comparison table to see the features of each plan."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "YayMail Free"
+msgstr "YayMail Gratis"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "YayMail Pro"
+msgstr "YayMail Pro"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Your Order"
+msgid "Your current"
+msgstr "Uw bestelling"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Upgrade to YayMail Pro"
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Consider upgrading to YayMail Pro? It would be the best move you can make "
+"for your ecommerce store."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "OOPS! PAGE NOT FOUND"
+msgstr "OEPS! PAGINA NIET GEVONDEN"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "WE ARE SORRY, BUT THE PAGE YOU REQUESTED WAS NOT FOUND"
+msgstr "HET SPIJT ONS, MAAR DE PAGINA DIE U HEBT OPGEVRAAGD, IS NIET GEVONDEN"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Go to dashboard"
+msgstr "Ga naar dashboard"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No data to preview"
+msgstr "Geen gegevens om te bekijken"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Preview Email"
+msgstr "Email voorbeeld"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migration Required to Continue"
+msgstr "Migratie vereist om door te gaan"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Yes, sure!"
+msgstr "Ja, tuurlijk!"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migration failed! Please contact our support for help!"
+msgstr "Migratie mislukt! Neem contact op met onze ondersteuning voor hulp!"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migration succeeded!"
+msgstr "Migratie geslaagd!"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reset succeeded!"
+msgstr "Reset gelukt!"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reset failed!"
+msgstr "Reset mislukt!"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Proceed to migrate YayMail's data to the latest version, are you sure?"
+msgstr ""
+"Ga verder met het migreren van de gegevens van YayMail naar de nieuwste "
+"versie, weet je het zeker?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Proceed to reset YayMail's data, are you sure?"
+msgstr ""
+"Ga verder met het resetten van de gegevens van YayMail, weet je het zeker?"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migration"
+msgstr "Migratie"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Transfers data between different YayMail versions, ensuring compatibility "
+"whether you're upgrading to the latest release or reverting to a previous "
+"version"
+msgstr ""
+"Overdracht van gegevens tussen verschillende YayMail-versies, waardoor "
+"compatibiliteit wordt gegarandeerd, of u nu upgradet naar de nieuwste "
+"release of terugkeert naar een eerdere versie"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Reverting to an earlier version of YayMail's data."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No backup available"
+msgstr "Geen back-up beschikbaar"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Patched in"
+msgstr "Gepatcht in"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migrate"
+msgstr "Migreren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migrating version data to the updated one."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Migration is needed for: "
+msgstr "Migratie is nodig voor: "
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No migration needed"
+msgstr "Geen migratie nodig"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Export templates"
+msgstr "Sjablonen exporteren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Choose templates you want to export."
+msgstr "Kies sjablonen die u wilt exporteren."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid "Reset template"
+msgid "Select templates"
+msgstr "Sjabloon terugzetten"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+#, fuzzy
+#| msgid " templates"
+msgid "All templates"
+msgstr " Sjablonen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Export"
+msgstr "Exportieren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Import/Export"
+msgstr "Importeren/Exporteren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Easily manage YayMail templates by importing from compatible formats or "
+"exporting for backup or sharing."
+msgstr ""
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid ""
+"Allows you to securely download all created YayMail templates in a "
+"convenient file format"
+msgstr ""
+"Hiermee kunt u alle gemaakte YayMail-sjablonen veilig downloaden in een "
+"handig bestandsformaat"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Export Templates"
+msgstr "Templates Exporteren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Import Templates"
+msgstr "Importeer sjablonen"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Empowers you to seamlessly upload single or multiple YayMail templates"
+msgstr ""
+"Stelt je in staat om naadloos één of meerdere YayMail-sjablonen te uploaden"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Choose File"
+msgstr "Kies bestand"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Import"
+msgstr "Importeren"
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "No file chosen."
+msgstr "Geen bestand gekozen."
+
+#: assets/dist/yaymail/yaymail-main.tsx-637c4088.js:1
+msgid "Import/Export Templates"
+msgstr "Sjablonen importeren/exporteren"
+
+#: src/Abstracts/BaseController.php:28 src/Ajax.php:91 src/Ajax.php:122
+#: src/Ajax.php:183 src/Ajax.php:256 src/Ajax.php:296 src/Ajax.php:341
+#: src/Ajax.php:397 src/Ajax.php:538 src/Ajax.php:577 src/Ajax.php:617
+#: src/Ajax.php:639 src/Ajax.php:661 src/Notices/Ajax.php:26
+#: src/Notices/Ajax.php:42
+msgid "Verify nonce failed"
+msgstr "Controleer of nonce mislukt is"
+
+#: src/Ajax.php:130 src/Ajax.php:191
+msgid "Can't find template"
+msgstr "Kan sjabloon niet vinden"
+
+#: src/Ajax.php:134 src/Ajax.php:195
+msgid "Can't find order"
+msgstr "Kan bestelling niet vinden"
+
+#: src/Ajax.php:138
+msgid "Can't find email"
+msgstr "Kan e-mail niet vinden"
+
+#: src/Ajax.php:160
+msgid "Email Test"
+msgstr "E-mailtest"
+
+#: src/Ajax.php:164 src/Ajax.php:274
+#, fuzzy
+#| msgid "Can't find email"
+msgid "Can't send email"
+msgstr "Kan e-mail niet vinden"
+
+#: src/Ajax.php:271
+msgid "Email Preview"
+msgstr "E-mail voorbeeld"
+
+#: src/Ajax.php:280
+msgid "No email content found"
+msgstr "Geen e-mailinhoud gevonden"
+
+#: src/Ajax.php:281
+msgid "No template found"
+msgstr "Geen sjabloon gevonden"
+
+#: src/Ajax.php:282
+#, fuzzy
+#| msgid "No results found"
+msgid "No subject found"
+msgstr "Geen resultaten gevonden"
+
+#: src/Ajax.php:382
+msgid "Export successfully"
+msgstr "Succesvol exporteren"
+
+#: src/Ajax.php:403
+msgid "Imported successfully "
+msgstr "Succesvol geïmporteerd "
+
+#: src/Ajax.php:403
+msgid " templates"
+msgstr " Sjablonen"
+
+#: src/Ajax.php:405
+msgid "Import failed."
+msgstr "Importeren mislukt."
+
+#: src/Ajax.php:408
+msgid "Not found import files."
+msgstr "Niet gevonden importbestanden."
+
+#: src/Ajax.php:543
+msgid "Attributes empty"
+msgstr "Attributen leeg"
+
+#: src/Elements/BillingAddress.php:30 src/Elements/BillingAddress.php:70
+#: src/Elements/BillingShippingAddress.php:90
+#: src/Migrations/Versions/Ver_4_0_0.php:597
+#: src/Shortcodes/BillingShortcodes.php:19
+#: templates/shortcodes/billing-shipping-address/main.php:53
+#: templates/shortcodes/billing-shipping-address/sample.php:39
+msgid "Billing Address"
+msgstr "Factuuradres"
+
+#: src/Elements/BillingAddress.php:42
+#: src/Elements/BillingShippingAddress.php:64 src/Elements/OrderDetails.php:59
+#: src/Elements/OrderDetailsDownload.php:62 src/Elements/ShippingAddress.php:53
+msgid "Title color"
+msgstr "Titel kleur"
+
+#: src/Elements/BillingAddress.php:51
+#: src/Elements/BillingShippingAddress.php:72 src/Elements/Button.php:84
+#: src/Elements/Footer.php:55 src/Elements/Heading.php:79
+#: src/Elements/Hook.php:54 src/Elements/ImageBox.php:46
+#: src/Elements/OrderDetails.php:66 src/Elements/OrderDetailsDownload.php:69
+#: src/Elements/ShippingAddress.php:60 src/Elements/Text.php:53
+#: src/Elements/TextList.php:52 src/Elements/Title.php:88
+msgid "Text color"
+msgstr "Tekstkleur"
+
+#: src/Elements/BillingAddress.php:60
+#: src/Elements/BillingShippingAddress.php:80 src/Elements/OrderDetails.php:73
+#: src/Elements/OrderDetailsDownload.php:76 src/Elements/ShippingAddress.php:67
+msgid "Border color"
+msgstr "Randkleur"
+
+#: src/Elements/BillingAddress.php:69
+#: src/Elements/BillingShippingAddress.php:89
+msgid "Billing title"
+msgstr "Titel van facturering"
+
+#: src/Elements/BillingShippingAddress.php:47
+#: src/Shortcodes/BillingShortcodes.php:91
+msgid "Billing Shipping Address"
+msgstr "Facturatie verzendadres"
+
+#: src/Elements/BillingShippingAddress.php:98 src/Elements/OrderDetails.php:164
+#: src/Elements/ShippingAddress.php:81
+msgid "Shipping title"
+msgstr "Titel verzendmethode"
+
+#: src/Elements/BillingShippingAddress.php:99
+#: src/Elements/ShippingAddress.php:25 src/Elements/ShippingAddress.php:82
+#: src/Migrations/Versions/Ver_4_0_0.php:598
+#: src/Shortcodes/ShippingShortcodes.php:19
+#: templates/shortcodes/billing-shipping-address/main.php:80
+#: templates/shortcodes/billing-shipping-address/sample.php:53
+msgid "Shipping Address"
+msgstr "Verzendadres"
+
+#: src/Elements/BillingShippingAddress.php:106
+msgid "Shipping Content"
+msgstr "Inhoud verzenden"
+
+#: src/Elements/BillingShippingAddress.php:113
+msgid "Billing Content"
+msgstr "Inhoud factureren"
+
+#: src/Elements/Button.php:26
+msgid "Button"
+msgstr "Knop"
+
+#: src/Elements/Button.php:37
+#, fuzzy
+#| msgid "Content align"
+msgid "Container padding"
+msgstr "Inhoud uitlijnen"
+
+#: src/Elements/Button.php:76
+msgid "Button background color"
+msgstr "Button Achtergrondkleur"
+
+#: src/Elements/ColumnLayout.php:36
+msgid "Column width (%)"
+msgstr "Breedte kolom (%)"
+
+#: src/Elements/ColumnLayout.php:58
+msgid "Background image"
+msgstr "Achtergrondafbeelding"
+
+#: src/Elements/ColumnLayout.php:71
+msgid "Inner border radius"
+msgstr "Straal binnengrens"
+
+#: src/Elements/ColumnLayout.php:86
+msgid "Inner background color"
+msgstr "Binnen-achtergrondkleur"
+
+#: src/Elements/ColumnLayout.php:112
+msgid "One Column"
+msgstr "Een kolom"
+
+#: src/Elements/ColumnLayout.php:113
+msgid "Two Columns"
+msgstr "Twee kolommen"
+
+#: src/Elements/ColumnLayout.php:114
+msgid "Three Columns"
+msgstr "Drie kolommen"
+
+#: src/Elements/ColumnLayout.php:115
+msgid "Four Columns"
+msgstr "Vier kolommen"
+
+#: src/Elements/Divider.php:26
+msgid "Divider"
+msgstr "Scheidingslijn"
+
+#: src/Elements/Divider.php:84
+msgid "Line color"
+msgstr "Lijnkleur"
+
+#: src/Elements/Divider.php:91
+msgid "Line type"
+msgstr "Lijntype"
+
+#: src/Elements/FeaturedProducts.php:37
+msgid "Featured Products"
+msgstr "Aanbevolen producten"
+
+#: src/Elements/Footer.php:76 src/Elements/Heading.php:100
+msgid "Hide text"
+msgstr "Tekst verbergen"
+
+#: src/Elements/GlobalFooter.php:27
+msgid "Global Footer"
+msgstr "Globale Footer"
+
+#: src/Elements/GlobalFooter.php:37
+msgid "Global footer"
+msgstr "Wereldwijde voettekst"
+
+#: src/Elements/GlobalHeader.php:28 src/Elements/Heading.php:33
+#: src/Elements/Heading.php:44 src/Elements/Heading.php:53
+#: src/Emails/GlobalHeaderFooter.php:33
+msgid "Email Heading"
+msgstr "E-mailkop"
+
+#: src/Elements/GlobalHeader.php:35
+msgid "Global Header"
+msgstr "Globale Header"
+
+#: src/Elements/GlobalHeader.php:52
+msgid "Global header"
+msgstr "Wereldwijde kop"
+
+#: src/Elements/HTML.php:39
+msgid "HTML"
+msgstr "HTML"
+
+#: src/Elements/HTML.php:48
+msgid "HTML code"
+msgstr "HTML-code"
+
+#: src/Elements/HTML.php:51
+msgid "Import HTML code"
+msgstr "HTML-code importeren"
+
+#: src/Elements/Hook.php:61
+msgid "Hook shortcode"
+msgstr "Haak shortcode"
+
+#: src/Elements/Image.php:24
+msgid "Image"
+msgstr "Afbeelding"
+
+#: src/Elements/ImageBox.php:30
+msgid "Image Box"
+msgstr "Afbeeldingssectie"
+
+#: src/Elements/ImageList.php:32
+msgid "Image List"
+msgstr "Afbeeldingenlijst"
+
+#: src/Elements/ImageList.php:48 src/Elements/TextList.php:59
+msgid "Number of columns:"
+msgstr "Aantal kolommen:"
+
+#: src/Elements/Logo.php:27
+msgid "Logo"
+msgstr "Logo"
+
+#: src/Elements/OrderDetails.php:31
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:177
+msgid "Order Details"
+msgstr "Bestelgegevens"
+
+#: src/Elements/OrderDetails.php:94
+msgid "Payment instructions"
+msgstr "Betalingsinstructies"
+
+#: src/Elements/OrderDetails.php:101
+msgid "Order item title"
+msgstr "Titel van het artikel bestellen"
+
+#: src/Elements/OrderDetails.php:108 src/Elements/OrderDetailsDownload.php:104
+msgid "Product title"
+msgstr "Product titel"
+
+#: src/Elements/OrderDetails.php:109 src/Elements/OrderDetailsDownload.php:105
+#: src/Migrations/Versions/Ver_4_0_0.php:570
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:46
+msgid "Product"
+msgstr "Product"
+
+#: src/Elements/OrderDetails.php:115
+msgid "Cost title"
+msgstr "Kosten titel"
+
+#: src/Elements/OrderDetails.php:116 src/Migrations/Versions/Ver_4_0_0.php:571
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:47
+msgid "Cost"
+msgstr "Kosten"
+
+#: src/Elements/OrderDetails.php:122
+msgid "Quantity title"
+msgstr "Titel Hoeveelheid"
+
+#: src/Elements/OrderDetails.php:123 src/Migrations/Versions/Ver_4_0_0.php:572
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:48
+msgid "Quantity"
+msgstr "Aantal"
+
+#: src/Elements/OrderDetails.php:129
+msgid "Price title"
+msgstr "Prijs titel"
+
+#: src/Elements/OrderDetails.php:130 src/Migrations/Versions/Ver_4_0_0.php:573
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:49
+msgid "Price"
+msgstr "Prijs"
+
+#: src/Elements/OrderDetails.php:136
+msgid "Subtotal title"
+msgstr "Subtotaal titel"
+
+#: src/Elements/OrderDetails.php:137 src/Migrations/Versions/Ver_4_0_0.php:574
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:50
+msgid "Subtotal:"
+msgstr "Subtotaal:"
+
+#: src/Elements/OrderDetails.php:143
+msgid "Payment method title"
+msgstr "Titel betaalmethode"
+
+#: src/Elements/OrderDetails.php:144 src/Migrations/Versions/Ver_4_0_0.php:575
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:53
+msgid "Payment method:"
+msgstr "Betaalmethode:"
+
+#: src/Elements/OrderDetails.php:150
+msgid "Total title"
+msgstr "Totaal aantal titels"
+
+#: src/Elements/OrderDetails.php:151 src/Migrations/Versions/Ver_4_0_0.php:576
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:54
+msgid "Total:"
+msgstr "Totaal:"
+
+#: src/Elements/OrderDetails.php:157
+msgid "Note title"
+msgstr "Notitie titel"
+
+#: src/Elements/OrderDetails.php:158 src/Migrations/Versions/Ver_4_0_0.php:577
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:55
+msgid "Note:"
+msgstr "Notitie:"
+
+#: src/Elements/OrderDetails.php:165 src/Migrations/Versions/Ver_4_0_0.php:578
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:51
+msgid "Shipping:"
+msgstr "Verzending:"
+
+#: src/Elements/OrderDetails.php:171
+msgid "Discount title"
+msgstr "Korting titel"
+
+#: src/Elements/OrderDetails.php:172 src/Migrations/Versions/Ver_4_0_0.php:579
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:52
+msgid "Discount:"
+msgstr "Korting:"
+
+#: src/Elements/OrderDetailsDownload.php:34
+msgid "Order Details Download"
+msgstr "Bestelgegevens Downloaden"
+
+#: src/Elements/OrderDetailsDownload.php:97
+msgid "Header title"
+msgstr "Header titel"
+
+#: src/Elements/OrderDetailsDownload.php:111
+msgid "Expires title"
+msgstr "Verlopen titel"
+
+#: src/Elements/OrderDetailsDownload.php:112
+#: src/Migrations/Versions/Ver_4_0_0.php:607
+#: templates/shortcodes/order-details-download-product/main.php:19
+#: templates/shortcodes/order-details-download-product/sample.php:18
+msgid "Expires"
+msgstr "Verloopt"
+
+#: src/Elements/OrderDetailsDownload.php:118
+msgid "Download title"
+msgstr "Titel downloaden"
+
+#: src/Elements/OrderDetailsDownload.php:119
+#: src/Migrations/Versions/Ver_4_0_0.php:608
+#: templates/shortcodes/order-details-download-product/main.php:20
+#: templates/shortcodes/order-details-download-product/sample.php:19
+msgid "Download"
+msgstr "Download"
+
+#: src/Elements/SimpleOffer.php:26
+msgid "Simple Offer"
+msgstr "Eenvoudig aanbod"
+
+#: src/Elements/SingleBanner.php:32
+msgid "Single Banner"
+msgstr "Enkele banner"
+
+#: src/Elements/SkeletonDivider.php:23
+msgid "Skeleton Divider"
+msgstr "Skelet verdeler"
+
+#: src/Elements/SocialIcon.php:25
+msgid "Social Icon"
+msgstr "Social media icoon"
+
+#: src/Elements/SocialIcon.php:71
+msgid "Icon spacing"
+msgstr "Afstand tussen pictogrammen"
+
+#: src/Elements/SocialIcon.php:82
+msgid "Styles theme"
+msgstr "Thema Stijlen"
+
+#: src/Elements/SocialIcon.php:89
+msgid "Socials"
+msgstr "Social media"
+
+#: src/Elements/Space.php:31
+msgid "Space"
+msgstr "Ruimte"
+
+#: src/Elements/TextList.php:36
+msgid "Text List"
+msgstr "Tekst lijst"
+
+#: src/Elements/Title.php:25 src/Elements/Title.php:41
+msgid "Title"
+msgstr "Titel"
+
+#: src/Elements/Title.php:42
+msgid "Enter your title here"
+msgstr "Vul hier je titel in"
+
+#: src/Elements/Title.php:48
+msgid "Title size"
+msgstr "Titel formaat"
+
+#: src/Elements/Title.php:55 src/Elements/Title.php:56
+msgid "Subtitle"
+msgstr "Ondertitel"
+
+#: src/Elements/Title.php:62
+msgid "Subtitle size"
+msgstr "Grootte ondertiteling"
+
+#: src/Elements/Video.php:24
+msgid "Video"
+msgstr "Video"
+
+#: src/Elements/Video.php:52
+msgid "Thumbnail"
+msgstr "Thumbnail"
+
+#: src/Elements/Video.php:73
+msgid "Video URL"
+msgstr "Video URL"
+
+#: src/Elements/Video.php:77
+msgid "Change video"
+msgstr "Video vervangen"
+
+#: src/Emails/CancelledOrder.php:32
+msgid "Order Cancelled: #{order_number}"
+msgstr "Geannuleerde bestelling: nummer {order_number}"
+
+#. translators: %1$s: order id, %2$s: customer name.
+#: src/Emails/CancelledOrder.php:35
+#, php-format
+msgid ""
+"Notification to let you know &mdash; order #%1$s belonging to %2$s has been "
+"cancelled:"
+msgstr ""
+"Notification to let you know &mdash; order #%1$s belonging to %2$s has been "
+"cancelled:"
+
+#: src/Emails/CancelledOrder.php:36 src/Emails/CustomerNote.php:37
+#: src/Emails/CustomerResetPassword.php:42
+msgid "Thanks for reading."
+msgstr "Bedankt voor je aandacht."
+
+#: src/Emails/CustomerCompletedOrder.php:32
+msgid "Thanks for shopping with us"
+msgstr "Bedankt dat u bij ons winkelt"
+
+#. translators: customer name.
+#. translators: customer username.
+#. translators: customer name.
+#. translators: customer username.
+#: src/Emails/CustomerCompletedOrder.php:34 src/Emails/CustomerInvoice.php:35
+#: src/Emails/CustomerNewAccount.php:37 src/Emails/CustomerNote.php:34
+#: src/Emails/CustomerOnHoldOrder.php:36
+#: src/Emails/CustomerProcessingOrder.php:35
+#: src/Emails/CustomerRefundedOrder.php:36
+#: src/Emails/CustomerResetPassword.php:37
+#, php-format
+msgid "Hi %s,"
+msgstr "Hallo %s,"
+
+#: src/Emails/CustomerCompletedOrder.php:35
+msgid "We have finished processing your order."
+msgstr "Bedankt voor je bestelling. Hierbij de betalingsgegevens."
+
+#: src/Emails/CustomerCompletedOrder.php:36
+msgid "Thanks for shopping with us."
+msgstr "Dank je voor het vertrouwen in ons."
+
+#: src/Emails/CustomerFailedOrder.php:32
+msgid "Sorry, your order was unsuccessful"
+msgstr "Sorry, uw bestelling is mislukt"
+
+#: src/Emails/CustomerFailedOrder.php:33
+msgid "Hi [yaymail_billing_first_name]"
+msgstr "Hoi [yaymail_billing_first_name]"
+
+#: src/Emails/CustomerFailedOrder.php:34
+msgid ""
+"Unfortunately, we couldn't complete your order due to an issue with your "
+"payment method."
+msgstr ""
+"Helaas konden we je bestelling niet voltooien vanwege een probleem met je "
+"betaalmethode."
+
+#: src/Emails/CustomerFailedOrder.php:35
+msgid ""
+"If you'd like to continue with your purchase, please return to "
+"[yaymail_site_name] and try a different method of payment."
+msgstr ""
+"Als je verder wilt gaan met je aankoop, ga dan terug naar "
+"[yaymail_site_name] en probeer een andere betaalmethode."
+
+#: src/Emails/CustomerFailedOrder.php:36
+msgid "Your order details are as follows:"
+msgstr "Uw bestelgegevens zijn als volgt:"
+
+#: src/Emails/CustomerInvoice.php:32
+msgid "Details for order: #{order_number}"
+msgstr "Details voor bestelling: #{order_number}"
+
+#. translators: order date.
+#: src/Emails/CustomerInvoice.php:37
+#, php-format
+msgid "Here are the details of your order placed on  %s,"
+msgstr "Hier zijn de details van uw bestelling die op %s is geplaatst,"
+
+#: src/Emails/CustomerInvoice.php:38
+msgid "Thanks for using {site_url}!"
+msgstr "Bedankt dat je {site_url} gebruikt!"
+
+#: src/Emails/CustomerNewAccount.php:34
+msgid "Welcome to {site_title}"
+msgstr "Uw inschrijving"
+
+#. translators: %1$s: site name, %2$s: customer username, %3$s: account url .
+#: src/Emails/CustomerNewAccount.php:39
+#, php-format
+msgid ""
+"Thanks for creating an account on %1$s. Your username is %2$s. You can "
+"access your account area to view orders, change your password, and more at: "
+"%3$s"
+msgstr ""
+"Bedankt voor het aanmaken van een account bij %1$s. <br>\n"
+"De door jou gekozen gebruikersnaam is %2$s. \n"
+"Je kunt nu gaan winkelen.<br>\n"
+"Via Mijn Account %3$s, kun je o.a. jouw adresgegevens invullen, eerdere "
+"bestellingen bekijken en je wachtwoord wijzigen."
+
+#: src/Emails/CustomerNewAccount.php:40
+msgid "We look forward to seeing you soon."
+msgstr "Met vriendelijke groeten {site_title}"
+
+#: src/Emails/CustomerNote.php:32
+msgid "A note has been added to your order"
+msgstr "Een notitie is toegevoegd aan uw bestelling"
+
+#: src/Emails/CustomerNote.php:35
+msgid "The following note has been added to your order:"
+msgstr "Er is zojuist een notitie toegevoegd aan je bestelling:"
+
+#: src/Emails/CustomerNote.php:36
+msgid "As a reminder, here are your order details:"
+msgstr "Ter herinnering, dit zijn de details van uw bestelling:"
+
+#: src/Emails/CustomerOnHoldOrder.php:34
+msgid "Thank you for your order"
+msgstr "Bedankt voor uw bestelling"
+
+#: src/Emails/CustomerOnHoldOrder.php:37
+msgid ""
+"Thanks for your order. It's on-hold until we confirm that payment has been "
+"received. In the meantime, here's a reminder of what you ordered:"
+msgstr ""
+"Bedankt voor uw bestelling. Het staat in de wacht totdat we bevestigen dat "
+"de betaling is ontvangen. In de tussentijd is hier een herinnering aan wat "
+"je hebt besteld:"
+
+#: src/Emails/CustomerOnHoldOrder.php:38
+msgid "We look forward to fulfilling your order soon."
+msgstr "We doen ons best om jouw order zo snel mogelijk te voltooien."
+
+#: src/Emails/CustomerProcessingOrder.php:33
+msgid "Thank you for your order "
+msgstr "Bedankt voor uw bestelling "
+
+#. translators: order id.
+#: src/Emails/CustomerProcessingOrder.php:37
+#, php-format
+msgid ""
+"Just to let you know &mdash; we've received your order #%s,  and it is now "
+"being processed:"
+msgstr ""
+"Om je te laten weten - we hebben je bestelling #%s ontvangen en deze wordt "
+"nu verwerkt:"
+
+#: src/Emails/CustomerProcessingOrder.php:38
+msgid "Thanks for using [yaymail_site_url]!"
+msgstr "Bedankt voor het gebruik van [yaymail_site_url]!"
+
+#. translators: site name.
+#: src/Emails/CustomerRefundedOrder.php:38
+#, php-format
+msgid ""
+"Your order on %s has been refunded. There are more details below for your "
+"reference:"
+msgstr ""
+"Je bestelling op %s is gedeeltelijk terugbetaald. Ter referentie worden "
+"hieronder je bestelgegevens getoond:"
+
+#: src/Emails/CustomerRefundedOrder.php:39
+msgid "We hope to see you again soon."
+msgstr "We hopen je snel weer te mogen verwelkomen."
+
+#: src/Emails/CustomerResetPassword.php:35
+msgid "Password Reset Request"
+msgstr "Wachtwoord Reset Verzoek"
+
+#. translators: site name.
+#: src/Emails/CustomerResetPassword.php:39
+#, php-format
+msgid "Someone has requested a new password for the following account on %s:,"
+msgstr ""
+"Iemand heeft een nieuw wachtwoord aangevraagd voor het volgende account op "
+"%s:,"
+
+#: src/Emails/CustomerResetPassword.php:40
+msgid ""
+"If you didn't make this request, just ignore this email. If you'd like to "
+"proceed:"
+msgstr "Als u dit niet was dan kunt u deze mail negeren. Als u door wilt gaan:"
+
+#: src/Emails/CustomerResetPassword.php:41
+#: src/Shortcodes/CommonShortcodes.php:77
+msgid "Username"
+msgstr "Gebruikersnaam"
+
+#: src/Emails/FailedOrder.php:33
+msgid "Order Failed: #{order_number}"
+msgstr "Bestelling mislukt: #{order_number}"
+
+#. translators: order_id and customer name.
+#: src/Emails/FailedOrder.php:36
+#, php-format
+msgid "Payment for order #%1$s from %2$s has failed. The order was as follows:"
+msgstr ""
+"Betaling voor bestelling #%1$s van %2$s is mislukt. De bestelling was als "
+"volgt:"
+
+#: src/Emails/FailedOrder.php:37
+msgid ""
+"Hopefully they'll be back. Read more about <a href=\\\"https://docs."
+"woocommerce.com/document/managing-orders/\\\">troubleshooting failed "
+"payments</a>."
+msgstr ""
+"Hopelijk komen ze terug. Lees meer over <a href=\"\\\"https://docs."
+"woocommerce.com/document/managing-orders/\\\"\">het oplossen van problemen "
+"met mislukte betalingen</a>."
+
+#: src/Emails/GlobalHeaderFooter.php:23
+msgid "Global header footer"
+msgstr "Globale koptekstvoettekst"
+
+#: src/Emails/GlobalHeaderFooter.php:24
+msgid "Global header footer recipient placeholder"
+msgstr ""
+"Tijdelijke aanduiding voor ontvanger van de algemene koptekst in de voettekst"
+
+#: src/Emails/NewOrder.php:33
+msgid "New order"
+msgstr "Nieuwe bestelling"
+
+#. translators: customer name.
+#: src/Emails/NewOrder.php:35
+#, php-format
+msgid "You’ve received the following order from %s:"
+msgstr "Je hebt een bestelling ontvangen van %s:"
+
+#: src/Emails/NewOrder.php:36
+msgid "Congratulations on the sale."
+msgstr "Hopelijk loopt alles goed met deze verkoop."
+
+#: src/Engine/Backend/SettingsPage.php:54
+#: src/YayCommerceMenu/RegisterMenu.php:172
+msgid "Email Builder Settings"
+msgstr "Instellingen voor E-mail Builder"
+
+#: src/Engine/Backend/SettingsPage.php:55
+#: src/YayCommerceMenu/RegisterMenu.php:172
+msgid "YayMail"
+msgstr "YayMail"
+
+#: src/Engine/Backend/SettingsPage.php:209
+msgid "View WooCommerce Email Builder"
+msgstr "Bekijk WooCommerce Email Builder"
+
+#: src/Engine/Backend/SettingsPage.php:209
+msgid "Start Customizing"
+msgstr "Kies je"
+
+#: src/Engine/Backend/SettingsPage.php:221
+msgid "Docs"
+msgstr "Documentatie"
+
+#: src/Engine/Backend/SettingsPage.php:222
+msgid "Support"
+msgstr "Ondersteuning"
+
+#: src/Engine/Backend/SettingsPage.php:256
+msgid "Customize with YayMail"
+msgstr "Aanpassen met YayMail"
+
+#: src/Functions.php:390
+msgid "Admin"
+msgstr "Beheerder"
+
+#: src/License/EDD_SL_Plugin_Updater.php:501
+msgid "You do not have permission to install plugin updates"
+msgstr "U heeft onvoldoende rechten om deze plug-in te installeren"
+
+#: src/License/EDD_SL_Plugin_Updater.php:501
+msgid "Error"
+msgstr "Fout"
+
+#: src/License/views/expired-admin-notice.php:18
+msgid ""
+"Please click here to renew your license key and continue receiving automatic "
+"updates."
+msgstr ""
+
+#: src/License/views/expired-license-notification.php:3
+msgid "Your license has expired, please "
+msgstr ""
+
+#: src/License/views/expired-license-notification.php:4
+msgid "renew this license"
+msgstr ""
+
+#: src/License/views/expired-license-notification.php:5
+#, fuzzy
+#| msgid "Download title"
+msgid " to download this update. "
+msgstr "Titel downloaden"
+
+#: src/License/views/information-card.php:38
+#, fuzzy
+#| msgid "Activate"
+msgid "Deactivate"
+msgstr "Activeren"
+
+#: src/License/views/information-card.php:54
+#, fuzzy
+#| msgid "Expires title"
+msgid "Expiration Date:"
+msgstr "Verlopen titel"
+
+#: src/License/views/information-card.php:78
+msgid "Need more licenses?"
+msgstr ""
+
+#: src/License/views/information-card.php:78
+msgid "Upgrade to unlimited"
+msgstr ""
+
+#: src/License/views/not-activate-license-notification.php:3
+msgid ""
+"Please activate your license for access to premium features and automatic "
+"updates"
+msgstr ""
+
+#: src/Migrations/Versions/Ver_4_0_0.php:605
+msgid "Downloads"
+msgstr "Downloads"
+
+#: src/Migrations/Versions/Ver_4_0_0.php:606
+#: templates/shortcodes/order-details-download-product/main.php:18
+#: templates/shortcodes/order-details-download-product/sample.php:17
+msgid "Products"
+msgstr "Producten"
+
+#: src/Models/MigrationModel.php:35
+msgid "Migration failed, please contact our Customer Support for help!"
+msgstr "Migratie mislukt, neem contact op met onze klantenservice voor hulp!"
+
+#: src/Models/MigrationModel.php:201
+msgid "Restoration failed"
+msgstr "Backup terugzetten mislukt"
+
+#: src/Models/TemplateModel.php:150 src/Models/TemplateModel.php:184
+#: src/Models/TemplateModel.php:196
+msgid "N/A"
+msgstr "N/A"
+
+#: src/Models/TemplateModel.php:183
+#, fuzzy
+#| msgid " (Addon)"
+msgid "Addon"
+msgstr " (Toevoegen)"
+
+#: src/Notices/NoticeMain.php:125
+msgid ""
+"Please update the YayMail Addons to version 4.0 or later to ensure "
+"compatibility and optimal performance."
+msgstr ""
+"Werk de YayMail-add-ons bij naar versie 4.0 of hoger om compatibiliteit en "
+"optimale prestaties te garanderen."
+
+#: src/PostTypes/TemplatePostType.php:34 src/PostTypes/TemplatePostType.php:35
+msgid "Email Template"
+msgstr "E-mail Template"
+
+#: src/PostTypes/TemplatePostType.php:36
+msgid "Add New Email Template"
+msgstr "Voeg een nieuw e-mailsjabloon toe"
+
+#: src/PostTypes/TemplatePostType.php:37
+msgid "Add a new Email Template"
+msgstr "Een nieuwe e-mailsjabloon toevoegen"
+
+#: src/PostTypes/TemplatePostType.php:38
+msgid "Edit Email Template"
+msgstr "E-mail template bewerken"
+
+#: src/PostTypes/TemplatePostType.php:39
+msgid "New Email Template"
+msgstr "Nieuw e-mailsjabloon"
+
+#: src/PostTypes/TemplatePostType.php:40
+msgid "View Email Template"
+msgstr "Bekijk het e-mailsjabloon"
+
+#: src/PostTypes/TemplatePostType.php:41
+msgid "Search Email Template"
+msgstr "Zoek een e-mailsjabloon"
+
+#: src/PostTypes/TemplatePostType.php:42
+msgid "No Email Template found"
+msgstr "Geen e-mailsjabloon gevonden"
+
+#: src/PostTypes/TemplatePostType.php:43
+msgid "No Email Template currently trashed"
+msgstr "Er is momenteel geen e-mailsjabloon in de prullenbak"
+
+#: src/PreviewEmail/Integration/WcSubscriptions.php:38
+#, php-format
+msgid ""
+"This is not a valid subscription order. Please select a valid subscription "
+"order ID. <br><br>Go to orders page to check %s."
+msgstr ""
+"Dit is geen geldige abonnementsbestelling. Selecteer een geldige bestel-ID "
+"voor een abonnement. <br><br>Ga naar de bestelpagina om te controleren %s."
+
+#: src/PreviewEmail/PreviewEmailWoo.php:114
+#, fuzzy
+#| msgid "Product"
+msgid "Dummy Product"
+msgstr "Product"
+
+#: src/PreviewEmail/PreviewEmailWoo.php:118
+#, fuzzy
+#| msgid "Product image position"
+msgid "Dummy Product Variation"
+msgstr "Positie van de productafbeelding"
+
+#: src/PreviewEmail/PreviewEmailWoo.php:122
+msgid "Color"
+msgstr ""
+
+#: src/PreviewEmail/PreviewEmailWoo.php:122
+#, fuzzy
+#| msgid "Redo"
+msgid "Red"
+msgstr "Opnieuw"
+
+#: src/PreviewEmail/PreviewEmailWoo.php:123
+msgid "Size"
+msgstr ""
+
+#: src/PreviewEmail/PreviewEmailWoo.php:142
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:71
+#: src/Shortcodes/PaymentsShortcodes.php:62
+#: templates/shortcodes/payment-instruction/main.php:31
+msgid "Direct bank transfer"
+msgstr "Directe Bankoverschrijving"
+
+#: src/PreviewEmail/PreviewEmailWoo.php:143
+#, fuzzy
+#| msgid "customer note"
+msgid "This is a customer note."
+msgstr "Opmerking van de klant"
+
+#: src/Shortcodes/BillingShortcodes.php:25
+msgid "Billing Address 1"
+msgstr "Factuuradres 1"
+
+#: src/Shortcodes/BillingShortcodes.php:31
+msgid "Billing Address 2"
+msgstr "Factuuradres 2"
+
+#: src/Shortcodes/BillingShortcodes.php:37
+msgid "Billing First Name"
+msgstr "Voornaam"
+
+#: src/Shortcodes/BillingShortcodes.php:43
+msgid "Billing Last Name"
+msgstr "Achternaam"
+
+#: src/Shortcodes/BillingShortcodes.php:49
+msgid "Billing Company"
+msgstr "Bedrijfsnaam"
+
+#: src/Shortcodes/BillingShortcodes.php:55
+msgid "Billing City"
+msgstr "Plaats"
+
+#: src/Shortcodes/BillingShortcodes.php:61
+msgid "Billing Country"
+msgstr "Land"
+
+#: src/Shortcodes/BillingShortcodes.php:67
+msgid "Billing State"
+msgstr "Provincie"
+
+#: src/Shortcodes/BillingShortcodes.php:73
+msgid "Billing Postal Code"
+msgstr "Facturatie Postcode"
+
+#: src/Shortcodes/BillingShortcodes.php:79
+msgid "Billing Phone"
+msgstr "Telefoonnummer"
+
+#: src/Shortcodes/BillingShortcodes.php:85
+msgid "Billing Email"
+msgstr "Factuur E-mail Adres"
+
+#: src/Shortcodes/BillingShortcodes.php:181
+#: src/Shortcodes/BillingShortcodes.php:203
+msgid "7400 Edwards Rd"
+msgstr "7400 Edwards Rd"
+
+#: src/Shortcodes/BillingShortcodes.php:225
+#: src/Shortcodes/ShippingShortcodes.php:187
+msgid "John"
+msgstr "John"
+
+#: src/Shortcodes/BillingShortcodes.php:247
+#: src/Shortcodes/ShippingShortcodes.php:209
+msgid "Doe"
+msgstr "Doe"
+
+#. Author of the plugin/theme
+#: src/Shortcodes/BillingShortcodes.php:269
+#: src/Shortcodes/ShippingShortcodes.php:231 src/WooHandler.php:120
+msgid "YayCommerce"
+msgstr "YayCommerce"
+
+#: src/Shortcodes/BillingShortcodes.php:291
+msgid "Edwards Rd"
+msgstr "Edwards Rd"
+
+#: src/Shortcodes/BillingShortcodes.php:313
+#: src/Shortcodes/ShippingShortcodes.php:275
+msgid "United States"
+msgstr "Verenigde Staten"
+
+#: src/Shortcodes/BillingShortcodes.php:336
+#: src/Shortcodes/ShippingShortcodes.php:298
+msgid "Random"
+msgstr "Willekeurig"
+
+#: src/Shortcodes/BillingShortcodes.php:358
+#: src/Shortcodes/ShippingShortcodes.php:320
+msgid "48744"
+msgstr "48744"
+
+#: src/Shortcodes/BillingShortcodes.php:380
+#: src/Shortcodes/ShippingShortcodes.php:342
+msgid "(910) 529-1147"
+msgstr "(910) 529-1147"
+
+#: src/Shortcodes/BillingShortcodes.php:409
+msgid "johndoe@gmail.com"
+msgstr "johndoe@gmail.com"
+
+#: src/Shortcodes/CommonShortcodes.php:23
+msgid "Site Name"
+msgstr "Site naam"
+
+#: src/Shortcodes/CommonShortcodes.php:29
+msgid "Site Link"
+msgstr "Site Link"
+
+#: src/Shortcodes/CommonShortcodes.php:31
+#: src/Shortcodes/CommonShortcodes.php:125
+msgid "Home URL"
+msgstr "Home URL"
+
+#: src/Shortcodes/CommonShortcodes.php:38
+msgid "Site URL (String)"
+msgstr "Site-URL (tekenreeks)"
+
+#: src/Shortcodes/CommonShortcodes.php:44
+msgid "Domain"
+msgstr "Domein"
+
+#: src/Shortcodes/CommonShortcodes.php:50
+msgid "User Account Link"
+msgstr "Link gebruikersaccount"
+
+#: src/Shortcodes/CommonShortcodes.php:52
+#: src/Shortcodes/CommonShortcodes.php:152
+msgid "My Account"
+msgstr "Mijn Account"
+
+#: src/Shortcodes/CommonShortcodes.php:59
+msgid "User Account URL (String)"
+msgstr "URL van gebruikersaccount (tekenreeks)"
+
+#: src/Shortcodes/CommonShortcodes.php:65
+msgid "User Email"
+msgstr "Gebruikers Email"
+
+#: src/Shortcodes/CommonShortcodes.php:71
+msgid "User ID"
+msgstr "Gebruikers ID"
+
+#: src/Shortcodes/CommonShortcodes.php:83
+msgid "Name"
+msgstr "Naam"
+
+#: src/Shortcodes/CommonShortcodes.php:89
+msgid "First Name"
+msgstr "Voornaam"
+
+#: src/Shortcodes/CommonShortcodes.php:95
+msgid "Last Name"
+msgstr "Achternaam"
+
+#: src/Shortcodes/CommonShortcodes.php:101
+#: src/Shortcodes/CommonShortcodes.php:342
+msgid "Email heading"
+msgstr "E-mail kop"
+
+#: src/Shortcodes/CommonShortcodes.php:107
+msgid "Additional Content"
+msgstr "Aanvullende Inhoud"
+
+#: src/Shortcodes/CommonShortcodes.php:350
+msgid "Additional content"
+msgstr "Aanvullende inhoud"
+
+#: src/Shortcodes/HookShortcodes.php:18
+msgid "YayMail custom hook"
+msgstr "YayMail haak op maat"
+
+#. translators: %s: The formatted shortcode name
+#: src/Shortcodes/LegacyCustomShortcodes.php:89
+#, php-format
+msgid "Custom shortcode for %s"
+msgstr "Aangepaste shortcode voor %s"
+
+#: src/Shortcodes/NewUsersShortcodes.php:23
+msgid "User New Password"
+msgstr "Nieuw wachtwoord voor de gebruiker"
+
+#: src/Shortcodes/NewUsersShortcodes.php:29
+msgid "User Set New Password Link"
+msgstr "Gebruiker stelt nieuwe wachtwoordlink in"
+
+#: src/Shortcodes/NewUsersShortcodes.php:31
+#: src/Shortcodes/NewUsersShortcodes.php:69
+msgid "Click here to set your new password."
+msgstr "Klik hier om een nieuw wachtwoord in te stellen."
+
+#: src/Shortcodes/NewUsersShortcodes.php:38
+msgid "User Set New Password URL (String)"
+msgstr "Door de gebruiker ingestelde nieuwe wachtwoord-URL (tekenreeks)"
+
+#: src/Shortcodes/NewUsersShortcodes.php:53
+msgid "G(UAM1(eIX#G"
+msgstr "G(UAM1(eIX#G"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:67
+#: src/Shortcodes/ShippingShortcodes.php:362
+msgid "Free shipping"
+msgstr "Gratis verzending"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:240
+msgid "sku"
+msgstr ""
+
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:241
+#, fuzzy
+#| msgid "Show product description"
+msgid "Product short description"
+msgstr "Productbeschrijving weergeven"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsRenderer.php:242
+msgid "Happy YayCommerce"
+msgstr "Gelukkig YayCommerce"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:20
+msgid "Order ID"
+msgstr "Bestelnummer"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:30
+msgid "Order Number"
+msgstr "Bestelnummer"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:39
+msgid "Order Date"
+msgstr "Besteldatum"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:45
+msgid "Order URL"
+msgstr "Bestel-URL"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:47
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:338
+msgid "Order"
+msgstr "Bestelling"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:54
+msgid "Order URL (String)"
+msgstr "Order-URL (tekenreeks)"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:60
+msgid "View Order Link"
+msgstr "Bekijk bestellink"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:62
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:404
+msgid "Your Order"
+msgstr "Uw bestelling"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:69
+msgid "View Order URL (String)"
+msgstr "Bestel-URL weergeven (tekenreeks)"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:75
+msgid "Order Status"
+msgstr "Bestelstatus"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:81
+msgid "Order Fee"
+msgstr "Kosten bestelling"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:87
+msgid "Order Refund"
+msgstr "Bestelling terugbetalen"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:93
+msgid "Order Subtotal"
+msgstr "Bestelling subtotaal"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:99
+msgid "Order Total"
+msgstr "Totaal"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:105
+#, fuzzy
+#| msgid "Order Total"
+msgid "Order Total Value"
+msgstr "Totaal"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:111
+msgid "Order Coupon Codes"
+msgstr "Bestel couponcodes"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:117
+msgid "Number of line items in the order"
+msgstr ""
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:123
+msgid "Number of line items in the order (double)"
+msgstr ""
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:129
+msgid "Total quantity of all items in the order"
+msgstr ""
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:135
+#, fuzzy
+#| msgid "Number of products per row"
+msgid "Number of base products in the order"
+msgstr "Aantal producten per rij"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:141
+#, fuzzy
+#| msgid "Number of products per row"
+msgid "Number of product variations in the order"
+msgstr "Aantal producten per rij"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:147
+msgid "Customer Roles"
+msgstr "Rollen van de klant"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:153
+msgid "Customer Last Note"
+msgstr "Laatste opmerking van de klant"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:159
+msgid "All Customer Note"
+msgstr "Alle opmerkingen voor de klant"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:165
+msgid "Customer Provided Note"
+msgstr "Notitie door klant aangeleverd"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:171
+msgid "Order Meta Content"
+msgstr "Bestel Meta Content"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:183
+msgid "Order Details Download Product"
+msgstr "Bestelgegevens Product downloaden"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:496
+msgid "sample status"
+msgstr "Status van het monster"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:859
+msgid "customer note"
+msgstr "Opmerking van de klant"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:885
+msgid "customer notes"
+msgstr "Opmerkingen van de klant"
+
+#: src/Shortcodes/OrderDetails/OrderDetailsShortcodes.php:914
+msgid "customer provided notes"
+msgstr "Door de klant verstrekte notities"
+
+#: src/Shortcodes/PaymentsShortcodes.php:20
+msgid "Payment method"
+msgstr "Betaalmethode"
+
+#: src/Shortcodes/PaymentsShortcodes.php:26
+msgid "Payment Link"
+msgstr "Betaling"
+
+#: src/Shortcodes/PaymentsShortcodes.php:28
+#: src/Shortcodes/PaymentsShortcodes.php:89
+msgid "Payment page"
+msgstr "Betaal pagina"
+
+#: src/Shortcodes/PaymentsShortcodes.php:35
+msgid "Payment URL (String)"
+msgstr "Betalings-URL (tekenreeks)"
+
+#: src/Shortcodes/PaymentsShortcodes.php:41
+#: src/Shortcodes/PaymentsShortcodes.php:141
+msgid "Payment Instructions"
+msgstr "Betaal instructies"
+
+#: src/Shortcodes/PaymentsShortcodes.php:47
+msgid "Payment Transaction ID"
+msgstr "ID van betalingstransactie"
+
+#: src/Shortcodes/ResetPasswordsShortcodes.php:21
+#: src/Shortcodes/ResetPasswordsShortcodes.php:48
+msgid "Click here to reset your password"
+msgstr "Klik hier om je wachtwoord opnieuw in te stellen"
+
+#: src/Shortcodes/ResetPasswordsShortcodes.php:27
+msgid "Password Reset URL (String)"
+msgstr "URL voor het opnieuw instellen van het wachtwoord (tekenreeks)"
+
+#: src/Shortcodes/ResetPasswordsShortcodes.php:33
+msgid "Password Reset URL by WP"
+msgstr "URL voor het opnieuw instellen van het wachtwoord door WP"
+
+#: src/Shortcodes/ShippingShortcodes.php:25
+msgid "Shipping Address 1"
+msgstr "Adres"
+
+#: src/Shortcodes/ShippingShortcodes.php:31
+msgid "Shipping Address 2"
+msgstr "Verzendadres 2"
+
+#: src/Shortcodes/ShippingShortcodes.php:37
+msgid "Shipping First Name"
+msgstr "Voornaam"
+
+#: src/Shortcodes/ShippingShortcodes.php:43
+msgid "Shipping Last Name"
+msgstr "Achternaam"
+
+#: src/Shortcodes/ShippingShortcodes.php:50
+msgid "Shipping Company"
+msgstr "Bedrijfsnaam"
+
+#: src/Shortcodes/ShippingShortcodes.php:56
+msgid "Shipping City"
+msgstr "Plaats"
+
+#: src/Shortcodes/ShippingShortcodes.php:62
+msgid "Shipping Country"
+msgstr "Land"
+
+#: src/Shortcodes/ShippingShortcodes.php:68
+msgid "Shipping State"
+msgstr "Provincie"
+
+#: src/Shortcodes/ShippingShortcodes.php:74
+msgid "Shipping Postal Code"
+msgstr "Verzending Postcode"
+
+#: src/Shortcodes/ShippingShortcodes.php:80
+msgid "Shipping Phone"
+msgstr "Verzendkosten telefoon"
+
+#: src/Shortcodes/ShippingShortcodes.php:86
+msgid "Shipping Method"
+msgstr "Verzendmethode"
+
+#: src/Shortcodes/ShippingShortcodes.php:92
+msgid "Shipping Total"
+msgstr "Verzendkosten Totaal"
+
+#: src/Shortcodes/ShippingShortcodes.php:143
+#: src/Shortcodes/ShippingShortcodes.php:165
+msgid "755 E North Grove Rd"
+msgstr "755 E Noord Grove Rd"
+
+#: src/Shortcodes/ShippingShortcodes.php:253
+msgid "Mayville, Michigan"
+msgstr "Mayville (Michigan), een plaats in de Amerikaanse staat Michigan"
+
+#: src/TemplatePatterns/Patterns/Banner1.php:23
+msgid "Banner 1"
+msgstr "Banner 1"
+
+#: src/TemplatePatterns/Patterns/Banner2.php:23
+msgid "Banner 2"
+msgstr "Banner 2"
+
+#: src/TemplatePatterns/Patterns/Banner3.php:23
+msgid "Banner 3"
+msgstr "Banner 3"
+
+#: src/TemplatePatterns/Patterns/Banner4.php:24
+msgid "Banner 4"
+msgstr "Spandoek 4"
+
+#: src/TemplatePatterns/Patterns/Banner5.php:24
+msgid "Banner 5"
+msgstr "Spandoek 5"
+
+#: src/TemplatePatterns/Patterns/Banner6.php:26
+msgid "Banner 6"
+msgstr "Banner 6"
+
+#: src/TemplatePatterns/Patterns/Banner7.php:25
+msgid "Banner 7"
+msgstr "Spandoek 7"
+
+#: src/TemplatePatterns/Patterns/Footer1.php:27
+msgid "Footer 1"
+msgstr "Footer 1"
+
+#: src/TemplatePatterns/Patterns/Footer10.php:26
+msgid "Footer 10"
+msgstr "Footer 10"
+
+#: src/TemplatePatterns/Patterns/Footer11.php:25
+msgid "Footer 11"
+msgstr "Footer 11"
+
+#: src/TemplatePatterns/Patterns/Footer2.php:26
+msgid "Footer 2"
+msgstr "Footer 2"
+
+#: src/TemplatePatterns/Patterns/Footer3.php:28
+msgid "Footer 3"
+msgstr "Footer 3"
+
+#: src/TemplatePatterns/Patterns/Footer4.php:27
+msgid "Footer 4"
+msgstr "Footer 4"
+
+#: src/TemplatePatterns/Patterns/Footer5.php:26
+msgid "Footer 5"
+msgstr "Footer 5"
+
+#: src/TemplatePatterns/Patterns/Footer6.php:26
+msgid "Footer 6"
+msgstr "Footer 6"
+
+#: src/TemplatePatterns/Patterns/Footer7.php:24
+msgid "Footer 7"
+msgstr "Footer 7"
+
+#: src/TemplatePatterns/Patterns/Footer8.php:25
+msgid "Footer 8"
+msgstr "Footer 8"
+
+#: src/TemplatePatterns/Patterns/Footer9.php:24
+msgid "Footer 9"
+msgstr "Footer 9"
+
+#: src/TemplatePatterns/Patterns/Header1.php:22
+msgid "Header 1"
+msgstr "Header 1"
+
+#: src/TemplatePatterns/Patterns/Header2.php:25
+msgid "Header 2"
+msgstr "Header 2"
+
+#: src/TemplatePatterns/Patterns/Header3.php:25
+msgid "Header 3"
+msgstr "Kop 3"
+
+#: src/TemplatePatterns/Patterns/Header4.php:26
+msgid "Header 4"
+msgstr "Hoofding Type 4"
+
+#: src/TemplatePatterns/Patterns/Header5.php:24
+msgid "Header 5"
+msgstr "Koptekst 5"
+
+#: src/TemplatePatterns/Patterns/Header6.php:26
+msgid "Header 6"
+msgstr "Koptekst 6"
+
+#: src/TemplatePatterns/Patterns/Header7.php:26
+msgid "Header 7"
+msgstr "Header 7"
+
+#: src/Utils/Localize.php:22
+msgid "Sample order"
+msgstr "Sample bestelling"
+
+#: src/Utils/Localize.php:38
+msgid "Unknown"
+msgstr ""
+
+#: src/Utils/Logger.php:118
+msgid "WARNING:"
+msgstr "WAARSCHUWING:"
+
+#: src/Utils/Logger.php:118
+msgid "SYSTEM ERROR:"
+msgstr "SYSTEEM FOUT:"
+
+#: src/WooHandler.php:50
+#, fuzzy
+#| msgid "Email Template"
+msgid "YayMail Template Preview"
+msgstr "E-mail Template"
+
+#: src/WooHandler.php:51
+msgid ""
+"This is one of your WooCommerce email templates customized with YayMail. You "
+"can modify its colors, layout, and content in the YayMail editor."
+msgstr ""
+
+#: src/WooHandler.php:52
+#, fuzzy
+#| msgid "Email Template"
+msgid "Customized Template"
+msgstr "E-mail Template"
+
+#: src/WooHandler.php:76
+#, fuzzy
+#| msgid "WooCommerce Email Customizer"
+msgid "WooCommerce Email Designer"
+msgstr "WooCommerce E-mail Customizer"
+
+#: src/WooHandler.php:81
+#, fuzzy
+#| msgid "View WooCommerce Email Builder"
+msgid "Customize WooCommerce Emails"
+msgstr "Bekijk WooCommerce Email Builder"
+
+#: src/WooHandler.php:118
+msgid "Open YayMail"
+msgstr "Open YayMail"
+
+#: src/WooHandler.php:120
+msgid "Make Woocommerce Emails match your brand. "
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+#: src/WooHandler.php:120
+msgid "YayMail - WooCommerce Email Customizer"
+msgstr "YayMail - WooCommerce E-mail Aanpasser"
+
+#: src/WooHandler.php:120
+msgid " plugin by "
+msgstr ""
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:122
+msgid "Other Plugins"
+msgstr "Andere plug-ins"
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:292
+#: src/YayCommerceMenu/OtherPluginsMenu.php:341
+#: src/YayCommerceMenu/OtherPluginsMenu.php:389
+msgid "Nonce is invalid"
+msgstr "Nonce is ongeldig"
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:310
+msgid "Get data success"
+msgstr "Gegevens ophalen succesvol"
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:318
+#: src/YayCommerceMenu/OtherPluginsMenu.php:362
+#: src/YayCommerceMenu/OtherPluginsMenu.php:472
+msgid "Error exception."
+msgstr "Fout uitzondering."
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:327
+#: src/YayCommerceMenu/OtherPluginsMenu.php:371
+#: src/YayCommerceMenu/OtherPluginsMenu.php:481
+msgid "Error."
+msgstr "Fout."
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:355
+msgid "Activate success"
+msgstr "Activeren succesvol"
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:438
+msgid "Install success"
+msgstr "Installeren succesvol"
+
+#: src/YayCommerceMenu/OtherPluginsMenu.php:462
+msgid "Update success"
+msgstr "Update succesvol"
+
+#: src/YayCommerceMenu/RegisterMenu.php:80
+msgid "Help"
+msgstr "Help"
+
+#: src/YayCommerceMenu/RegisterMenu.php:115
+msgid "Licenses"
+msgstr "Licenties"
+
+#: src/YayCommerceMenu/RegisterMenu.php:124
+msgid "Other plugins"
+msgstr "Andere plugins"
+
+#. translators: %s: Plugin name and version.
+#: src/YayCommerceMenu/views/other-plugins-content.php:76
+#: src/YayCommerceMenu/views/other-plugins-content.php:84
+#, php-format
+msgctxt "plugin"
+msgid "Install %s now"
+msgstr "Installeer %s"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:77
+#: src/YayCommerceMenu/views/other-plugins-content.php:85
+msgid "Install Now"
+msgstr "Installeer Nu"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:91
+msgctxt "plugin"
+msgid "Cannot Install"
+msgstr "Kan niet installeren"
+
+#. translators: %s: Plugin name and version.
+#: src/YayCommerceMenu/views/other-plugins-content.php:108
+#: src/YayCommerceMenu/views/other-plugins-content.php:119
+#, php-format
+msgctxt "plugin"
+msgid "Update %s now"
+msgstr "%s bijwerken"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:110
+#: src/YayCommerceMenu/views/other-plugins-content.php:121
+msgid "Update Now"
+msgstr "Nu updaten"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:127
+msgctxt "plugin"
+msgid "Cannot Update"
+msgstr "Kan niet updaten"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:144
+msgctxt "plugin"
+msgid "Activated"
+msgstr "Geactiveerd"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:149
+msgid "Activate"
+msgstr "Activeren"
+
+#. translators: %s: Plugin name.
+#: src/YayCommerceMenu/views/other-plugins-content.php:151
+#, php-format
+msgctxt "plugin"
+msgid "Activate %s"
+msgstr "Activeer %s"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:162
+msgid "Network Activate"
+msgstr "Netwerk Activeren"
+
+#. translators: %s: Plugin name.
+#: src/YayCommerceMenu/views/other-plugins-content.php:164
+#, php-format
+msgctxt "plugin"
+msgid "Network Activate %s"
+msgstr "Netwerk-wijd activeren %s"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:177
+msgctxt "plugin"
+msgid "Cannot Activate"
+msgstr "Kan niet activeren"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:183
+msgctxt "plugin"
+msgid "Installed"
+msgstr "Geïnstalleerd"
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:213
+msgid "This plugin doesn&#8217;t work with your versions of WordPress and PHP."
+msgstr "Deze plugin werkt niet met jouw versies van WordPress en PHP."
+
+#. translators: 1: URL to WordPress Updates screen, 2: URL to Update PHP page.
+#: src/YayCommerceMenu/views/other-plugins-content.php:217
+#, php-format
+msgid ""
+"<a href=\"%1$s\">Please update WordPress</a>, and then <a "
+"href=\"%2$s\">learn more about updating PHP</a>."
+msgstr ""
+"<a href=\"%1$s\">Update WordPress</a>en lees meer <a href=\"%2$s\">over het "
+"updaten van PHP.</a>."
+
+#. translators: %s: URL to WordPress Updates screen.
+#: src/YayCommerceMenu/views/other-plugins-content.php:225
+#: src/YayCommerceMenu/views/other-plugins-content.php:241
+#, php-format
+msgid "<a href=\"%s\">Please update WordPress</a>."
+msgstr "<a href=\"%s\">Werk WordPress bij.</a>."
+
+#. translators: %s: URL to Update PHP page.
+#: src/YayCommerceMenu/views/other-plugins-content.php:231
+#: src/YayCommerceMenu/views/other-plugins-content.php:250
+#, php-format
+msgid "<a href=\"%s\">Learn more about updating PHP</a>."
+msgstr "<a href=\"%s\">Leer meer over het updaten van PHP</a>."
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:237
+msgid "This plugin doesn&#8217;t work with your version of WordPress."
+msgstr "Deze plug-in werkt niet met jouw versie van WordPress."
+
+#: src/YayCommerceMenu/views/other-plugins-content.php:246
+msgid "This plugin doesn&#8217;t work with your version of PHP."
+msgstr "Deze plugin werkt niet met jouw versie van PHP."
+
+#: templates/fallbacks/fallback-exists.php:11
+msgid ""
+"It looks like you have another YayMail version installed, please delete it "
+"before activating this new version. All current settings and data are still "
+"preserved."
+msgstr ""
+"Het lijkt erop dat je een andere YayMail-versie hebt geïnstalleerd, "
+"verwijder deze voordat je deze nieuwe versie activeert. Alle huidige "
+"instellingen en gegevens blijven behouden."
+
+#: templates/fallbacks/fallback-exists.php:12
+msgid "Read more details."
+msgstr "Lees verder voor de details."
+
+#. translators: %1$s: current PHP version,
+#: templates/fallbacks/fallback-minimum-php.php:15
+#, php-format
+msgid ""
+"YayMail requires PHP 7.2.0 to work and does not support your current PHP "
+"version %1$s. Please contact your host and request a PHP upgrade to the "
+"latest one."
+msgstr ""
+"YayMail vereist PHP 7.2.0 om te werken en ondersteunt je huidige PHP-versie "
+"%1$s niet. Neem contact op met je host en vraag een PHP-upgrade aan naar de "
+"nieuwste upgrade."
+
+#. translators: %1$s: current WordPress version,
+#: templates/fallbacks/fallback-minimum-wp.php:17
+#, php-format
+msgid ""
+"YayMail requires WordPress 5.2.0 to work and does not support your current "
+"WordPress version %1$s."
+msgstr ""
+"YayMail vereist WordPress 5.2.0 om te werken en ondersteunt je huidige "
+"WordPress versie %1$s niet."
+
+#: templates/notices/suggest-addons.php:2
+msgid "Recommended: You can use YayMail to customize all email templates of:"
+msgstr ""
+"Aanbevolen: Je kunt YayMail gebruiken om alle e-mailsjablonen aan te passen "
+"van:"
+
+#: templates/notices/suggest-addons.php:9
+#, php-format
+msgid "%s (Addon)"
+msgstr "%s (add-on)"
+
+#: templates/notices/suggest-addons.php:17
+msgid "See Addons"
+msgstr "Zie Add-ons"
+
+#: templates/notices/suggest-addons.php:18 templates/notices/upgrade.php:18
+msgid "No, thanks"
+msgstr "Nee, dank je"
+
+#: templates/notices/upgrade.php:2
+#, fuzzy
+#| msgid ""
+#| "Recommended: You can use YayMail to customize all email templates of:"
+msgid "Recommended: You can use YayMail Pro to integrate with:"
+msgstr ""
+"Aanbevolen: Je kunt YayMail gebruiken om alle e-mailsjablonen aan te passen "
+"van:"
+
+#: templates/notices/upgrade.php:17
+#, fuzzy
+#| msgid "Upgrade Now"
+msgid "Upgrade to Pro"
+msgstr "Nu Bijwerken"
+
+#: templates/shortcodes/order-details-download-product/main.php:108
+msgid "Never"
+msgstr "Nooit"
+
+#: templates/shortcodes/order-details-download-product/sample.php:76
+#: templates/shortcodes/order-details-download-product/sample.php:88
+msgid "Downloadable Product"
+msgstr "Downloadbaar Product"
+
+#: templates/shortcodes/order-details-download-product/sample.php:96
+msgid "Download.doc"
+msgstr "Download.doc"
+
+#: templates/shortcodes/payment-instruction/main.php:38
+msgid "Sort code"
+msgstr "Sorteercode"
+
+#: templates/shortcodes/payment-instruction/main.php:60
+msgid "Bank"
+msgstr "Bank"
+
+#: templates/shortcodes/payment-instruction/main.php:64
+msgid "Account number"
+msgstr "Rekeningnummer"
+
+#: templates/shortcodes/payment-instruction/main.php:72
+msgid "IBAN"
+msgstr "IBAN"
+
+#: templates/shortcodes/payment-instruction/main.php:76
+msgid "BIC"
+msgstr "BIC"
+
+#: templates/shortcodes/yaydp-on-sale-products/main.php:137
+msgid "BUY NOW"
+msgstr "KOOP NU"
+
+#. translators: %s: search WooCommerce plugin link
+#: yaymail.php:95
+#, php-format
+msgid ""
+"is enabled but not effective. It requires %1$sWooCommerce%2$s in order to "
+"work."
+msgstr ""
+"is ingeschakeld, maar niet effectief. Het vereist %1$sWooCommerce%2$s om te "
+"kunnen werken."
+
+#. Plugin URI of the plugin/theme
+msgid "https://yaycommerce.com/yaymail-woocommerce-email-customizer/"
+msgstr "https://yaycommerce.com/yaymail-woocommerce-email-customizer/"
+
+#. Description of the plugin/theme
+msgid "Create awesome transactional emails with a drag and drop email builder"
+msgstr ""
+"Maak geweldige transactionele e-mails met een e-mailbuilder met slepen en "
+"neerzetten"
+
+#. Author URI of the plugin/theme
+msgid "https://yaycommerce.com"
+msgstr "https://yaycommerce.com"
+
+#~ msgid "this"
+#~ msgstr "deze"
+
+#~ msgid "Saved Pattern "
+#~ msgstr "Opgeslagen patroon "
+
+#~ msgid "Pattern saved"
+#~ msgstr "Patroon opgeslagen"
+
+#~ msgid "Failed to save pattern"
+#~ msgstr "Kan patroon niet opslaan"
+
+#~ msgid "Save pattern failed!"
+#~ msgstr "Patroon opslaan is mislukt!"
+
+#~ msgid "Tags"
+#~ msgstr "Tags"
+
+#~ msgid "None"
+#~ msgstr "Geen"
+
+#~ msgid "Name A-Z"
+#~ msgstr "Naam A-Z"
+
+#~ msgid "Name Z-A"
+#~ msgstr "Naam Z-A"
+
+#~ msgid "Price ascending"
+#~ msgstr "Prijs oplopend"
+
+#~ msgid "Price descending"
+#~ msgstr "Prijs dalend"
+
+#~ msgid "Newest"
+#~ msgstr "Nieuwste"
+
+#~ msgid "On sale"
+#~ msgstr "Aanbieding"
+
+#~ msgid "Tag selections"
+#~ msgstr "Tag selecties"
+
+#~ msgid "Product selections"
+#~ msgstr "Product selecties"
+
+#~ msgid "Top content"
+#~ msgstr "Bovenkant inhoud"
+
+#~ msgid "Product image"
+#~ msgstr "Productafbeelding"
+
+#~ msgid "Product name"
+#~ msgstr "Productnaam"
+
+#~ msgid "Product price"
+#~ msgstr "Product prijs"
+
+#~ msgid "Product original price"
+#~ msgstr "Product originele prijs"
+
+#~ msgid "Buy button"
+#~ msgstr "Bestelknop"
+
+#~ msgid "Border"
+#~ msgstr "Rand"
+
+#~ msgid "Product type"
+#~ msgstr "Product type"
+
+#~ msgid "Categories"
+#~ msgstr "Categorieën"
+
+#~ msgid "Feauted products number of products"
+#~ msgstr "Aanbevolen producten Aantal producten"
+
+#~ msgid "Number of showing products"
+#~ msgstr "Aantal getoonde producten"
+
+#~ msgid "View products"
+#~ msgstr "Bekijk producten"
+
+#~ msgid "Close"
+#~ msgstr "Sluiten"
+
+#~ msgid "Are you sure you want to permanently delete pattern "
+#~ msgstr "Weet u zeker dat u het patroon permanent wilt verwijderen? "
+
+#~ msgid "Pattern deleted"
+#~ msgstr "Patroon verwijderd"
+
+#~ msgid "Failed to delete pattern"
+#~ msgstr "Kan patroon niet verwijderen"
+
+#~ msgid "Delete Pattern"
+#~ msgstr "Patroon verwijderen"
+
+#~ msgid "PATTERNS"
+#~ msgstr "PATRONEN"
+
+#~ msgid "LIBRARY"
+#~ msgstr "BIBLIOTHEEK"
+
+#~ msgid "Are you sure you want to clear all revisions?"
+#~ msgstr "Weet u zeker dat u alle revisies wilt wissen?"
+
+#~ msgid "Clear all revisions"
+#~ msgstr "Wis alle revisies"
+
+#~ msgid "All revisions will be deleted."
+#~ msgstr "Alle herzieningen worden verwijderd."
+
+#~ msgid "You have no revision"
+#~ msgstr "Je hebt geen revisie"
+
+#~ msgid "Save settings"
+#~ msgstr "Instellingen opslaan"
+
+#~ msgid "Save global settings"
+#~ msgstr "Algemene instellingen opslaan"
+
+#~ msgid "Invalid email address"
+#~ msgstr "Ongeldig e-mailadres"
+
+#~ msgid "Leave this empty to preview email only"
+#~ msgstr "Laat dit leeg om alleen een voorbeeld van e-mail te bekijken"
+
+#~ msgid "Search Order"
+#~ msgstr "Zoek Bestelling"
+
+#~ msgid "Email To"
+#~ msgstr "E-mail naar"
+
+#~ msgid "Send & Preview"
+#~ msgstr "Verzenden & Voorbeeld"
+
+#~ msgid "Please choose order to preview email"
+#~ msgstr "Kies de volgorde om een voorbeeld van de e-mail te bekijken"
+
+#~ msgid ""
+#~ "Resetting to a previous version of a feature or software update allows "
+#~ "you to return to a familiar interface or functionality that was present "
+#~ "before recent changes were made"
+#~ msgstr ""
+#~ "Als u een eerdere versie van een functie of software-update opnieuw "
+#~ "instelt, kunt u terugkeren naar een vertrouwde interface of "
+#~ "functionaliteit die aanwezig was voordat recente wijzigingen werden "
+#~ "aangebracht"
+
+#~ msgid ""
+#~ "Migrating version data into a new version feature involves transferring "
+#~ "existing information, settings, and configurations seamlessly from the "
+#~ "previous iteration to the updated version"
+#~ msgstr ""
+#~ "Het migreren van versiegegevens naar een nieuwe versiefunctie omvat het "
+#~ "naadloos overzetten van bestaande informatie, instellingen en "
+#~ "configuraties van de vorige iteratie naar de bijgewerkte versie"
+
+#~ msgid ""
+#~ "Simplifies managing your YayMail templates. Easily import existing "
+#~ "templates from compatible formats or export them for backup or sharing "
+#~ "purposes. Streamline your workflow by seamlessly transferring templates "
+#~ "between accounts or applications, ensuring consistency and efficiency in "
+#~ "your communications."
+#~ msgstr ""
+#~ "Vereenvoudigt het beheren van uw YayMail-sjablonen. Importeer eenvoudig "
+#~ "bestaande sjablonen uit compatibele indelingen of exporteer ze voor back-"
+#~ "up- of deeldoeleinden. Stroomlijn uw workflow door sjablonen naadloos "
+#~ "over te dragen tussen accounts of applicaties, zodat u verzekerd bent van "
+#~ "consistentie en efficiëntie in uw communicatie."
+
+#~ msgid "Change priority successfully."
+#~ msgstr "Wijzig de prioriteit met succes."
+
+#~ msgid "Change priority failed"
+#~ msgstr "Wijzigingsprioriteit mislukt"
+
+#~ msgid "ON"
+#~ msgstr "AAN"
+
+#~ msgid "OFF"
+#~ msgstr "UIT"
+
+#~ msgid "Translate Integration Priority"
+#~ msgstr "Integratieprioriteit vertalen"
+
+#~ msgid "Documentation"
+#~ msgstr "Documentatie"
+
+#~ msgid "Email Customizer"
+#~ msgstr "E-mail Customizer"
+
+#~ msgid "Showing items"
+#~ msgstr "Items tonen"
+
+#~ msgid "Product price color"
+#~ msgstr "Productprijs kleur"
+
+#~ msgid "Product original price color"
+#~ msgstr "Product originele prijs kleur"
+
+#~ msgid "Buy button text"
+#~ msgstr "Koop knop tekst"
+
+#~ msgid "Buy button background color"
+#~ msgstr "Knop achtergrondkleur kopen"
+
+#~ msgid "Buy button text color"
+#~ msgstr "Tekstkleur van de knop kopen"
+
+#~ msgid "Sorted by"
+#~ msgstr "Sorted by"
+
+#~ msgid "Ascending Price"
+#~ msgstr "Oplopende prijs"
+
+#~ msgid "Descending Price"
+#~ msgstr "Aflopende prijs"
+
+#~ msgid "Number of featured products"
+#~ msgstr "Aantal aanbevolen producten"
+
+#~ msgid "Product categories"
+#~ msgstr "Productcategorieën"
+
+#~ msgid "Product tags"
+#~ msgstr "Product tags"
+
+#~ msgid "Border width"
+#~ msgstr "Randbreedte"
+
+#~ msgid "Border style"
+#~ msgstr "Randstijl"
+
+#~ msgid "ORDER NOW"
+#~ msgstr "BESTEL NU"
+
+#~ msgid "Button URL"
+#~ msgstr "Knop URL"
+
+#~ msgid "Button text color"
+#~ msgstr "Button Tekstkleur"
+
+#~ msgid "Content width"
+#~ msgstr "Content breedte"
+
+#~ msgid "Button align"
+#~ msgstr "Knop uitlijning"
+
+#~ msgid "Advanced Local Pickup Instruction"
+#~ msgstr "Geavanceerde instructie voor lokale afhaling"
+
+#~ msgid "Pickup information title"
+#~ msgstr "Titel van de ophaalinformatie"
+
+#~ msgid "Pickup information"
+#~ msgstr "Ophaalinformatie"
+
+#~ msgid "Pickup address title"
+#~ msgstr "Titel van ophaaladres"
+
+#~ msgid "Pickup Address"
+#~ msgstr "Afhaaladres"
+
+#~ msgid "Pickup hours title"
+#~ msgstr "Titel ophaaluren"
+
+#~ msgid "Pickup Hours"
+#~ msgstr "Ophaaltijden"
+
+#~ msgid "Sunday"
+#~ msgstr "Zondag"
+
+#~ msgid "Monday"
+#~ msgstr "Maandag"
+
+#~ msgid "Tuesday"
+#~ msgstr "Dinsdag"
+
+#~ msgid "Wednesday"
+#~ msgstr "Woensdag"
+
+#~ msgid "Thursday"
+#~ msgstr "Donderdag"
+
+#~ msgid "Friday"
+#~ msgstr "Vrijdag"
+
+#~ msgid "Saturday"
+#~ msgstr "Zaterdag"
+
+#~ msgid " To "
+#~ msgstr " Tot "
+
+#~ msgid "Tracking Information"
+#~ msgstr "Tracking informatie"
+
+#~ msgid "Tracking title"
+#~ msgstr "Titel volgen"
+
+#~ msgid "Track Your Order"
+#~ msgstr "Volg uw bestelling"
+
+#~ msgid "Your Order is Partially Shipped"
+#~ msgstr "Uw bestelling is gedeeltelijk verzonden"
+
+#~ msgid "Hi there. we thought you'd like to know that your recent order from "
+#~ msgstr ""
+#~ "Hoi. We dachten dat je graag zou willen weten dat je recente bestelling "
+#~ "van "
+
+#~ msgid " has been partially shipped."
+#~ msgstr " is gedeeltelijk verzonden."
+
+#~ msgid "No order found"
+#~ msgstr "Geen bestelling gevonden"
+
+#~ msgid "Shipment %1$s (out of %2$s):"
+#~ msgstr "Verzending %1$s (buiten %2$s):"
+
+#~ msgid "Shipped"
+#~ msgstr "Verzonden"
+
+#~ msgid "Shipped on"
+#~ msgstr "Verzonden op"
+
+#~ msgid "No tracking found"
+#~ msgstr "Geen tracking gevonden"
+
+#~ msgid "Notifier Instock Mail"
+#~ msgstr "Notifier Instock Mail"
+
+#~ msgid "Product [yaymail_notifier_product_name] is back in stock"
+#~ msgstr "Product [yaymail_notifier_product_name] is weer op voorraad"
+
+#~ msgid "Hello [yaymail_notifier_subscriber_name],"
+#~ msgstr "Hallo [yaymail_notifier_subscriber_name],"
+
+#~ msgid "Thanks for your patience and finally the wait is over! "
+#~ msgstr "Bedankt voor je geduld en eindelijk is het wachten voorbij! "
+
+#~ msgid ""
+#~ "Your Subscribed Product [yaymail_notifier_product_name] is now back in "
+#~ "stock! "
+#~ msgstr ""
+#~ "Uw geabonneerde product [yaymail_notifier_product_name] is nu weer op "
+#~ "voorraad! "
+
+#~ msgid ""
+#~ "We only have a limited amount of stock, and this email is not a guarantee "
+#~ "you'll get one, so hurry to be one of the lucky shoppers who do Add this "
+#~ "product [yaymail_notifier_product_name] directly to your cart "
+#~ "[yaymail_notifier_cart_link]"
+#~ msgstr ""
+#~ "We hebben maar een beperkte hoeveelheid voorraad, en deze e-mail is geen "
+#~ "garantie dat je er een krijgt, dus wees snel een van de gelukkige "
+#~ "shoppers die dat wel doet Voeg dit product "
+#~ "[yaymail_notifier_product_name] direct toe aan uw winkelwagen "
+#~ "[yaymail_notifier_cart_link]"
+
+#~ msgid "Notifier Subscribe Mail"
+#~ msgstr "Notifier Abonneren Mail"
+
+#~ msgid ""
+#~ "You subscribed to [yaymail_notifier_product_name] at "
+#~ "[yaymail_notifier_shopname]"
+#~ msgstr ""
+#~ "U hebt zich geabonneerd op [yaymail_notifier_product_name] op "
+#~ "[yaymail_notifier_shopname]"
+
+#~ msgid "Dear [yaymail_notifier_subscriber_name] ,"
+#~ msgstr "Beste [yaymail_notifier_subscriber_name] ,"
+
+#~ msgid ""
+#~ "Thank you for subscribing to the #[yaymail_notifier_product_name]. We "
+#~ "will email you once product back in stock"
+#~ msgstr ""
+#~ "Bedankt voor het abonneren op de #[yaymail_notifier_product_name]. We "
+#~ "sturen u een e-mail zodra het product weer op voorraad is"
+
+#~ msgid "Notifier Product ID"
+#~ msgstr "Product-ID voor kennisgeving"
+
+#~ msgid "Notifier Product Name"
+#~ msgstr "Notifier Productnaam"
+
+#~ msgid "Notifier Product Sku"
+#~ msgstr "Notifier Product-SKU"
+
+#~ msgid "Notifier Product Link"
+#~ msgstr "Melding Product Link"
+
+#~ msgid "Notifier Product Image"
+#~ msgstr "Notifier Product Afbeelding"
+
+#~ msgid "Notifier Shop Name"
+#~ msgstr "Naam van de melder"
+
+#~ msgid "Notifier Cart Link"
+#~ msgstr "Notifier Cart Link"
+
+#~ msgid "Notifier Subscriber Email"
+#~ msgstr "E-mailadres voor abonnee melden"
+
+#~ msgid "Notifier Subscriber Name"
+#~ msgstr "Naam van de melder van de abonnee"
+
+#~ msgid "Notifier Only Product Name"
+#~ msgstr "Alleen voor kennisgever Productnaam"
+
+#~ msgid "Order status for order [yaymail_order_id] has been changed."
+#~ msgstr "De bestelstatus voor bestelling [yaymail_order_id] is gewijzigd."
+
+#~ msgid "Pay with cash upon delivery."
+#~ msgstr "Betaal contant bij aflevering."
+
+#~ msgid "Order status changed to {order_status}"
+#~ msgstr "Orderstatus gewijzigd in {order_status}"
+
+#~ msgid "FooEvents Ticket Details"
+#~ msgstr "FooEvents Ticketdetails"
+
+#~ msgid "Slot"
+#~ msgstr "Slot"
+
+#~ msgid "Date"
+#~ msgstr "Datum"
+
+#~ msgid "Ticket Details"
+#~ msgstr "Ticket details"
+
+#~ msgid "Start time"
+#~ msgstr "Starttijd"
+
+#~ msgid "End time"
+#~ msgstr "Eindtijd"
+
+#~ msgid "End date"
+#~ msgstr "Einddatum"
+
+#~ msgid "Day "
+#~ msgstr "Dag "
+
+#~ msgid "Email"
+#~ msgstr "E-mail"
+
+#~ msgid "Telephone"
+#~ msgstr "Telefoon"
+
+#~ msgid "Company"
+#~ msgstr "Bedrijf"
+
+#~ msgid "Designation"
+#~ msgstr "Functie"
+
+#, php-format
+#~ msgid "Booking %s"
+#~ msgstr "Reserveringsstatus %s"
+
+#~ msgid "Row"
+#~ msgstr "Rij"
+
+#~ msgid "Seat"
+#~ msgstr "Stoel"
+
+#~ msgid "Sample Event"
+#~ msgstr "Voorbeeld evenement"
+
+#~ msgid "Sample Company"
+#~ msgstr "Voorbeeld bedrijf"
+
+#~ msgid "Manager"
+#~ msgstr "Manager"
+
+#~ msgid "TrackingMore Tracking Information"
+#~ msgstr "TrackingMeer trackinginformatie"
+
+#~ msgid "Courier title"
+#~ msgstr "Titel van de koerier"
+
+#~ msgid "Tracking number title"
+#~ msgstr "Titel van trackingnummer"
+
+#~ msgid "Tracking number"
+#~ msgstr "Trackingnummer"
+
+#~ msgid "TrackingMore Tracking Number"
+#~ msgstr "TrackingMore trackingnummer"
+
+#~ msgid "TrackingMore Courier"
+#~ msgstr "TrackingMore Koerier"
+
+#~ msgid "No data"
+#~ msgstr "Geen gegevens"
+
+#~ msgid "Admin Custom Order Fields By SkyVerge"
+#~ msgstr "Admin Aangepaste volgorde velden door SkyVerge"
+
+#~ msgid "Additional Order Details"
+#~ msgstr "Aanvullende bestelgegevens"
+
+#~ msgid "SkyVerge's WoocCommerce Admin Custom Order Field: "
+#~ msgstr "Het WoocCommerce Admin aangepaste volgordeveld van SkyVerge: "
+
+#~ msgid "WooCommerce Admin Custom Order Field by SkyVerge"
+#~ msgstr "WooCommerce Admin Aangepast volgveld door SkyVerge"
+
+#~ msgid "Order has been updated"
+#~ msgstr "Bestelling is bijgewerkt"
+
+#~ msgid ""
+#~ "Your order is now [yaymail_order_status]. Order details are as follows:"
+#~ msgstr ""
+#~ "Uw bestelling is nu [yaymail_order_status]. De details van de bestelling "
+#~ "zijn als volgt:"
+
+#~ msgid "Tel"
+#~ msgstr "Tel"
+
+#~ msgid "Provider title"
+#~ msgstr "Titel van de aanbieder"
+
+#~ msgid "Provider"
+#~ msgstr "Provider"
+
+#~ msgid "Date title"
+#~ msgstr "Datum titel"
+
+#~ msgid "Tracking Number"
+#~ msgstr "Traceringsnummer"
+
+#~ msgid "Track"
+#~ msgstr "Volgen"
+
+#~ msgid "WC Shipping Tax Shipment Tracking"
+#~ msgstr "WC Verzending Belasting Verzending Tracking"
+
+#~ msgid "Tracking"
+#~ msgstr "Tracking"
+
+#~ msgid "No tracking data"
+#~ msgstr "Geen trackinggegevens"
+
+#~ msgid "WC Software License Information"
+#~ msgstr "Informatie over WC-softwarelicenties"
+
+#~ msgid "License title"
+#~ msgstr "Licentie titel"
+
+#~ msgid "License Keys"
+#~ msgstr "Licentiesleutels"
+
+#~ msgid "Software License Info"
+#~ msgstr "Informatie over softwarelicenties"
+
+#~ msgid "No license data"
+#~ msgstr "Geen licentiegegevens"
+
+#, php-format
+#~ msgid "Version %s"
+#~ msgstr "Versie %s"
+
+#~ msgid "License Email:"
+#~ msgstr "Licentie E-mail:"
+
+#~ msgid "License Key:"
+#~ msgstr "Licentie Code:"
+
+#~ msgid "%d activations remaining"
+#~ msgstr "%d resterende activeringen"
+
+#~ msgid "Tracking Information by PluginHive"
+#~ msgstr "Tracking-informatie door PluginHive"
+
+#~ msgid ""
+#~ "Your order was shipped on "
+#~ "[yaymail_order_tracking_information_by_pluginhive_date] via "
+#~ "[yaymail_order_tracking_information_by_pluginhive_service]. To track "
+#~ "shipment, please follow the link of shipment ID(s) "
+#~ "[yaymail_order_tracking_information_by_pluginhive_tracking_id]"
+#~ msgstr ""
+#~ "Je bestelling is verzonden op "
+#~ "[yaymail_order_tracking_information_by_pluginhive_date] via "
+#~ "[yaymail_order_tracking_information_by_pluginhive_service]. Om de zending "
+#~ "te volgen, volgt u de link met zendings-ID('s) "
+#~ "[yaymail_order_tracking_information_by_pluginhive_tracking_id]"
+
+#~ msgid "PluginHive's Tracking Information - Shipment Service"
+#~ msgstr "PluginHive's trackinginformatie - Verzendservice"
+
+#~ msgid "PluginHive's Tracking Information - Shipment Date"
+#~ msgstr "PluginHive's trackinginformatie - Verzenddatum"
+
+#~ msgid "PluginHive's Tracking Information - Shipment Tracking ID"
+#~ msgstr "Trackinginformatie van PluginHive - Tracking-ID van zendingen"
+
+#~ msgid ""
+#~ "Your order has been picked up by "
+#~ "<strong>[yaymail_yith_tracking_carrier_name]</strong> on "
+#~ "<strong>[yaymail_yith_tracking_pickup_date]</strong>"
+#~ msgstr ""
+#~ "Uw bestelling is afgehaald door "
+#~ "<strong>[yaymail_yith_tracking_carrier_name]</strong> op "
+#~ "<strong>[yaymail_yith_tracking_pickup_date]</strong>"
+
+#~ msgid ""
+#~ "Estimated delivery date: "
+#~ "<strong>[yaymail_yith_tracking_estimated_delivery]</strong>"
+#~ msgstr ""
+#~ "Geschatte leverdatum: <strong>[yaymail_yith_tracking_estimated_delivery]</"
+#~ "strong>"
+
+#~ msgid "Your tracking code is: <strong>[yaymail_yith_tracking_code]</strong>"
+#~ msgstr "Uw trackingcode is: <strong>[yaymail_yith_tracking_code]</strong>"
+
+#~ msgid "YITH Tracking Information"
+#~ msgstr "YITH-trackinginformatie"
+
+#~ msgid "YITH Tracking Information - Carrier Name"
+#~ msgstr "YITH-trackinginformatie - naam van de vervoerder"
+
+#~ msgid "YITH Tracking Information - Pickup Date"
+#~ msgstr "YITH-trackinginformatie - Ophaaldatum"
+
+#~ msgid "YITH Tracking Information - Track Code"
+#~ msgstr "YITH-trackinginformatie - Trackcode"
+
+#~ msgid "YITH Tracking Information - Estimated Delivery"
+#~ msgstr "YITH-trackinginformatie - geschatte levering"
+
+#~ msgid "YITH Tracking Information - Track Link"
+#~ msgstr "YITH-trackinginformatie - Track Link"
+
+#~ msgid "Live track your order"
+#~ msgstr "Volg uw bestelling live"
+
+#~ msgid "YITH Tracking Information - Track URL"
+#~ msgstr "YITH-trackinginformatie - URL volgen"
+
+#~ msgid "YITH Tracking Information - Carrier Link"
+#~ msgstr "YITH-trackinginformatie - Carrier Link"
+
+#~ msgid "YITH Tracking Information - Carrier URL (String)"
+#~ msgstr "YITH-trackinginformatie - URL van vervoerder (tekenreeks)"
+
+#~ msgid ""
+#~ "%1$s license key is required. %2$sPlease enter your license key to start "
+#~ "using the plugin%3$s."
+#~ msgstr ""
+#~ "%1$s licentiesleutel is vereist. %2$sVoer uw licentiesleutel in om de "
+#~ "plug-in te gaan gebruiken%3$s."
+
+#~ msgid "Pick up information"
+#~ msgstr "Informatie ophalen"
+
+#~ msgid "Tracking information"
+#~ msgstr "Tracking informatie"
+
+#~ msgid " (N/A)"
+#~ msgstr " (N.v.t.)"
+
+#~ msgid "This is a test email preview."
+#~ msgstr "Dit is een voorbeeld van een test-e-mail."
+
+#~ msgid "2"
+#~ msgstr "2"
+
+#~ msgid "Order Total Numbers"
+#~ msgstr "Totaal aantal bestellingen"
+
+#~ msgid "Orders Count"
+#~ msgstr "Bestellingen tellen"
+
+#~ msgid "Orders Count Double"
+#~ msgstr "Bestellingen tellen dubbel"
+
+#~ msgid "Orders Quantity Count"
+#~ msgstr "Aantal bestellingen"
+
+#~ msgid "%s (Pro)"
+#~ msgstr "%s (Pro)"

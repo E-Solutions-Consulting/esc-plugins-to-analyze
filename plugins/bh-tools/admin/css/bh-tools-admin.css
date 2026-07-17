@@ -13,6 +13,8 @@
 .input-filters:not(:first-child) {border-top: 1px solid #fff;padding-top: 5px;}
 .input-filters > div {display: flex;flex-direction: column;gap: 5px;justify-content: flex-end;min-width: 9rem;}
 .input-filters > div.cont-states{min-width: 50%;}
+.input-filters.col-2 > label {width: 50%;}
+.input-filters.col-2 > label > * {width: 100%;}
 .box-form {display: flex;flex-direction: column;gap: 10px;padding: 2rem;margin-bottom:2rem;border: 1px solid #fff;background-color: #f9f9f9;box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);}
 .box-form > label {display: flex;flex-direction: column;gap: 5px;}
 .box-form span.select2-selection.select2-selection--multiple ul > li {margin-bottom: 0;}

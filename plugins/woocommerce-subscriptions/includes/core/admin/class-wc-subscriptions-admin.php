@@ -58,6 +58,9 @@ class WC_Subscriptions_Admin {
 		// Add subscriptions to the product select box
 		add_filter( 'product_type_selector', __CLASS__ . '::add_subscription_products_to_select' );
 
+		// Prepend "Subscription product creation" section (runs before Subscription Plans at 1000, so appears after it on page).
+		add_filter( 'woocommerce_subscription_settings', __CLASS__ . '::add_subscription_product_creation_settings', 999 );
+
 		// Special handling of downloadable and virtual products on the WooCommerce > Products screen.
 		add_filter( 'product_type_selector', array( __CLASS__, 'add_downloadable_and_virtual_filters' ) );
 		add_filter( 'request', array( __CLASS__, 'modify_downloadable_and_virtual_product_queries' ), 11 );
@@ -206,10 +209,130 @@ class WC_Subscriptions_Admin {
 	 */
 	public static function add_subscription_products_to_select( $product_types ) {
 
-		$product_types['subscription']          = __( 'Simple subscription', 'woocommerce-subscriptions' );
-		$product_types['variable-subscription'] = __( 'Variable subscription', 'woocommerce-subscriptions' );
+		$simple_enabled   = 'yes' === get_option( self::$option_prefix . '_enable_simple_subscription', 'no' );
+		$variable_enabled = 'yes' === get_option( self::$option_prefix . '_enable_variable_subscription', 'no' );
+
+		if ( ! $simple_enabled || ! $variable_enabled ) {
+			if ( doing_action( 'restrict_manage_posts' ) ) {
+				// On the products list screen, show subscription types in the filter if products of that type exist.
+				$terms = get_terms(
+					array(
+						'taxonomy'   => 'product_type',
+						'slug'       => array( 'subscription', 'variable-subscription' ),
+						'hide_empty' => false,
+					)
+				);
+
+				if ( ! is_wp_error( $terms ) ) {
+					foreach ( $terms as $term ) {
+						if ( ! $simple_enabled && 'subscription' === $term->slug && $term->count > 0 ) {
+							$simple_enabled = true;
+						}
+						if ( ! $variable_enabled && 'variable-subscription' === $term->slug && $term->count > 0 ) {
+							$variable_enabled = true;
+						}
+					}
+				}
+			} else {
+				// When editing an existing subscription product, show its current type so merchants can change away from it.
+				$current_type = self::get_current_product_type();
+
+				if ( $current_type ) {
+					if ( ! $simple_enabled && 'subscription' === $current_type ) {
+						$simple_enabled = true;
+					}
+
+					if ( ! $variable_enabled && 'variable-subscription' === $current_type ) {
+						$variable_enabled = true;
+					}
+				}
+			}
+		}
+
+		if ( $simple_enabled ) {
+			$product_types['subscription'] = __( 'Simple subscription', 'woocommerce-subscriptions' );
+		}
+
+		if ( $variable_enabled ) {
+			$product_types['variable-subscription'] = __( 'Variable subscription', 'woocommerce-subscriptions' );
+		}
 
 		return $product_types;
+	}
+
+	/**
+	 * Add the "Subscription product creation" settings section.
+	 *
+	 * @param array $settings Existing subscription settings.
+	 * @return array
+	 */
+	public static function add_subscription_product_creation_settings( $settings ) {
+
+		$learn_more_url = 'https://woocommerce.com/document/subscriptions/creating-subscription-products/#dedicated-subscription-product-types';
+
+		$section_desc = sprintf(
+			/* translators: %1$s: opening anchor tag, %2$s: closing anchor tag */
+			__( 'Enable these product types only if you have existing subscription products that rely on them. The recommended approach is to use Subscription plans for Simple and Variable products. Disabling these legacy options won\'t affect your existing products. %1$sLearn more%2$s', 'woocommerce-subscriptions' ),
+			'<a href="' . esc_url( $learn_more_url ) . '" target="_blank">',
+			'</a>'
+		);
+
+		$product_creation_settings = array(
+			array(
+				'name' => __( 'Subscription product creation', 'woocommerce-subscriptions' ),
+				'type' => 'title',
+				'desc' => $section_desc,
+				'id'   => self::$option_prefix . '_product_creation',
+			),
+			array(
+				'name'          => __( 'Enable subscription product types', 'woocommerce-subscriptions' ),
+				'desc'          => __( 'Simple subscription', 'woocommerce-subscriptions' ),
+				'id'            => self::$option_prefix . '_enable_simple_subscription',
+				'default'       => 'no',
+				'type'          => 'checkbox',
+				'checkboxgroup' => 'start',
+			),
+			array(
+				'desc'          => __( 'Variable subscription', 'woocommerce-subscriptions' ),
+				'id'            => self::$option_prefix . '_enable_variable_subscription',
+				'default'       => 'no',
+				'type'          => 'checkbox',
+				'checkboxgroup' => 'end',
+			),
+			array(
+				'type' => 'sectionend',
+				'id'   => self::$option_prefix . '_product_creation',
+			),
+		);
+
+		return array_merge( $settings, $product_creation_settings );
+	}
+
+	/**
+	 * Get the product type of the product currently being edited, if any.
+	 *
+	 * @return string|false The product type slug, or false if not on a product edit screen.
+	 */
+	private static function get_current_product_type() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+
+		if ( ! $screen || 'product' !== $screen->id || 'post' !== $screen->base ) {
+			return false;
+		}
+
+		global $post;
+
+		if ( ! $post ) {
+			return false;
+		}
+
+		$product = wc_get_product( $post->ID );
+
+		return $product ? $product->get_type() : false;
 	}
 
 	/**
@@ -941,7 +1064,6 @@ class WC_Subscriptions_Admin {
 
 			$script_params['ajaxLoaderImage'] = WC()->plugin_url() . '/assets/images/ajax-loader.gif';
 			$script_params['ajaxUrl']         = admin_url( 'admin-ajax.php' );
-			$script_params['isWCPre24']       = var_export( wcs_is_woocommerce_pre( '2.4' ), true );
 
 			wp_enqueue_script( 'woocommerce_subscriptions_admin', WC_Subscriptions_Core_Plugin::instance()->get_subscriptions_core_directory_url( 'assets/js/admin/admin.js' ), $dependencies, filemtime( dirname( WC_Subscriptions::$plugin_file ) . '/assets/js/admin/admin.js' ) );
 			wp_localize_script( 'woocommerce_subscriptions_admin', 'WCSubscriptions', apply_filters( 'woocommerce_subscriptions_admin_script_parameters', $script_params ) );
@@ -1191,8 +1313,10 @@ class WC_Subscriptions_Admin {
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.0
 	 */
 	public static function subscription_settings_page() {
+		echo '<div class="woocommerce-subscriptions-settings-tab">';
 		woocommerce_admin_fields( self::get_settings() );
 		wp_nonce_field( 'wcs_subscription_settings', '_wcsnonce', false );
+		echo '</div>';
 	}
 
 	/**

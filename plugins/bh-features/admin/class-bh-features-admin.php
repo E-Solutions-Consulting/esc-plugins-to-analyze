@@ -326,7 +326,7 @@ class Bh_Features_Admin {
 		
 		$to_remove_submenus = [
 			'index.php'						=>	['update-core.php'],
-		    'woocommerce' 					=>	['wc-status', 'arg-multistep-checkout', 'wc-admin&path=/customers', 'wc-settings', 'wc-status', 'wc-addons', 'wc-admin&path=/extensions', 'codemanas-woocommerce-preview-emails'],
+		    'woocommerce' 					=>	['wc-status', 'arg-multistep-checkout', 'wc-admin&path=/customers', 'wc-status', 'wc-addons', 'wc-admin&path=/extensions', 'codemanas-woocommerce-preview-emails'],
 		    'checkout-upsell-woocommerce' 	=>	['checkout-upsell-woocommerce&tab=settings', 'checkout-upsell-woocommerce&tab=addons'],
 		    'options-general.php'			=>	[
 		    	'options-general.php', 
@@ -1709,6 +1709,10 @@ class Bh_Features_Admin {
 	            $window_end_ts = strtotime( '2026-04-20 12:58:00' );
 	            break;
 
+	        case 'VA':
+	            $window_end_ts = strtotime( '2026-05-27 00:00:00' );
+	            break;
+
 	    }
 
 	    /**
@@ -1717,7 +1721,8 @@ class Bh_Features_Admin {
 	    $is_in_may_window = false;
 	    if ( strtoupper( $state ) === 'VA' ) {
 	        $may_window_start_ts = strtotime( '2026-05-29 00:00:00' );
-	        $may_window_end_ts   = strtotime( '2026-06-29 23:59:59' );
+	        // $may_window_end_ts   = strtotime( '2026-06-29 23:59:59' );
+	        $may_window_end_ts   = strtotime( '2026-07-13 23:59:59' );
 	        $is_in_may_window = ( $next_payment_ts >= $may_window_start_ts && $next_payment_ts <= $may_window_end_ts );
 	    }
 	    

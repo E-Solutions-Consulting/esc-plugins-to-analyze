@@ -165,12 +165,13 @@ class BH_Attentive_API_Client {
         
         $json_body = wp_json_encode( $data );
         
-        // Debug: Log the exact JSON being sent
-        BH_Attentive_Logger::log( "Sending to {$endpoint}", array(
-            'url' => $url,
-            'data' => $data,
-            'json' => $json_body
-        ) );
+        // Debug: Log the exact JSON being sent with WC Logger
+        $logger = wc_get_logger();
+        $context = array( 'source' => 'bh_marketing_api' );
+        
+        $api_key_masked = !empty($this->api_key) ? substr($this->api_key, 0, 8) . '...' . substr($this->api_key, -4) : 'EMPTY';
+        
+        $logger->info( "Attentive API Request - Endpoint: {$endpoint}, URL: {$url}, API Key: {$api_key_masked}, Data: " . wp_json_encode($data), $context );
         
         $args = array(
             'method'      => 'POST',
@@ -182,7 +183,16 @@ class BH_Attentive_API_Client {
             'body'        => $json_body,
         );
         
-        return $this->execute_request( $url, $args );
+        $result = $this->execute_request( $url, $args );
+        
+        // Log the result
+        if ( is_wp_error( $result ) ) {
+            $logger->error( "Attentive API Error - Endpoint: {$endpoint}, Error: " . $result->get_error_code() . " - " . $result->get_error_message(), $context );
+        } else {
+            $logger->info( "Attentive API Success - Endpoint: {$endpoint}, Response: " . wp_json_encode($result), $context );
+        }
+        
+        return $result;
     }
 
     /**

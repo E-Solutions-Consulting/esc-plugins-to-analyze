@@ -1,0 +1,23 @@
+<?php
+
+namespace CheckoutWC\SmartyStreets\PhpSdk\US_Street;
+
+require_once dirname(dirname(__FILE__)) . '/ArrayUtil.php';
+use CheckoutWC\SmartyStreets\PhpSdk\ArrayUtil;
+class MatchInfo
+{
+    private $status, $change;
+    public function __construct($obj)
+    {
+        $this->status = ArrayUtil::getField($obj, 'status');
+        $this->change = ArrayUtil::getField($obj, 'change');
+    }
+    public function getStatus()
+    {
+        return $this->status;
+    }
+    public function getChange()
+    {
+        return $this->change;
+    }
+}

@@ -1,0 +1,82 @@
+<?php
+
+namespace CheckoutWC\SmartyStreets\PhpSdk\International_Street;
+
+require_once __DIR__ . '/../Exceptions/UnprocessableEntityException.php';
+require_once __DIR__ . '/../Sender.php';
+require_once __DIR__ . '/../Serializer.php';
+require_once __DIR__ . '/../Request.php';
+require_once __DIR__ . '/../Batch.php';
+require_once __DIR__ . '/Candidate.php';
+use CheckoutWC\SmartyStreets\PhpSdk\Exceptions\SmartyException;
+use CheckoutWC\SmartyStreets\PhpSdk\Exceptions\UnprocessableEntityException;
+use CheckoutWC\SmartyStreets\PhpSdk\Sender;
+use CheckoutWC\SmartyStreets\PhpSdk\Serializer;
+use CheckoutWC\SmartyStreets\PhpSdk\Request;
+/**
+ * This client sends lookups to the SmartyStreets International Street API, <br>
+ *     and attaches the results to the appropriate Lookup objects.
+ */
+class Client
+{
+    private $sender, $serializer;
+    public function __construct(Sender $sender, ?Serializer $serializer = null)
+    {
+        $this->sender = $sender;
+        $this->serializer = $serializer;
+    }
+    public function sendLookup(Lookup $lookup)
+    {
+        $this->ensureEnoughInfo($lookup);
+        $request = $this->buildRequest($lookup);
+        $response = $this->sender->send($request);
+        $candidates = $this->serializer->deserialize($response->getPayload());
+        if ($candidates == null) {
+            return;
+        }
+        $this->assignResultsToLookup($lookup, $candidates);
+    }
+    private function buildRequest(Lookup $lookup)
+    {
+        $request = new Request();
+        $request->setUrlComponents("/verify");
+        $request->setParameter("input_id", $lookup->getInputId());
+        $request->setParameter("country", $lookup->getCountry());
+        $request->setParameter("geocode", $lookup->getGeocode());
+        if ($lookup->getLanguage() != null) {
+            $request->setParameter("language", $lookup->getLanguage()->getName());
+        }
+        $request->setParameter("freeform", $lookup->getFreeform());
+        $request->setParameter("address1", $lookup->getAddress1());
+        $request->setParameter("address2", $lookup->getAddress2());
+        $request->setParameter("address3", $lookup->getAddress3());
+        $request->setParameter("address4", $lookup->getAddress4());
+        $request->setParameter("organization", $lookup->getOrganization());
+        $request->setParameter("locality", $lookup->getLocality());
+        $request->setParameter("administrative_area", $lookup->getAdministrativeArea());
+        $request->setParameter("postal_code", $lookup->getPostalCode());
+        $request->setParameter("features", $lookup->getFeatures());
+        foreach ($lookup->getCustomParamArray() as $key => $value) {
+            $request->setParameter($key, $value);
+        }
+        return $request;
+    }
+    private function ensureEnoughInfo(Lookup $lookup)
+    {
+        if ($lookup->missingCountry()) {
+            throw new UnprocessableEntityException("Country field is required.");
+        }
+        if ($lookup->missingAddress1() && !$lookup->hasFreeform()) {
+            throw new UnprocessableEntityException("Either freeform or address1 is required.");
+        }
+    }
+    private function assignResultsToLookup(Lookup $lookup, $candidates)
+    {
+        $result = array();
+        foreach ($candidates as $c) {
+            $candidate = new Candidate($c);
+            $result[] = $candidate;
+        }
+        $lookup->setResult($result);
+    }
+}

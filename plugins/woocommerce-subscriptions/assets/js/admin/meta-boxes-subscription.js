@@ -34,13 +34,6 @@ jQuery( function ( $ ) {
 		moment().toDate()
 	);
 
-	// Make sure other date pickers are in the future
-	$( '.woocommerce-subscriptions.date-picker:not(#start)' ).datepicker(
-		'option',
-		'minDate',
-		moment().add( 1, 'hours' ).toDate()
-	);
-
 	// Validate date when hour/minute inputs change
 	$( '[name$="_hour"], [name$="_minute"]' ).on( 'change', function () {
 		$(
@@ -64,11 +57,19 @@ jQuery( function ( $ ) {
 
 		var time_now = moment(),
 			one_hour_from_now = moment().add( 1, 'hours' ),
-			minimum_date = wcs_admin_meta_boxes.is_duplicate_site
+			// The schedule editor only exposes hour/minute precision, so the
+			// minimum date is floored to the minute. Otherwise the current
+			// wall-clock seconds would leak in and could falsely trip the
+			// "at least one hour in the future" check against the (now
+			// second-less) chosen date below.
+			minimum_date = ( wcs_admin_meta_boxes.is_duplicate_site
 				? moment().add( 2, 'minutes' )
-				: one_hour_from_now,
+				: one_hour_from_now.clone()
+			).startOf( 'minute' ),
 			$date_input = $( this ),
 			date_type = $date_input.attr( 'id' ),
+			original_timestamp = $( '#' + date_type + '_timestamp_utc' ).val(),
+			original_date = original_timestamp > 0 ? moment.unix( original_timestamp ).local() : null,
 			date_pieces = $date_input.val().split( '-' ),
 			$hour_input = $( '#' + date_type + '_hour' ),
 			$minute_input = $( '#' + date_type + '_minute' ),
@@ -86,7 +87,9 @@ jQuery( function ( $ ) {
 				date: date_pieces[ 2 ],
 				hours: chosen_hour,
 				minutes: chosen_minute,
-				seconds: one_hour_from_now.format( 'ss' ),
+				// The editor is minute-precision; pin seconds to 0 so two dates
+				// set to the same minute are genuinely equal (see WOOSUBS-380).
+				seconds: 0,
 			} );
 
 		// Make sure start date is before now.
@@ -211,24 +214,18 @@ jQuery( function ( $ ) {
 		) {
 			alert( wcs_admin_meta_boxes.i18n_past_date_notice );
 
-			// Set date to current day
-			$date_input.val(
-				one_hour_from_now.year() +
-					'-' +
-					zeroise( one_hour_from_now.months() + 1 ) +
-					'-' +
-					one_hour_from_now.format( 'DD' )
-			);
+			// Restore the previous value if available, otherwise fall back to one hour from now.
+			var restore_date = original_date || one_hour_from_now;
 
-			// Set time if current time is in the past
-			if (
-				chosen_date.hours() < one_hour_from_now.hours() ||
-				( chosen_date.hours() == one_hour_from_now.hours() &&
-					chosen_date.minutes() < one_hour_from_now.minutes() )
-			) {
-				$hour_input.val( one_hour_from_now.format( 'HH' ) );
-				$minute_input.val( one_hour_from_now.format( 'mm' ) );
-			}
+			$date_input.val(
+				restore_date.year() +
+					'-' +
+					zeroise( restore_date.months() + 1 ) +
+					'-' +
+					restore_date.format( 'DD' )
+			);
+			$hour_input.val( restore_date.format( 'HH' ) );
+			$minute_input.val( restore_date.format( 'mm' ) );
 		}
 
 		if ( 0 == $hour_input.val().length ) {
@@ -248,7 +245,9 @@ jQuery( function ( $ ) {
 			date: date_pieces[ 2 ],
 			hours: $hour_input.val(),
 			minutes: $minute_input.val(),
-			seconds: one_hour_from_now.format( 'ss' ),
+			// Minute-precision editor: pin seconds to 0 so the value sent to
+			// the server matches what the merchant sees (see WOOSUBS-380).
+			seconds: 0,
 		} )
 			.utc()
 			.unix();
@@ -386,7 +385,7 @@ jQuery( function ( $ ) {
 		
 		if ( invalid_dates.length > 0 ) {
 			// Focus the first invalid date to make it noticeable.
-			$( '#subscription-' + invalid_dates[0] + '-date' ).find( '.wcs-date-input input' ).first().focus();
+			$( '#subscription-' + invalid_dates[0] + '-date' ).find( '.wcs-date-input input' ).first().trigger( 'focus' );
 			return false;
 		}
 	} )

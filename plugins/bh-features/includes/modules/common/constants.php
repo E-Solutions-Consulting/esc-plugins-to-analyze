@@ -7,8 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 if(!defined('BH_DAYS_MONTHLY_PLAN'))
     define('BH_DAYS_MONTHLY_PLAN', 25);
 
-if(!defined('BH_DAYS_THREE_MONTH_PLAN'))
-    define('BH_DAYS_THREE_MONTH_PLAN', 70);
+if (!defined('BH_DAYS_THREE_MONTH_PLAN')) {
+    // Previous value: 70 days.
+    // Updated on Jun 26, 2026.
+    // Set to 77 days to trigger renewal before the full 90-day subscription period.
+    define('BH_DAYS_THREE_MONTH_PLAN', 77);
+}
 
 if(!defined('SEND_TO_TELEGRA'))
     define('SEND_TO_TELEGRA', 'send_to_telegra');

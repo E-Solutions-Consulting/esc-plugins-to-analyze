@@ -63,11 +63,17 @@ class BH_Attentive_Loader {
         // Frontend components
         require_once $base_path . 'frontend-trigger.php';
         
+        // Admin retry functionality
+        require_once $base_path . 'admin-retry.php';
+        
         // UNIFIED event handler - handles ALL events (orders + subscriptions)
         require_once $base_path . 'unified-events.php';
         
         // STRIPE event handler - handles payment_failed, card_expiring, payment_recovered
         require_once $base_path . 'stripe-events.php';
+        
+        // Landing page form handler - Elementor form → Attentive
+        require_once $base_path . 'landing-page-form.php';
         
         // OLD event trackers - DISABLED (unified-events.php handles everything)
         // require_once $base_path . 'subscription-events.php';
@@ -111,6 +117,11 @@ class BH_Attentive_Loader {
 
         if ( class_exists( 'BH_Attentive_Questionnaire_Status' ) ) {
             new BH_Attentive_Questionnaire_Status();
+        }
+        
+        // Initialize Landing Page Form handler (Elementor → Attentive)
+        if ( class_exists( 'BH_Attentive_Landing_Page_Form' ) ) {
+            BH_Attentive_Landing_Page_Form::init();
         }
         
         // OLD event trackers - DISABLED (unified-events.php handles everything)

@@ -168,7 +168,7 @@ class TelemdNow_Order_Actions {
 
             // Add final note based on success or failure
             if ($success) {
-                $order->add_order_note('Sent to pharmacy order action executed');
+                $order->add_order_note('Sent to pharmacy order action executed', true);
                 update_post_meta($order_id, 'order_sent_pharmacy', true);
             } else {
                 // $order->add_order_note('Error in send order to pharmacy action. Please check error logs for more detail');

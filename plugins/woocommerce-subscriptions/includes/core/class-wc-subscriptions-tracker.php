@@ -9,6 +9,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+use Automattic\WooCommerce_Subscriptions\Internal\Queue_Management\External_Trigger_Settings;
+use Automattic\WooCommerce_Subscriptions\Internal\Queue_Management\Settings as Queue_Management_Settings;
 use Automattic\WooCommerce_Subscriptions\Internal\Telemetry\Collector;
 
 class WC_Subscriptions_Tracker {
@@ -41,10 +43,8 @@ class WC_Subscriptions_Tracker {
 		$data['extensions']['wc_subscriptions']['subscription_orders'] = self::get_subscription_orders();
 
 		// Insert any additional telemetry that we have been collecting.
-		$additional_telemetry                   = self::$telemetry_collector->get_telemetry_data();
-		$data['extensions']['wc_subscriptions'] = array_merge_recursive( $data['extensions']['wc_subscriptions'], $additional_telemetry );
-
-		return $data;
+		$additional_telemetry = self::$telemetry_collector->get_telemetry_data();
+		return array_merge_recursive( $data, $additional_telemetry );
 	}
 
 	/**
@@ -98,6 +98,10 @@ class WC_Subscriptions_Tracker {
 			// Switch Button Text
 			'switch_button_text'                   => get_option( WC_Subscriptions_Admin::$option_prefix . '_switch_button_text', 'none' ),
 
+			// Product creation
+			'enable_simple_subscription'           => get_option( WC_Subscriptions_Admin::$option_prefix . '_enable_simple_subscription' ),
+			'enable_variable_subscription'         => get_option( WC_Subscriptions_Admin::$option_prefix . '_enable_variable_subscription' ),
+
 			// Gifting
 			// Enable gifting
 			'gifting_enable_gifting'               => get_option( WC_Subscriptions_Admin::$option_prefix . '_gifting_enable_gifting' ),
@@ -112,8 +116,14 @@ class WC_Subscriptions_Tracker {
 			'sync_payments'                        => get_option( WC_Subscriptions_Admin::$option_prefix . '_sync_payments' ),
 			// Prorate First Renewal
 			'prorate_synced_payments'              => $prorate_synced_payments = ( 'no' === get_option( WC_Subscriptions_Admin::$option_prefix . '_sync_payments' ) ? 'none' : get_option( WC_Subscriptions_Admin::$option_prefix . '_prorate_synced_payments', 'none' ) ),
-			// Sign-up grace period
-			'days_no_fee'                          => 'recurring' === $prorate_synced_payments ? get_option( WC_Subscriptions_Admin::$option_prefix . '_days_no_fee', 'none' ) : 'none',
+			// Billing date alignment
+			// First billing behavior
+			'first_billing_behavior'               => WC_Subscriptions_Synchroniser::get_first_billing_behavior(),
+			// Apply proration to
+			'prorate_virtual'                      => WC_Subscriptions_Synchroniser::should_prorate_virtual_products() ? 'yes' : 'no',
+			'prorate_physical'                     => WC_Subscriptions_Synchroniser::should_prorate_physical_products() ? 'yes' : 'no',
+			// Sign-up cutoff window
+			'days_no_fee'                          => WC_Subscriptions_Synchroniser::FIRST_BILLING_BEHAVIOR_FULL === WC_Subscriptions_Synchroniser::get_first_billing_behavior() ? get_option( WC_Subscriptions_Admin::$option_prefix . '_days_no_fee', 'none' ) : 'none',
 
 			// Miscellaneous
 			// Customer Suspensions
@@ -133,6 +143,14 @@ class WC_Subscriptions_Tracker {
 			// Reminder Timing
 			'customer_notifications_offset_number' => $customer_notifications_offset['number'] ?? 'none',
 			'customer_notifications_offset_unit'   => $customer_notifications_offset['unit'] ?? 'none',
+
+			// Processing reliability (Queue Management)
+			// Dedicated processing (Dedicated Queues + Queue Isolator).
+			'dedicated_queues_enabled'             => get_option( Queue_Management_Settings::OPTION_ENABLED ),
+			// Effective rotation value, filtered and clamped to the Min/Max band.
+			'dedicated_queues_effective_rotation'  => ( new Queue_Management_Settings() )->get_effective_rotation(),
+			// External trigger endpoint, for sites that prefer driving Action Scheduler from cron/uptime monitors.
+			'external_trigger_enabled'             => get_option( External_Trigger_Settings::OPTION_ENABLED ),
 		];
 	}
 

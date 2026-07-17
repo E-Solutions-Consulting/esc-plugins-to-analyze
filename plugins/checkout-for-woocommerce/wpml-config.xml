@@ -1,0 +1,64 @@
+<wpml-config>
+    <custom-types>
+        <custom-type translate="1" display-as-translated="1">cfw_order_bumps</custom-type>
+        <custom-type translate="1" display-as-translated="1">cfw_pickup_location</custom-type>
+        <custom-type translate="1" display-as-translated="1">cfw_acr_emails</custom-type>
+    </custom-types>
+    <custom-fields>
+        <custom-field action="translate" style="line" label="Order Bump Offer Language" group="CheckoutWC Order Bump">cfw_ob_offer_language</custom-field>
+        <custom-field action="translate" style="textarea" label="Order Bump Offer Description" group="CheckoutWC Order Bump">cfw_ob_offer_description</custom-field>
+        <custom-field action="translate" style="textarea" label="Order Bump Offer Rejection Link Text" group="CheckoutWC Order Bump">cfw_ob_offer_cancel_button_text</custom-field>
+        <custom-field action="translate" style="textarea" label="Order Bump Modal Heading" group="CheckoutWC Order Bump">cfw_ob_offer_heading</custom-field>
+        <custom-field action="translate" style="textarea" label="Order Bump Modal Subheading" group="CheckoutWC Order Bump">cfw_ob_offer_subheading</custom-field>
+        <custom-field action="translate" style="textarea" label="Pickup Instructions" group="CheckoutWC Pickup Location">cfw_pl_instructions</custom-field>
+        <custom-field action="translate" style="line" label="Estimated Pickup Time" group="CheckoutWC Pickup Location">cfw_pl_estimated_time</custom-field>
+        <custom-field action="copy">cfw_ob_products_v9</custom-field>
+        <custom-field action="copy">cfw_ob_exclude_products_v9</custom-field>
+        <custom-field action="copy">cfw_ob_categories_v9</custom-field>
+        <custom-field action="copy">cfw_ob_any_product</custom-field>
+        <custom-field action="copy">cfw_ob_display_location</custom-field>
+        <custom-field action="copy">cfw_ob_discount_type</custom-field>
+        <custom-field action="copy">cfw_ob_offer_product_v9</custom-field>
+        <custom-field action="copy">cfw_ob_offer_discount</custom-field>
+        <custom-field action="copy">cfw_ob_minimum_subtotal</custom-field>
+        <custom-field action="copy">cfw_ob_upsell</custom-field>
+        <custom-field action="copy">cfw_ob_offer_quantity</custom-field>
+        <custom-field action="copy">cfw_ob_enable_quantity_updates</custom-field>
+        <custom-field action="copy">cfw_ob_item_removal_behavior</custom-field>
+        <custom-field action="copy">cfw_ob_enable_auto_match</custom-field>
+        <custom-field action="copy">cfw_ob_apply_free_shipping</custom-field>
+        <custom-field action="copy">cfw_ob_products_to_remove_v9</custom-field>
+        <custom-field action="copy">cfw_ob_full_screen</custom-field>
+        <custom-field action="copy">cfw_ob_rules</custom-field>
+        <custom-field action="copy">cfw_ob_match_offer_product_quantity</custom-field>
+        <custom-field action="copy">cfw_ob_auto_add</custom-field>
+        <custom-field action="copy">cfw_ob_upsell_product</custom-field>
+        <custom-field action="copy">cfw_ob_quantity_match_product</custom-field>
+        <custom-field action="copy">cfw_ob_variation_match_product</custom-field>
+        <custom-field action="copy">cfw_pl_address</custom-field>
+        <custom-field action="translate" style="line" label="Email Subject" group="CheckoutWC Abandoned Cart Email">cfw_subject</custom-field>
+        <custom-field action="translate" style="line" label="Email Preheader" group="CheckoutWC Abandoned Cart Email">cfw_preheader</custom-field>
+        <custom-field action="copy">cfw_wait</custom-field>
+        <custom-field action="copy">cfw_wait_unit</custom-field>
+        <custom-field action="copy">cfw_use_wc_template</custom-field>
+        <custom-field action="copy">cfw_acr_email_interval</custom-field>
+    </custom-fields>
+    <admin-texts>
+        <key name="_cfw_cart_summary_mobile_label"/>
+        <key name="_cfw_pickup_option_label"/>
+        <key name="_cfw_pickup_ship_option_label"/>
+        <key name="_cfw_trust_badges_title"/>
+        <key name="_cfw_trust_badges">
+            <key name="*">
+                <key name="title" />
+                <key name="subtitle" />
+                <key name="description" />
+            </key>
+        </key>
+        <key name="_cfw_store_policies">
+            <key name="*">
+                <key name="title" />
+            </key>
+        </key>
+    </admin-texts>
+</wpml-config>

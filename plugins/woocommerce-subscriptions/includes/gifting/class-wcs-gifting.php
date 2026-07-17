@@ -122,8 +122,8 @@ class WCS_Gifting {
 			return;
 		}
 
-		// We don't need to load the script on product pages that are not subscriptions or not giftable subscriptions.
-		if ( is_product() && ( ! WC_Subscriptions_Product::is_subscription( $post->ID ) || ! WCSG_Product::is_giftable( $post->ID ) ) ) {
+		// We don't need to load the script on product pages that are not giftable.
+		if ( is_product() && ! WCSG_Product::is_giftable( $post->ID ) ) {
 			return;
 		}
 
@@ -249,13 +249,17 @@ class WCS_Gifting {
 	 * @param string $email           E-mail address.
 	 * @param string $id              ID, for uniqueness on page.
 	 * @param string $print_or_return Wether to print or return the HTML content. Optional. Default behaviour is to print the string. Pass 'return' to return the HTML content instead.
+	 * @param bool   $hidden          Whether the container should be initially hidden (display:none). Used for products with subscription plans where the gifting UI is shown/hidden by JS based on plan selection.
 	 * @return string Returns the HTML string if $print_or_return is set to 'return', otherwise prints the HTML and nothing is returned.
 	 * @since 7.8.0 - Originally implemented in WooCommerce Subscriptions Gifting 2.1.
 	 */
-	public static function render_add_recipient_fields( $email = '', $id = '', $print_or_return = 'print' ) {
+	public static function render_add_recipient_fields( $email = '', $id = '', $print_or_return = 'print', $hidden = false ) {
+		$args           = self::get_add_recipient_template_args( $email, $id );
+		$args['hidden'] = $hidden;
+
 		$output = wc_get_template_html(
 			'html-add-recipient.php',
-			self::get_add_recipient_template_args( $email, $id ),
+			$args,
 			'',
 			plugin_dir_path( WC_Subscriptions::$plugin_file ) . 'templates/gifting/'
 		);
@@ -677,8 +681,7 @@ class WCS_Gifting {
 	 * @param WC_Order        $order        Order object.
 	 */
 	public static function set_recipient_user( &$subscription, $user_id, $save = 'save', $meta_id = 0, ?WC_Order $order = null ) {
-		$current_user_id              = absint( self::get_recipient_user( $subscription ) );
-		$subscription->recipient_user = $user_id;
+		$current_user_id = absint( self::get_recipient_user( $subscription ) );
 
 		if ( 'save' === $save ) {
 			$subscription->update_meta_data( '_recipient_user', $user_id, $meta_id );
@@ -691,10 +694,13 @@ class WCS_Gifting {
 				if ( ! $order ) {
 					$order = wc_get_order( $subscription->get_parent_id() );
 				}
-				foreach ( $order->get_items() as $order_item ) {
-					if ( $order_item->get_meta( '_wcsg_cart_key' ) === $gifting_subcription_item->get_meta( '_wcsg_cart_key' ) ) {
-						$order_item->add_meta_data( 'wcsg_recipient', 'wcsg_recipient_id_' . $user_id, true );
-						$order_item->save();
+
+				if ( $order ) {
+					foreach ( $order->get_items() as $order_item ) {
+						if ( $order_item->get_meta( '_wcsg_cart_key' ) === $gifting_subcription_item->get_meta( '_wcsg_cart_key' ) ) {
+							$order_item->add_meta_data( 'wcsg_recipient', 'wcsg_recipient_id_' . $user_id, true );
+							$order_item->save();
+						}
 					}
 				}
 			}
@@ -711,8 +717,6 @@ class WCS_Gifting {
 	 * @param int             $meta_id      The meta ID of existing recipient meta data if you wish to only delete a field specified by ID.
 	 */
 	public static function delete_recipient_user( &$subscription, $save = 'save', $meta_id = 0 ) {
-		unset( $subscription->recipient_user );
-
 		// Save the data.
 		if ( 'save' === $save ) {
 			if ( ! empty( $meta_id ) ) {
@@ -731,8 +735,12 @@ class WCS_Gifting {
 	 * @see wc_get_orders()
 	 *
 	 * @param array $args Custom args for query, excluding 'type' and custom var 'is_gifted_subscription'.
+	 *                    Passing `'paginate' => true` switches the return shape to the standard
+	 *                    `wc_get_orders()` paginated stdClass envelope ({orders, total, max_num_pages});
+	 *                    callers that need a count and a page in one shot should use that form.
 	 *
-	 * @return WC_Order[]
+	 * @return WC_Order[]|\stdClass `WC_Order[]` by default, or the paginated envelope
+	 *                              when `$args['paginate']` is true.
 	 *
 	 * @since 7.8.0 - Originally implemented in WooCommerce Subscriptions Gifting 2.0.3.
 	 */

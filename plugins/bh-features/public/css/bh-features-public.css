@@ -689,3 +689,16 @@ ul.wc-saved-payment-methods {padding-left: 0;}
     
     .argmc-wrapper .woocommerce-NoticeGroup.woocommerce-NoticeGroup-checkout > ul::before{top:0.75rem !important;}
 }
+#bh_marketing_subscription_field {padding: 0;}
+#bh_marketing_subscription_field .woocommerce-input-wrapper label.checkbox {padding-left: 1.5rem !important;font-size: 14px !important;}
+#bh_marketing_subscription_field .woocommerce-input-wrapper label.checkbox input.input-checkbox + span:before {
+    border-color: #aaa;
+    width: 1rem;
+    height: 1rem;
+}
+#bh_marketing_subscription_field .woocommerce-input-wrapper label.checkbox input.input-checkbox:checked + span:before {
+    background: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xml:space="preserve" fill="" viewBox="0 0 9 9"><rect x="0" y="4.3" transform="matrix(-0.707 -0.7072 0.7072 -0.707 0.5891 10.4702)" width="4.3" height="1.6" /><rect x="2.2" y="2.9" transform="matrix(-0.7071 0.7071 -0.7071 -0.7071 12.1877 2.9833)" width="6.1" height="1.7" /></svg>') no-repeat center, white;
+}
+#bh_marketing_subscription_field .woocommerce-input-wrapper label.checkbox input.input-checkbox:checked ~ span.optional {
+    display:none;
+}

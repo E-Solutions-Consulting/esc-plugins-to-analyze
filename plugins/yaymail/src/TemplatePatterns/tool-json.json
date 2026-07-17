@@ -1,0 +1,298 @@
+[
+    {
+        "id": "b2cb9bc0-f167-4dc6-b8ac-e8b9d7a00777",
+        "type": "column_layout",
+        "name": "Two Columns",
+        "icon": "",
+        "group": "general",
+        "available": true,
+        "position": 150,
+        "children": [
+            {
+                "id": "8f5428d1-f77f-43d9-a9de-210781a66f2e",
+                "type": "column",
+                "group": "hidden",
+                "available": true,
+                "children": [
+                    {
+                        "id": "5e2874ae-d0d1-4786-9798-abf12d54b52e",
+                        "type": "button",
+                        "name": "Button",
+                        "icon": "",
+                        "group": "basic",
+                        "available": true,
+                        "position": 60,
+                        "data": {
+                            "padding": {
+                                "top": "15",
+                                "right": "50",
+                                "bottom": "15",
+                                "left": "50"
+                            },
+                            "background_color": "#fff",
+                            "button_type": "default",
+                            "align": "center",
+                            "width": "50",
+                            "height": "21",
+                            "button_padding": {
+                                "top": "12",
+                                "right": "20",
+                                "bottom": "12",
+                                "left": "20"
+                            },
+                            "button_background_color": "#873EFF",
+                            "text_color": "#ffffff",
+                            "border": {
+                                "side": "none",
+                                "width": "1",
+                                "style": "solid",
+                                "color": "#e5e5e5",
+                                "custom": {
+                                    "top": "1",
+                                    "right": "1",
+                                    "bottom": "1",
+                                    "left": "1"
+                                }
+                            },
+                            "border_radius": {
+                                "top_left": "5",
+                                "top_right": "5",
+                                "bottom_right": "5",
+                                "bottom_left": "5"
+                            },
+                            "text": "Click me",
+                            "url": "#",
+                            "font_size": "13",
+                            "weight": "normal",
+                            "font_family": "Helvetica,Roboto,Arial,sans-serif"
+                        },
+                        "chosen": false,
+                        "selected": false,
+                        "parentId": "8f5428d1-f77f-43d9-a9de-210781a66f2e"
+                    }
+                ],
+                "data": {
+                    "width": 50
+                },
+                "icon": ""
+            },
+            {
+                "id": "42e81ffc-4f90-46a4-8c54-0cf912c808f6",
+                "type": "column",
+                "group": "hidden",
+                "available": true,
+                "children": [
+                    {
+                        "id": "664a64c1-77b0-49ee-b828-03feb91677c4",
+                        "type": "text",
+                        "name": "Text",
+                        "icon": "",
+                        "group": "basic",
+                        "available": true,
+                        "position": 70,
+                        "data": {
+                            "padding": {
+                                "top": "15",
+                                "right": "50",
+                                "bottom": "15",
+                                "left": "50"
+                            },
+                            "background_color": "#fff",
+                            "border": {
+                                "side": "none",
+                                "width": "1",
+                                "style": "solid",
+                                "color": "#e5e5e5",
+                                "custom": {
+                                    "top": "1",
+                                    "right": "1",
+                                    "bottom": "1",
+                                    "left": "1"
+                                }
+                            },
+                            "font_family": "Helvetica,Roboto,Arial,sans-serif",
+                            "text_color": "#636363",
+                            "rich_text": "<p><span style=\"font-size: 18px;\"><strong>This is a title</strong></span></p><p>&nbsp;</p><p><span> Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.</span></p><p>&nbsp;</p><p><span>It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.</span></p><p>&nbsp;</p><p><span>Various versions have evolved over the years.</span></p>"
+                        },
+                        "chosen": false,
+                        "selected": false,
+                        "parentId": "42e81ffc-4f90-46a4-8c54-0cf912c808f6"
+                    }
+                ],
+                "data": {
+                    "width": 50
+                },
+                "icon": ""
+            }
+        ],
+        "data": {
+            "amount_of_columns": 2,
+            "column_width": [],
+            "column_spacing": "0",
+            "padding": {
+                "top": "15",
+                "right": "0",
+                "bottom": "15",
+                "left": "0"
+            },
+            "border_radius": {
+                "top_left": "0",
+                "top_right": "0",
+                "bottom_left": "0",
+                "bottom_right": "0"
+            },
+            "background_color": "#fff",
+            "background_image": {
+                "url": "",
+                "position": "default",
+                "x_position": 0,
+                "y_position": 0,
+                "repeat": "default",
+                "size": "default"
+            },
+            "inner_border_radius": {
+                "top_left": "0",
+                "top_right": "0",
+                "bottom_left": "0",
+                "bottom_right": "0"
+            },
+            "inner_background_color": "#ffffff00"
+        },
+        "chosen": false,
+        "selected": false
+    },
+    {
+        "id": "68902b8a53ea7",
+        "type": "order_details",
+        "name": "Order Details",
+        "available": true,
+        "data": {
+            "layout_type": "legacy",
+            "padding": {
+                "top": "15",
+                "right": "50",
+                "bottom": "15",
+                "left": "50"
+            },
+            "background_color": "#fff",
+            "title_color": "#873EFF",
+            "text_color": "#636363",
+            "border_color": "#e5e5e5",
+            "font_family": "Helvetica,Roboto,Arial,sans-serif",
+            "border": {
+                "side": "none",
+                "width": "1",
+                "style": "solid",
+                "color": "#e5e5e5",
+                "custom": {
+                    "top": "1",
+                    "right": "1",
+                    "bottom": "1",
+                    "left": "1"
+                }
+            },
+            "rich_text": "[yaymail_order_details]",
+            "payment_instructions": "[yaymail_payment_instructions]",
+            "line_breaker": {
+                "component": "LineBreaker"
+            },
+            "title": "<span style=\"font-size: 20px;\">Order #[yaymail_order_number] <b>([yaymail_order_date])</b></span>",
+            "show_table_header": true,
+            "content_font_size": "14",
+            "product_title": "Product",
+            "cost_title": "Cost",
+            "quantity_title": "Quantity",
+            "price_title": "Price",
+            "cart_subtotal_title": "Subtotal:",
+            "payment_method_title": "Payment method:",
+            "order_total_title": "Total:",
+            "order_note_title": "Note:",
+            "shipping_title": "Shipping:",
+            "discount_title": "Discount:"
+        },
+        "chosen": false,
+        "selected": false,
+        "icon": ""
+    },
+    {
+        "id": "68902b8a53ee0",
+        "type": "billing_shipping_address",
+        "name": "Billing Shipping Address",
+        "available": true,
+        "data": {
+            "layout_type": "legacy",
+            "padding": {
+                "top": "15",
+                "right": "50",
+                "bottom": "15",
+                "left": "50"
+            },
+            "background_color": "#fff",
+            "title_color": "#873EFF",
+            "text_color": "#636363",
+            "border_color": "#e5e5e5",
+            "font_family": "Helvetica,Roboto,Arial,sans-serif",
+            "billing_title": "<span style=\"font-size: 20px;font-weight:600;\">Billing Address</span>",
+            "shipping_title": "<span style=\"font-size: 20px;font-weight:600;\">Shipping Address</span>",
+            "shipping_address_content": "[yaymail_shipping_address]",
+            "billing_address_content": "[yaymail_billing_address]"
+        },
+        "chosen": false,
+        "selected": false,
+        "icon": ""
+    },
+    {
+        "id": "68902b8a53f10",
+        "type": "text",
+        "name": "Text",
+        "available": true,
+        "data": {
+            "padding": {
+                "top": "0",
+                "right": "50",
+                "bottom": "38",
+                "left": "50"
+            },
+            "background_color": "#fff",
+            "text_color": "#636363",
+            "font_family": "Helvetica,Roboto,Arial,sans-serif",
+            "border": {
+                "side": "none",
+                "width": "1",
+                "style": "solid",
+                "color": "#e5e5e5",
+                "custom": {
+                    "top": "1",
+                    "right": "1",
+                    "bottom": "1",
+                    "left": "1"
+                }
+            },
+            "rich_text": "<p><span>Congratulations on the sale.</span></p>"
+        },
+        "chosen": false,
+        "selected": false,
+        "icon": ""
+    },
+    {
+        "id": "68902b8a53f1b",
+        "type": "footer",
+        "name": "Footer",
+        "available": true,
+        "data": {
+            "padding": {
+                "top": "15",
+                "right": "50",
+                "bottom": "15",
+                "left": "50"
+            },
+            "background_color": "#f9f9f9",
+            "text_color": "#8a8a8a",
+            "font_family": "Helvetica,Roboto,Arial,sans-serif",
+            "rich_text": "<p style=\"font-size: 14px;margin: 0px 0px 16px; text-align: center;\">[yaymail_site_name]&nbsp;- Built with <a style=\"font-weight: normal; text-decoration: underline;\" href=\"https://woocommerce.com\" target=\"_blank\" rel=\"noopener\">WooCommerce</a></p>"
+        },
+        "chosen": false,
+        "selected": false,
+        "icon": ""
+    }
+]

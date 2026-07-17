@@ -1,4 +1,4 @@
-<div>
+<div style="display:none;">
     <a href="javascript:void(0);" id="toggleAdvanced" class="toggle-btn">
         ⚙️ Advanced Options ▼
     </a>
@@ -13,11 +13,11 @@
                 <option value="3" >3 records</option>
                 <option value="4" >4 records</option>
                 <option value="5">5 records</option>
-                <option value="10" selected>10 records</option>
+                <option value="10">10 records</option>
                 <option value="15">15 records</option>
                 <option value="20">20 records</option>
                 <option value="25">25 records</option>
-                <option value="50">50 records</option>
+                <option value="50" selected>50 records</option>
                 <option value="100">100 records</option>
                 <option value="250">250 records</option>
                 <option value="500">500 records</option>

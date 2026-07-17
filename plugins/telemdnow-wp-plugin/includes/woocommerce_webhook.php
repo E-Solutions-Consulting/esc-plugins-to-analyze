@@ -44,6 +44,32 @@ class Woocommerce_Webhook{
     }
 
 
+    // Telegra statuses that represent a final state in the medical flow.
+    // Once an order's WC status maps back to one of these, no further
+    // Telegra webhook should change it.
+    private $terminal_telegra_statuses = array( 'completed', 'cancelled' );
+
+    // Native WooCommerce terminal statuses not managed by Telegra.
+    // These are protected regardless of the Telegra→WC mapping.
+    // Custom cancel variants (cancel_cus_req, cancel_auth_exp, cancel_pat_rej) are
+    // defined in brello-wordpress/includes/modules/common/constants.php.
+    private $native_terminal_wc_statuses = array(
+        'refunded',
+        'failed',
+        'cancel_cus_req',
+        'cancel_auth_exp',
+        'cancel_pat_rej',
+    );
+
+    // Given the current WC order status and the full Telegra→WC mapping,
+    // returns the Telegra status key that originally set the current WC status
+    // (reverse lookup), or null if it cannot be determined.
+    private function get_current_telegra_key( $order, $order_status_array ) {
+        $reverse_map = array_flip( $order_status_array );
+        $current_wc  = 'wc-' . $order->get_status();
+        return isset( $reverse_map[ $current_wc ] ) ? $reverse_map[ $current_wc ] : null;
+    }
+
     private function find_order_id_by_telemdnow_id( $telemdnow_id ) {
         global $wpdb;
 
@@ -98,15 +124,40 @@ class Woocommerce_Webhook{
         $order = wc_get_order( $external_identifier );
         $request_response ='Order status not mapped for order Id ' . $order->get_id();
 
-        if ( $order ) 
+        if ( $order )
         {
-            if ( !empty( $order_status_array[ $order_status ] ) ) 
+            if ( ! empty( $order_status_array[ $order_status ] ) )
             {
                 $new_status = $order_status_array[ $order_status ];
-                $order->add_order_note( 'The status was changed in Telegra: ' . $event_title . '. The order will transition to ' . $new_status . ' because of Telegra status mappings.' );
-                $order->update_status( $new_status );
 
-                $request_response = 'Order status mapped successfully for order Id ' . $order->get_id();
+                if ( 'wc-' . $order->get_status() === $new_status ) {
+                    // Fix 1: already in the mapped status — silent no-op, no note added.
+                    $request_response = 'No change needed for order Id ' . $order->get_id() . ' (already in status "' . $order->get_status() . '")';
+                } elseif ( in_array( $order->get_status(), $this->native_terminal_wc_statuses, true ) ) {
+                    // Fix 2: native WC terminal state (refunded, failed) not managed by Telegra.
+                    $order->add_order_note(
+                        'Telegra webhook skipped: order is in native terminal WC status "' .
+                        $order->get_status() . '". Incoming Telegra status "' . $order_status . '" was ignored.'
+                    );
+                    $request_response = 'Webhook skipped (native terminal WC status) for order Id ' . $order->get_id();
+                } else {
+                    $current_telegra_key = $this->get_current_telegra_key( $order, $order_status_array );
+
+                    if ( $current_telegra_key
+                        && in_array( $current_telegra_key, $this->terminal_telegra_statuses, true )
+                        && $current_telegra_key !== $order_status )
+                    {
+                        $order->add_order_note(
+                            'Telegra webhook skipped: order already reached terminal Telegra status "' .
+                            $current_telegra_key . '". Incoming status "' . $order_status . '" was ignored.'
+                        );
+                        $request_response = 'Webhook skipped (terminal state) for order Id ' . $order->get_id();
+                    } else {
+                        //$order->add_order_note( 'The status was changed in Telegra: ' . $event_title . '. The order will transition to ' . $new_status . ' because of Telegra status mappings.' );
+                        $order->update_status( $new_status, 'Telegra Status Update: ' );
+                        $request_response = 'Order status mapped successfully for order Id ' . $order->get_id();
+                    }
+                }
             }
         } 
         else 
@@ -279,13 +330,40 @@ class Woocommerce_Webhook{
         $request_response = 'Order status not mapped for order Id ' . $order->get_id();
 
         if ( ! empty( $orderStatusArray[ $orderStatus ] ) ) {
-            $order->add_order_note(
-                'The status was changed in Telegra: ' . $eventTitle .
-                '. The order will transition to ' . $orderStatusArray[ $orderStatus ] .
-                ' because of Telegra status mappings.'
-            );
-            $order->update_status( $orderStatusArray[ $orderStatus ] );
-            $request_response = 'Order status mapped successfully for order Id ' . $order->get_id();
+            $new_status = $orderStatusArray[ $orderStatus ];
+
+            if ( 'wc-' . $order->get_status() === $new_status ) {
+                // Fix 1: already in the mapped status — silent no-op, no note added.
+                $request_response = 'No change needed for order Id ' . $order->get_id() . ' (already in status "' . $order->get_status() . '")';
+            } elseif ( in_array( $order->get_status(), $this->native_terminal_wc_statuses, true ) ) {
+                // Fix 2: native WC terminal state (refunded, failed) not managed by Telegra.
+                $order->add_order_note(
+                    'Telegra webhook skipped: order is in native terminal WC status "' .
+                    $order->get_status() . '". Incoming Telegra status "' . $orderStatus . '" was ignored.'
+                );
+                $request_response = 'Webhook skipped (native terminal WC status) for order Id ' . $order->get_id();
+            } else {
+                $current_telegra_key = $this->get_current_telegra_key( $order, $orderStatusArray );
+
+                if ( $current_telegra_key
+                    && in_array( $current_telegra_key, $this->terminal_telegra_statuses, true )
+                    && $current_telegra_key !== $orderStatus )
+                {
+                    $order->add_order_note(
+                        'Telegra webhook skipped: order already reached terminal Telegra status "' .
+                        $current_telegra_key . '". Incoming status "' . $orderStatus . '" was ignored.'
+                    );
+                    $request_response = 'Webhook skipped (terminal state) for order Id ' . $order->get_id();
+                } else {
+                    // $order->add_order_note(
+                    //     'The status was changed in Telegra: ' . $eventTitle .
+                    //     '. The order will transition to ' . $new_status .
+                    //     ' because of Telegra status mappings.'
+                    // );
+                    $order->update_status( $new_status, 'Telegra Status Update: ' );
+                    $request_response = 'Order status mapped successfully for order Id ' . $order->get_id();
+                }
+            }
         }
 
         // $this->telemdnow_webhook_logs( '200', $data_received, $request_response );

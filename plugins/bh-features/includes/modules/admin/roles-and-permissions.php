@@ -16,6 +16,9 @@ class AH_Roles_And_Permissions {
 		add_action( 'init', [$this, 'add_developer_role'] );
 		add_action( 'init', [$this, 'manage_capabilities_developer_role'] );
 		add_action( 'admin_menu', [$this, 'developer_remove_menu_admin'], 1100 );
+
+		add_action( 'admin_init', [$this, 'tracking_master_restrict_wc_settings_tab'] );
+		add_filter( 'woocommerce_settings_tabs_array', [$this, 'tracking_master_filter_wc_settings_tabs'], 999 );
     }
 
     /*
@@ -139,6 +142,31 @@ class AH_Roles_And_Permissions {
 		        $summary[$parent_slug]	=	$submenu_slug;
 		    }
 		}
+	}
+
+    /*
+	*	Role Tracking Master
+	*/
+	// ---------- Only allow the Emails tab on WooCommerce Settings ----------
+	function tracking_master_restrict_wc_settings_tab() {
+	    if (!is_admin() || !current_user_can('tracking_master')) {
+	        return;
+	    }
+	    if (!isset($_GET['page']) || 'wc-settings' !== $_GET['page']) {
+	        return;
+	    }
+	    $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
+	    if ('email' !== $tab) {
+	        wp_safe_redirect(admin_url('admin.php?page=wc-settings&tab=email'));
+	        exit;
+	    }
+	}
+	// ---------- Hide every tab but Emails in the WooCommerce Settings nav ----------
+	function tracking_master_filter_wc_settings_tabs($tabs) {
+	    if (!current_user_can('tracking_master')) {
+	        return $tabs;
+	    }
+	    return isset($tabs['email']) ? ['email' => $tabs['email']] : $tabs;
 	}
 }
 

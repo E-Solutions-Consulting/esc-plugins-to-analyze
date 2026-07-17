@@ -1,0 +1,203 @@
+{
+  "_vendor_antd_form-f8ce9ec8.js": {
+    "file": "vendor_antd_form-f8ce9ec8.js"
+  },
+  "_vendor_antd_table-4202b54e.js": {
+    "file": "vendor_antd_table-4202b54e.js",
+    "imports": [
+      "_vendor_antd_form-f8ce9ec8.js"
+    ]
+  },
+  "assets/svgs/addons-icon.svg": {
+    "file": "addons-icon-97582c56.svg",
+    "src": "assets/svgs/addons-icon.svg"
+  },
+  "assets/svgs/attachment-email-icon.svg": {
+    "file": "attachment-email-icon-b0961bda.svg",
+    "src": "assets/svgs/attachment-email-icon.svg"
+  },
+  "assets/svgs/border-all.svg": {
+    "file": "border-all-2f0ae333.svg",
+    "src": "assets/svgs/border-all.svg"
+  },
+  "assets/svgs/border-bottom.svg": {
+    "file": "border-bottom-17a26883.svg",
+    "src": "assets/svgs/border-bottom.svg"
+  },
+  "assets/svgs/border-custom.svg": {
+    "file": "border-custom-d5e33460.svg",
+    "src": "assets/svgs/border-custom.svg"
+  },
+  "assets/svgs/border-left.svg": {
+    "file": "border-left-561b2d9b.svg",
+    "src": "assets/svgs/border-left.svg"
+  },
+  "assets/svgs/border-none.svg": {
+    "file": "border-none-0c81fcea.svg",
+    "src": "assets/svgs/border-none.svg"
+  },
+  "assets/svgs/border-right.svg": {
+    "file": "border-right-32174db6.svg",
+    "src": "assets/svgs/border-right.svg"
+  },
+  "assets/svgs/border-top.svg": {
+    "file": "border-top-56835a07.svg",
+    "src": "assets/svgs/border-top.svg"
+  },
+  "assets/svgs/bottom-left-radius.svg": {
+    "file": "bottom-left-radius-0687d927.svg",
+    "src": "assets/svgs/bottom-left-radius.svg"
+  },
+  "assets/svgs/bottom-right-radius.svg": {
+    "file": "bottom-right-radius-d7b16719.svg",
+    "src": "assets/svgs/bottom-right-radius.svg"
+  },
+  "assets/svgs/desktop-icon.svg": {
+    "file": "desktop-icon-39c91fc1.svg",
+    "src": "assets/svgs/desktop-icon.svg"
+  },
+  "assets/svgs/documentation-icon.svg": {
+    "file": "documentation-icon-bb597d59.svg",
+    "src": "assets/svgs/documentation-icon.svg"
+  },
+  "assets/svgs/email-templates-icon.svg": {
+    "file": "email-templates-icon-978d3c1f.svg",
+    "src": "assets/svgs/email-templates-icon.svg"
+  },
+  "assets/svgs/empty-template-icon.svg": {
+    "file": "empty-template-icon-3ea72e0f.svg",
+    "src": "assets/svgs/empty-template-icon.svg"
+  },
+  "assets/svgs/expand-icon.svg": {
+    "file": "expand-icon-2a3818aa.svg",
+    "src": "assets/svgs/expand-icon.svg"
+  },
+  "assets/svgs/extra-options-icon.svg": {
+    "file": "extra-options-icon-71b50504.svg",
+    "src": "assets/svgs/extra-options-icon.svg"
+  },
+  "assets/svgs/global-header-footer-icon.svg": {
+    "file": "global-header-footer-icon-b86567bb.svg",
+    "src": "assets/svgs/global-header-footer-icon.svg"
+  },
+  "assets/svgs/global-variables-icon.svg": {
+    "file": "global-variables-icon-39244cad.svg",
+    "src": "assets/svgs/global-variables-icon.svg"
+  },
+  "assets/svgs/go-pro-icon.svg": {
+    "file": "go-pro-icon-ed5c06eb.svg",
+    "src": "assets/svgs/go-pro-icon.svg"
+  },
+  "assets/svgs/history-icon.svg": {
+    "file": "history-icon-29a51e4e.svg",
+    "src": "assets/svgs/history-icon.svg"
+  },
+  "assets/svgs/import-template-icon.svg": {
+    "file": "import-template-icon-45318f34.svg",
+    "src": "assets/svgs/import-template-icon.svg"
+  },
+  "assets/svgs/mobile-icon.svg": {
+    "file": "mobile-icon-d13c3aa6.svg",
+    "src": "assets/svgs/mobile-icon.svg"
+  },
+  "assets/svgs/more-action-icon.svg": {
+    "file": "more-action-icon-eeba1b0d.svg",
+    "src": "assets/svgs/more-action-icon.svg"
+  },
+  "assets/svgs/play.svg": {
+    "file": "play-7b22e39e.svg",
+    "src": "assets/svgs/play.svg"
+  },
+  "assets/svgs/preview-attachment-pro.svg": {
+    "file": "preview-attachment-pro-2d698b2e.svg",
+    "src": "assets/svgs/preview-attachment-pro.svg"
+  },
+  "assets/svgs/preview-email-icon.svg": {
+    "file": "preview-email-icon-b2920e0b.svg",
+    "src": "assets/svgs/preview-email-icon.svg"
+  },
+  "assets/svgs/preview-icon.svg": {
+    "file": "preview-icon-691a0954.svg",
+    "src": "assets/svgs/preview-icon.svg"
+  },
+  "assets/svgs/redo-icon.svg": {
+    "file": "redo-icon-871d7475.svg",
+    "src": "assets/svgs/redo-icon.svg"
+  },
+  "assets/svgs/reset-template-icon.svg": {
+    "file": "reset-template-icon-6b344e08.svg",
+    "src": "assets/svgs/reset-template-icon.svg"
+  },
+  "assets/svgs/send-email-icon.svg": {
+    "file": "send-email-icon-e044b032.svg",
+    "src": "assets/svgs/send-email-icon.svg"
+  },
+  "assets/svgs/send-mail-success.svg": {
+    "file": "send-mail-success-fcdc5912.svg",
+    "src": "assets/svgs/send-mail-success.svg"
+  },
+  "assets/svgs/settings-icon.svg": {
+    "file": "settings-icon-f4b648ea.svg",
+    "src": "assets/svgs/settings-icon.svg"
+  },
+  "assets/svgs/shortcodes-icon.svg": {
+    "file": "shortcodes-icon-d5ce3827.svg",
+    "src": "assets/svgs/shortcodes-icon.svg"
+  },
+  "assets/svgs/subject-mail-icon.svg": {
+    "file": "subject-mail-icon-6a7da6f0.svg",
+    "src": "assets/svgs/subject-mail-icon.svg"
+  },
+  "assets/svgs/support-icon.svg": {
+    "file": "support-icon-29ace2fa.svg",
+    "src": "assets/svgs/support-icon.svg"
+  },
+  "assets/svgs/synced-patterns.svg": {
+    "file": "synced-patterns-1c6b0a15.svg",
+    "src": "assets/svgs/synced-patterns.svg"
+  },
+  "assets/svgs/top-left-radius.svg": {
+    "file": "top-left-radius-c9ed26fe.svg",
+    "src": "assets/svgs/top-left-radius.svg"
+  },
+  "assets/svgs/top-right-radius.svg": {
+    "file": "top-right-radius-6ea638b9.svg",
+    "src": "assets/svgs/top-right-radius.svg"
+  },
+  "assets/svgs/undo-icon.svg": {
+    "file": "undo-icon-934cae69.svg",
+    "src": "assets/svgs/undo-icon.svg"
+  },
+  "assets/svgs/wp-logo.svg": {
+    "file": "wp-logo-f8804a6d.svg",
+    "src": "assets/svgs/wp-logo.svg"
+  },
+  "assets/svgs/yaymail-logo.svg": {
+    "file": "yaymail-logo-674372ea.svg",
+    "src": "assets/svgs/yaymail-logo.svg"
+  },
+  "assets/svgs/yaysmtp-logo.svg": {
+    "file": "yaysmtp-logo-aed4803a.svg",
+    "src": "assets/svgs/yaysmtp-logo.svg"
+  },
+  "features/email-customizer/components/notice/notice-icon.svg": {
+    "file": "notice-icon-a3a0583d.svg",
+    "src": "features/email-customizer/components/notice/notice-icon.svg"
+  },
+  "yaymail-main.css": {
+    "file": "yaymail-main-e92791ec.css",
+    "src": "yaymail-main.css"
+  },
+  "yaymail-main.tsx": {
+    "css": [
+      "yaymail-main-e92791ec.css"
+    ],
+    "file": "yaymail-main.tsx-60ea0a5f.js",
+    "imports": [
+      "_vendor_antd_form-f8ce9ec8.js",
+      "_vendor_antd_table-4202b54e.js"
+    ],
+    "isEntry": true,
+    "src": "yaymail-main.tsx"
+  }
+}

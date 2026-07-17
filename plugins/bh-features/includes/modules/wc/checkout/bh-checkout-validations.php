@@ -7,6 +7,8 @@ class Bh_Checkout_Validations {
 
     public function __construct() {
 
+        add_action('woocommerce_checkout_process', [ $this, 'validate_accept_terms']);
+
         /**
          * 1) Validación global:
          *    - 1 solo producto "weight-loss" por persona (email/phone)
@@ -53,6 +55,12 @@ class Bh_Checkout_Validations {
         }
 
         return false;
+    }
+
+    function validate_accept_terms(){
+        if(!isset($_POST['bh_accept_terms']) || $_POST['bh_accept_terms']!=='on'){
+            wc_add_notice(__('You must accept the Terms &amp; Conditions to continue.', 'woocommerce'), 'error');
+        }
     }
 
     /**

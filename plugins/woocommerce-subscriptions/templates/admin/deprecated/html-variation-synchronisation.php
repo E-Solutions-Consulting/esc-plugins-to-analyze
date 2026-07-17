@@ -3,7 +3,7 @@
  * Outputs a subscription variation's payment date synchronisation fields for WooCommerce 2.2
  *
  * @var int $loop
- * @var WP_POST $variation
+ * @var WP_Post $variation
  * @var string $subscription_period
  * @var array $variation_data array of variation data
  */
@@ -27,7 +27,7 @@ global $wp_locale;
 		) );?>
 	</td>
 	<td colspan="1" class="subscription_sync_annual"<?php echo esc_attr( $display_annual_select ); ?>>
-		<label><?php esc_html_e( 'Synchronise Renewals', 'woocommerce-subscriptions' ); ?></label>
+		<label><?php esc_html_e( 'Align Billing', 'woocommerce-subscriptions' ); ?></label>
 		<?php woocommerce_wp_text_input( array(
 			'id'            => 'variable' . WC_Subscriptions_Synchroniser::$post_meta_key_day . '[' . $loop . ']',
 			'class'         => 'wc_input_subscription_payment_sync wc-enhanced-select',

@@ -43,6 +43,7 @@ class AH_Rest_Api {
          * APP USER TRACKING
          *
          * URL: /wp-json/bh/app/track-user
+         * Commented for testing purposes, to reduce problems on the server.
          */
         register_rest_route( 'bh', '/app/track-user', array(
             'methods'             => 'POST',
@@ -212,7 +213,7 @@ class AH_Rest_Api {
 	        )
 	    ));
 	}
-    function handle_app_user_tracking( $request ) {
+    function handle_app_user_tracking____( $request ) {
         $json    = $request->get_json_params();
         $params  = ! empty( $json ) ? $json : $request->get_params();
         $user_id = intval( $params['user_id'] ?? 0 );
@@ -287,6 +288,97 @@ class AH_Rest_Api {
         );
 
         return rest_ensure_response( $response_data );
+    }
+
+    function handle_app_user_tracking( $request ) {
+        $params  = $request->get_params();
+        $action  = sanitize_text_field( $params['action'] ?? '' );
+        $user_id = ! empty( $params['user_id'] ) ? (int) $params['user_id'] : 0;
+
+        wc_get_logger()->info(
+            sprintf( 'track-user IN  | ip: %s | user_id: %d | action: %s | body: %s',
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                $user_id,
+                $action,
+                json_encode( $params )
+            ),
+            array( 'source' => 'bh-track-user' )
+        );
+
+        if ( empty( $action ) || empty( $user_id ) ) {
+            wc_get_logger()->info(
+                sprintf( 'track-user OUT | status: 400 | reason: missing_data | user_id: %d | action: %s', $user_id, $action ?: '(empty)' ),
+                array( 'source' => 'bh-track-user' )
+            );
+            return new WP_Error( 'missing_data', 'user_id and action are required', array( 'status' => 400 ) );
+        }
+
+        $today_date  = date( 'Y-m-d' );
+        $cache_key   = 'bh_track_user_' . $user_id . '_' . $action . '_' . $today_date;
+        $already_ran = wp_cache_get( $cache_key, 'bh-track-user' );
+
+        if ( $already_ran && $action === 'open' ) {
+            return rest_ensure_response( array(
+                'success'  => true,
+                'user_id'  => $user_id,
+                'action'   => $action,
+                'deduplicated' => true,
+            ) );
+        }
+
+        $user = get_user_by( 'id', $user_id );
+        if ( ! $user ) {
+            wc_get_logger()->info(
+                sprintf( 'track-user OUT | status: 404 | reason: user_not_found | user_id: %d', $user_id ),
+                array( 'source' => 'bh-track-user' )
+            );
+            return new WP_Error( 'user_not_found', 'User not found', array( 'status' => 404 ) );
+        }
+
+        switch ( $action ) {
+            case 'install':
+                update_user_meta( $user_id, '_app_installed_date', $today_date );
+                update_user_meta( $user_id, '_app_last_opened', $today_date );
+                update_user_meta( $user_id, '_uses_app', 'true' );
+                break;
+
+            case 'open':
+                $last_opened = get_user_meta( $user_id, '_app_last_opened', true );
+                if ( $last_opened !== $today_date ) {
+                    update_user_meta( $user_id, '_app_last_opened', $today_date );
+                }
+                $uses_app = get_user_meta( $user_id, '_uses_app', true );
+                if ( $uses_app !== 'true' ) {
+                    update_user_meta( $user_id, '_uses_app', 'true' );
+                }
+                $seconds_until_midnight = strtotime( 'tomorrow' ) - time();
+                wp_cache_set( $cache_key, 1, 'bh-track-user', $seconds_until_midnight );
+                break;
+
+            case 'uninstall':
+                update_user_meta( $user_id, '_uses_app', 'false' );
+                break;
+        }
+
+        $fields = array(
+            '_uses_app'           => get_user_meta( $user_id, '_uses_app', true ),
+            '_app_installed_date' => get_user_meta( $user_id, '_app_installed_date', true ),
+            '_app_last_opened'    => get_user_meta( $user_id, '_app_last_opened', true ),
+        );
+
+        wc_get_logger()->info(
+            sprintf( 'track-user OUT | status: 200 | user_id: %d | action: %s | fields: %s',
+                $user_id, $action, json_encode( $fields )
+            ),
+            array( 'source' => 'bh-track-user' )
+        );
+
+        return rest_ensure_response( array(
+            'success'        => true,
+            'user_id'        => $user_id,
+            'action'         => $action,
+            'fields_updated' => $fields,
+        ) );
     }
 
 }

@@ -50,28 +50,34 @@ class BH_Attentive_Logger {
      */
     public static function log( $message, $data = null, $level = 'INFO' ) {
         $settings = BH_Attentive_Config::get_settings();
-        
+
         if ( empty( $settings['logging_enabled'] ) || $settings['logging_enabled'] !== 'yes' ) {
             return;
         }
-        
-        // Rotate log if needed
-        self::maybe_rotate_log();
-        
-        $timestamp = current_time( 'Y-m-d H:i:s' );
-        $log_entry = "[{$timestamp}] [{$level}] {$message}";
-        
-        if ( $data !== null ) {
+
+        // Append structured data compactly as JSON (not multi-line print_r,
+        // which bloated the log and was slow to scan). Skip empty data so we
+        // never log a trailing empty "Array ( )" / "[]".
+        if ( ! empty( $data ) ) {
             if ( is_array( $data ) || is_object( $data ) ) {
-                $log_entry .= "\n" . print_r( $data, true );
+                $message .= ' ' . wp_json_encode( $data );
             } else {
-                $log_entry .= " | Data: {$data}";
+                $message .= ' | ' . $data;
             }
         }
-        
-        $log_entry .= "\n---\n";
-        
-        error_log( $log_entry, 3, self::$log_file );
+
+        // Primary sink: WooCommerce logger → WC → Status → Logs (source: bh-attentive).
+        // Far faster to review than downloading the upload-dir .log file.
+        if ( function_exists( 'wc_get_logger' ) ) {
+            $wc_level = ( strtolower( $level ) === 'error' ) ? 'error' : 'info';
+            wc_get_logger()->log( $wc_level, $message, array( 'source' => 'bh-attentive' ) );
+            return;
+        }
+
+        // Fallback: file log only if the WC logger is unavailable.
+        self::maybe_rotate_log();
+        $timestamp = current_time( 'Y-m-d H:i:s' );
+        error_log( "[{$timestamp}] [{$level}] {$message}\n---\n", 3, self::$log_file );
     }
 
     /**

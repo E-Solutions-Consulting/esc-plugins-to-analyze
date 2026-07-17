@@ -10,9 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $integrations_base = plugin_dir_path( __FILE__ );
 
-// Server-side tracking
-// $this->safe_require( $integrations_base . 'tracking/container.php' );
-// $this->safe_require( $integrations_base . 'tracking/frontend.php' );
+// Tracking Snippets
+$this->safe_require( $integrations_base . 'snippets/loader.php' );
 
 // TripleWhale
 $this->safe_require( $integrations_base . 'triplewhale/loader.php' );
@@ -22,6 +21,9 @@ $this->safe_require( $integrations_base . 'podscribe/loader.php' );
 
 // Attentive
 $this->safe_require( $integrations_base . 'attentive/loader.php' );
+
+// LOB (direct mail)
+$this->safe_require( $integrations_base . 'lob/loader.php' );
 
 // Uscreen
 $this->safe_require( $integrations_base . 'uscreen/loader.php' );
