@@ -1,0 +1,78 @@
+flowchart LR
+  subgraph GCS["GCS backups"]
+    B1["allia-brello-raw - user and user_detail parquet"]
+    B2["allia-brello-raw - weight, medication, measurement, symptoms parquet"]
+    W1["allia-woocommerce-raw-prod - mrb_wc_orders CSV.gz"]
+    W2["allia-woocommerce-raw-prod - order meta, addresses, comments"]
+  end
+
+  subgraph STEP1["Step 1: Account + Empty Order Creation"]
+    CF1["brelloMigrationPhase1 - GCP Cloud Function"]
+    EF1["migration-phase1-import - Supabase Edge Function"]
+  end
+
+  subgraph SUP["Supabase brello tenant"]
+    AUTH["auth.users"]
+    PAT["patients"]
+    SUB["subscriptions"]
+    ORD["orders"]
+    WT["patient_weight_entries"]
+    MED["medication_shot_intakes"]
+    SYM["patient_symptom_entries"]
+    MOOD["patient_mood_change_entries"]
+    ACT["patient_activity_entries"]
+  end
+
+  subgraph STEP2A["Step 2A: Health Approval"]
+    APPROVAL["Joao + Alessandra approval - schema gaps and mappings"]
+  end
+
+  subgraph STEP2["Step 2: Historical Backfill"]
+    CF2["brelloMigrationPhase2 - GCP Cloud Function"]
+    EF2["migration-phase2-import - Supabase Edge Function"]
+    ES["Elasticsearch - historical order events"]
+  end
+
+  subgraph STEP3["Step 3: Active Order Continuation"]
+    RTDH["RTDH production active order flow"]
+    LOOKUP["WooCommerce to Supabase order lookup"]
+    SUP_CONSUMER["Supabase consumer processes linked events"]
+  end
+
+  RISE["Brello Rise backend - legacy-to-Supabase ID mapping"]
+
+  B1 --> CF1
+  W1 --> CF1
+  CF1 -->|"batch POST with X-Migration-API-Key"| EF1
+  EF1 --> AUTH
+  EF1 --> PAT
+  EF1 --> SUB
+  EF1 --> ORD
+
+  B2 --> APPROVAL
+  APPROVAL --> CF2
+  W2 --> CF2
+  ORD --> CF2
+  SUB --> CF2
+  CF2 --> ES
+  CF2 -->|"batch POST with X-Migration-API-Key"| EF2
+  EF2 --> ORD
+  EF2 --> SUB
+  EF2 -. approved mapping .-> WT
+  EF2 -. approved mapping .-> MED
+  EF2 -. approved mapping .-> SYM
+  EF2 -. approved mapping .-> MOOD
+  EF2 -. approved mapping .-> ACT
+
+  RTDH --> LOOKUP --> SUP_CONSUMER --> ORD
+  PAT --> RISE
+
+  classDef source fill:#f8fafc,stroke:#64748b,color:#0f172a
+  classDef function fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+  classDef platform fill:#ecfdf5,stroke:#059669,color:#064e3b
+  classDef pending fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+
+  class B1,B2,W1,W2 source
+  class CF1,EF1,CF2,EF2,RTDH,LOOKUP,SUP_CONSUMER function
+  class AUTH,PAT,SUB,ORD,WT,MED,SYM,MOOD,ACT platform
+  class APPROVAL,ES,RISE pending

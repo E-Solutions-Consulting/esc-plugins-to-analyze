@@ -1,0 +1,104 @@
+name: Run QA Tests After Deployment
+
+on:
+  workflow_run:
+    workflows:
+      - "Deploy to Development"
+      - "Deploy to Staging"
+    types:
+      - completed
+
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "QA Git branch to run tests from"
+        required: true
+        default: "master"
+      test_env:
+        description: "Environment"
+        type: choice
+        required: true
+        default: "dev"
+        options:
+          - dev
+          - stg
+
+permissions:
+  contents: read
+
+env:
+  DEFAULT_QA_BRANCH: "master"
+  DEFAULT_APP_ID: "3376713"
+
+jobs:
+  prepare-context:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      env: ${{ steps.context.outputs.env }}
+      branch: ${{ steps.context.outputs.branch }}
+      deployment_sha: ${{ steps.context.outputs.deployment_sha }}
+
+    steps:
+      - name: Determine environment and branch
+        id: context
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            {
+              echo "env=${{ github.event.inputs.test_env }}"
+              echo "branch=${{ github.event.inputs.branch }}"
+              echo "deployment_sha=${{ github.sha }}"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+
+          if [ "$WORKFLOW_NAME" = "Deploy to Development" ]; then
+            TARGET_ENV="dev"
+          elif [ "$WORKFLOW_NAME" = "Deploy to Staging" ]; then
+            TARGET_ENV="stg"
+          else
+            echo "Unsupported workflow"
+            exit 1
+          fi
+
+          {
+            echo "env=$TARGET_ENV"
+            echo "branch=$DEFAULT_QA_BRANCH"
+            echo "deployment_sha=${{ github.event.workflow_run.head_sha }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Wait 10 seconds for environment readiness
+        run: |
+          echo "Waiting 10 seconds..."
+          sleep 10
+
+  trigger-qa-tests:
+    needs: [prepare-context]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ env.DEFAULT_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: Allia-Health
+          repositories: |
+            qa-automation
+          permission-actions: write
+
+      - name: Dispatch QA automation workflow
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          QA_BRANCH: ${{ needs.prepare-context.outputs.branch }}
+          QA_ENV: ${{ needs.prepare-context.outputs.env }}
+          DEPLOYMENT_SHA: ${{ needs.prepare-context.outputs.deployment_sha }}
+        run: |
+          gh workflow run patient-platform-api-regression.yml \
+            --repo Allia-Health/qa-automation \
+            --ref "$QA_BRANCH" \
+            --field branch="$QA_BRANCH" \
+            --field test_env="$QA_ENV" \
+            --field deployment_sha="$DEPLOYMENT_SHA"

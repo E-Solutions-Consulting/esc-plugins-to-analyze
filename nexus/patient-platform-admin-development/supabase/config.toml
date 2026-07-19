@@ -1,0 +1,157 @@
+project_id = "sunzxjnbgtknqeivljtd"
+
+[edge_runtime.secrets]
+CORS_ALLOWED_ORIGINS = "env(CORS_ALLOWED_ORIGINS)"
+
+[remotes.development]
+project_id = "sunzxjnbgtknqeivljtd"
+
+[remotes.staging]
+project_id = "rhzrxfckhogjppjsioyn"
+
+[remotes.main]
+project_id = "dfejvhgwqhywmtxyxkyo"
+
+[functions.update-patient-email]
+verify_jwt = false
+
+[functions.create-admin]
+verify_jwt = false
+
+[functions.manage-roles]
+verify_jwt = false
+
+[functions.order-lifecycle]
+verify_jwt = false
+
+[functions.patient-api]
+verify_jwt = false
+
+[functions.plan-api]
+verify_jwt = false
+
+[functions.medication-api]
+verify_jwt = false
+
+[functions.healthtracking-api]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.telegra-webhook]
+verify_jwt = false
+
+[functions.sync-product]
+verify_jwt = false
+
+[functions.tenant-info]
+verify_jwt = false
+
+[functions.tenant-email-template]
+verify_jwt = false
+
+[functions.tenant-app-store-config]
+verify_jwt = false
+
+[functions.update-patient-password]
+verify_jwt = false
+
+[functions.provider-platform-bridge]
+verify_jwt = false
+
+[functions.qa-api]
+verify_jwt = false
+
+[functions.messenger-api]
+verify_jwt = false
+
+[functions.lifefile-webhook]
+verify_jwt = false
+
+[functions.easypost-webhook]
+verify_jwt = false
+
+[functions.stripe-coupon-api]
+verify_jwt = false
+
+[functions.select-provider-platform]
+verify_jwt = false
+
+[functions.rtdh-webhook]
+verify_jwt = false
+
+[functions.friendbuy-webhook]
+verify_jwt = false
+
+[functions.friendbuy-reconcile]
+verify_jwt = false
+
+[functions.renewal-trigger-reconcile]
+verify_jwt = false
+
+[functions.set-rtdh-config]
+verify_jwt = false
+
+[functions.set-provider-rtdh-secret]
+verify_jwt = false
+
+[functions.get-provider-rtdh-secret-status]
+verify_jwt = false
+
+[functions.reminder-scheduler]
+verify_jwt = false
+
+[functions.analytics-api]
+verify_jwt = false
+
+[functions.education-api]
+verify_jwt = false
+
+[functions.migration-phase1-import]
+verify_jwt = false
+
+[functions.migration-phase2-import]
+verify_jwt = false
+
+[functions.migration-phase4-subscription-handoff]
+verify_jwt = false
+
+# --- Communications Automations ---
+# CRUD for the builder UI (JWT + tenant membership verified in-function).
+[functions.comms-automation-admin]
+verify_jwt = false
+
+# Internal: receives domain events and creates enrollments (shared-secret auth).
+[functions.comms-event-dispatcher]
+verify_jwt = false
+
+# Internal: runs a single node and advances the enrollment (shared-secret auth).
+[functions.comms-execute-node]
+verify_jwt = false
+
+# Authenticated proxy to the tenant's n8n project (JWT + tenant membership).
+[functions.comms-n8n-proxy]
+verify_jwt = false
+
+# Cron tick: drains delays + materialises relative-time triggers (CRON_SECRET).
+[functions.comms-scheduler]
+verify_jwt = false
+
+# Resend delivery events -> comms_run_steps (Svix-signed; verify_jwt=false).
+[functions.comms-resend-webhook]
+verify_jwt = false
+
+# --- Outbound Webhooks (Developer -> Outbound Webhooks) ---
+# Service-to-service: selects a tenant's matching enabled webhooks and publishes
+# ONE signed envelope to RTDH for fan-out (see docs/OutboundWebhooksAPI.md).
+# Called by producers (analytics-api) + the sweeper, authorized with the
+# platform service/anon key like other internal function-to-function calls.
+[functions.outbound-webhook-dispatcher]
+verify_jwt = false
+
+# Cron tick: sweeps committed order_status_history + subscription_events since a
+# watermark and forwards each to the dispatcher (CRON_SECRET). This is the
+# producer for lifecycle/subscription outbound events (no pg_net in this project).
+[functions.outbound-webhook-sweeper]
+verify_jwt = false

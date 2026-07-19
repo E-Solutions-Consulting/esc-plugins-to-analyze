@@ -1,0 +1,2 @@
+-- Restored as a no-op to preserve remote migration history.
+-- The table drop is represented by 20260423143000_drop_rtdh_middleware_tables.sql.

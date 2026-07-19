@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+/**
+ * Emit the "What's Included" import as SQL, one file per environment.
+ *
+ * The third sibling of generate-product-pdp-sql.mjs (content) and
+ * generate-product-pricing-sql.mjs (compare-at price). This one writes the one
+ * remaining customer-facing field the patient PDP renders but the platform did not
+ * carry: `products.included_features` — the bullet list the product page shows near
+ * the CTA ("Tirzepatide Medication (If Approved)", "Brello App…", "Fast Shipping"…).
+ * The patient UI gates the "What's Included" block on this array being non-empty, so
+ * an unpopulated column means the section silently does not render.
+ *
+ * ## What it writes, and what it refuses to
+ *
+ * It sets `included_features` ONLY — a JSONB array of strings (the column is JSONB,
+ * default '[]'). It touches no price, no content blob, nothing else. Each product's
+ * array is its medication line(s) followed by the six shared service bullets in
+ * `_shared` (syringes, Brello App, Brello Rise, Community, Provider Review, Fast
+ * Shipping), which is exactly how brellohealth.com presents them.
+ *
+ * ## Why it is safe against the wrong row
+ *
+ * Same guards as its siblings: matched on the product uuid AND the Brello tenant
+ * (resolved by slug, since the tenant uuid differs per environment), so a stale uuid
+ * updates nothing rather than another tenant's row. Every environment's products
+ * table also holds other tenants' rows (production carries CareLink-owned
+ * compounded-* products), so the tenant predicate is what keeps this Brello-only.
+ *
+ * Idempotent: `included_features` is set to the same JSONB each run; `updated_at`
+ * moves only on a real change (the UPDATE is guarded so a row already holding the
+ * intended value is skipped).
+ *
+ * Usage:  node scripts/generate-product-included-features-sql.mjs
+ *         → writes scripts/sql/product-included-features-{development,staging,production}.sql
+ */
+
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const OUT_DIR = resolve(__dirname, "sql");
+
+const JOURNEY_REPO =
+  process.env.JOURNEY_REPO ??
+  resolve(__dirname, "../../brellohealth-purchase-journey");
+
+const PRODUCTS_CONFIG = resolve(JOURNEY_REPO, "src/config/products.config.ts");
+const FEATURES = resolve(__dirname, "product-included-features.json");
+
+const BRELLO_TENANT_SLUG = "brello";
+const ENVS = ["development", "staging", "production"];
+
+/** Same website-slug → platform-uuid map the sibling generators read, per env. */
+function parseProductsConfig() {
+  const src = readFileSync(PRODUCTS_CONFIG, "utf8");
+  const body = src.slice(
+    src.indexOf("export const PRODUCTS"),
+    src.indexOf("/* --------------------------------- Lookups"),
+  );
+  const products = {};
+  for (const [, slug, entry] of body.matchAll(
+    /"([\w-]+)":\s*\{([\s\S]*?)\n  \},/g,
+  )) {
+    const platform = {};
+    const block = entry.match(/platform:\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+    for (const [, env, id] of block.matchAll(/(\w+):\s*"([^"]+)"/g))
+      platform[env] = id;
+    products[slug] = {
+      name: entry.match(/name:\s*"([^"]+)"/)?.[1],
+      platform,
+    };
+  }
+  return products;
+}
+
+/* ---------------------------------- emit ------------------------------------ */
+
+const config = parseProductsConfig();
+
+const raw = JSON.parse(readFileSync(FEATURES, "utf8"));
+const shared = raw._shared ?? [];
+
+// Build each product's full feature list: its medication line(s) + the shared tail.
+const features = {};
+for (const [slug, lead] of Object.entries(raw)) {
+  if (slug.startsWith("_")) continue;
+  if (!Array.isArray(lead)) continue;
+  features[slug] = [...lead, ...shared];
+}
+
+/** A jsonb array literal of strings, e.g. '["a","b"]'::jsonb, safely quoted for SQL. */
+function jsonbArrayLiteral(items) {
+  // JSON.stringify handles quotes/backslashes; then double any single quote for SQL.
+  const json = JSON.stringify(items).replace(/'/g, "''");
+  return `'${json}'::jsonb`;
+}
+
+mkdirSync(OUT_DIR, { recursive: true });
+
+for (const env of ENVS) {
+  const rows = [];
+  for (const [slug, items] of Object.entries(features)) {
+    const id = config[slug]?.platform[env];
+    if (!id) continue; // not sold in this environment
+    rows.push({ slug, id, name: config[slug].name, items });
+  }
+
+  const statements = rows
+    .map(
+      ({ slug, id, name, items }) => `-- ${slug} — ${name}  (${items.length} bullets)
+UPDATE public.products p
+   SET included_features = ${jsonbArrayLiteral(items)},
+       updated_at        = now()
+  FROM public.tenants t
+ WHERE p.tenant_id = t.id
+   AND t.slug      = '${BRELLO_TENANT_SLUG}'
+   AND p.id        = '${id}'::uuid
+   AND p.included_features IS DISTINCT FROM ${jsonbArrayLiteral(items)};`,
+    )
+    .join("\n\n");
+
+  const sql = `-- Product "What's Included" bullets → products.included_features
+-- Environment: ${env}
+--
+-- Generated by scripts/generate-product-included-features-sql.mjs. Do not hand-edit: regenerate.
+-- Source: brellohealth.com product pages ("What's Included")
+--         + products.config.ts (the website-slug → platform-uuid map, per env)
+--
+-- WHAT THIS WRITES
+--   included_features only — the bullet list the patient product page shows near the
+--   CTA. A JSONB array of strings (the column is JSONB, default '[]'). The patient UI
+--   hides the "What's Included" block when this array is empty, so populating it is
+--   what makes the section appear. Also editable in Nexus (the "What's Included" tab).
+--
+-- WHAT IT DOES NOT WRITE
+--   Nothing else — no price, no metadata.pdp content, no other column.
+--
+-- SAFE TO RE-RUN
+--   Idempotent. The UPDATE's "IS DISTINCT FROM" guard means a row already holding the
+--   intended array is skipped, so updated_at moves only on a real change.
+--
+-- SAFE AGAINST THE WRONG ROW
+--   Matched on the product uuid AND the Brello tenant (resolved by slug, since the
+--   tenant uuid differs per environment), so a stale uuid updates nothing rather than
+--   another tenant's row. Every environment's products table also holds other tenants'
+--   rows (production carries CareLink-owned compounded-* products); the tenant
+--   predicate keeps this Brello-only.
+--
+-- ${rows.length} product${rows.length === 1 ? "" : "s"} in ${env}.
+
+BEGIN;
+
+${statements}
+
+-- Check this BEFORE you COMMIT.
+--
+--   has_features   should be true for the products listed above.
+--   n              the number of bullets on each — the medication line(s) plus the
+--                  six shared service bullets.
+--   first          a spot-check that the medication line landed (not an empty array).
+SELECT p.name,
+       jsonb_typeof(p.included_features) = 'array'
+         AND jsonb_array_length(p.included_features) > 0                AS has_features,
+       jsonb_array_length(COALESCE(p.included_features, '[]'::jsonb))   AS n,
+       p.included_features ->> 0                                        AS first
+  FROM public.products p
+  JOIN public.tenants  t ON t.id = p.tenant_id
+ WHERE t.slug = '${BRELLO_TENANT_SLUG}'
+ ORDER BY p.name;
+
+-- Happy? COMMIT. Not happy? ROLLBACK — nothing above has been persisted yet.
+COMMIT;
+`;
+
+  const path = resolve(OUT_DIR, `product-included-features-${env}.sql`);
+  writeFileSync(path, sql);
+  console.log(
+    `  ${env.padEnd(12)} ${rows.length} products → scripts/sql/product-included-features-${env}.sql`,
+  );
+}

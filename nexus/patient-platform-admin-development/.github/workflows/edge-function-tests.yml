@@ -1,0 +1,19 @@
+name: Edge Function Tests
+
+on:
+  pull_request:
+
+jobs:
+  edge-function-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run Deno edge function tests
+        run: deno test --allow-env supabase/functions/*/*.test.ts

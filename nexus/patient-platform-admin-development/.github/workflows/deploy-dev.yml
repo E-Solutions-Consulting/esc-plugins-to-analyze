@@ -1,0 +1,26 @@
+name: Deploy to Development
+
+on:
+    workflow_dispatch:
+
+    push:
+        branches:
+            - development
+
+env:
+    REGION: us-central1
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev Environment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Simulate deployment on Vercel
+        run: |
+          echo "Waiting 60 seconds for Vercel deployment"
+          sleep 60
+          echo "Finished deployment on Vercel, triggering QA pipeline now...."

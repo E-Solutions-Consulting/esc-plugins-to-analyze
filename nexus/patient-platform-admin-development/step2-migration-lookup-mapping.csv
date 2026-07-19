@@ -1,0 +1,55 @@
+mapping_type,source_system,source_key_type,source_product_id,source_variation_id,source_value,target_table,target_id,target_key,target_label,action,notes
+product,woocommerce,product_variation,10122,10123,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Primary Woo Tirzepatide pair
+product_unmapped,woocommerce,product_variation,331,333,,products,,,,needs_pp_monthly_product,Monthly Tirzepatide subscription. Do not map to 3-month PP product
+product,woocommerce,product_variation,331,332,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Legacy Woo Tirzepatide pair
+product_unmapped,woocommerce,product_variation,366,368,,products,,,,needs_pp_monthly_product,Monthly Tirzepatide Black Friday subscription. Do not map to 3-month PP product
+product,woocommerce,product_variation,366,367,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Legacy Woo Tirzepatide pair
+product,woocommerce,product_variation,331,0,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Legacy Woo Tirzepatide product without variation
+product,woocommerce,product_variation,515177,515266,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Low volume Woo Tirzepatide pair
+product,woocommerce,product_variation,10122,0,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Primary Woo Tirzepatide product without variation
+product,woocommerce,product_variation,120,124,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Very low volume Woo Tirzepatide pair
+product,woocommerce,product_variation,120,123,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Very low volume Woo Tirzepatide pair
+product,woocommerce,product_variation,120,121,,products,95737fde-85a1-48b0-871d-f14a6d3bb400,compounded-tirzepatide,Compounded Tirzepatide,map,Very low volume Woo Tirzepatide pair
+product,woocommerce,product_variation,10116,10119,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Primary Woo Semaglutide pair
+product_unmapped,woocommerce,product_variation,10116,10120,,products,,,,needs_pp_monthly_product,Monthly Semaglutide subscription. Do not map to 3-month PP product
+product_unmapped,woocommerce,product_variation,369,371,,products,,,,needs_pp_monthly_product,Monthly Semaglutide VIP subscription. Do not map to 3-month PP product
+product,woocommerce,product_variation,369,370,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Legacy Woo Semaglutide pair
+product_unmapped,woocommerce,product_variation,251,253,,products,,,,needs_pp_monthly_product,Monthly Semaglutide Black Friday subscription. Do not map to 3-month PP product
+product,woocommerce,product_variation,251,252,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Legacy Woo Semaglutide pair
+product,woocommerce,product_variation,369,0,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Legacy Woo Semaglutide product without variation
+product,woocommerce,product_variation,10116,0,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Primary Woo Semaglutide product without variation
+product,woocommerce,product_variation,251,0,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Legacy Woo Semaglutide product without variation
+product,woocommerce,product_variation,6473,6474,,products,3435f2fd-4d09-4704-a52e-c722775f8445,compounded-semaglutide,Compounded Semaglutide,map,Low volume Woo Semaglutide pair
+product,woocommerce,product_variation,518309,518324,,products,b06ff475-1793-42bb-99f3-8874b4fc3888,compounded-nad,Compounded NAD+,map,Primary Woo NAD pair
+product_unmapped,woocommerce,product_variation,67207,71193,,products,,,,needs_pp_monthly_product,Monthly NAD subscription. Do not map to 3-month PP product
+product,woocommerce,product_variation,67207,0,,products,b06ff475-1793-42bb-99f3-8874b4fc3888,compounded-nad,Compounded NAD+,map,Legacy Woo NAD product without variation
+product,woocommerce,product_variation,518309,0,,products,b06ff475-1793-42bb-99f3-8874b4fc3888,compounded-nad,Compounded NAD+,map,Primary Woo NAD product without variation
+product,woocommerce,product_variation,497138,497143,,products,3c5fc94b-1370-41ca-bebc-bf1e778fec53,empowered-longevity-lifestyle-plan,Empowered+ Longevity Lifestyle Plan Tirzepatide,map,Empowered Tirzepatide and NAD bundle
+product,woocommerce,product_variation,497138,497142,,products,40f3fde0-7d2b-48cc-a987-05b3bf80c862,empowered-longevity-lifestyle-plan-semag,Empowered+ Longevity Lifestyle Plan Semaglutide,map,Empowered Semaglutide and NAD bundle
+product,woocommerce,product_variation,617908,617914,,products,4d47f3c7-2d37-4d65-86d5-a2d133415989,thrive-forward-longevity-lifestyle-plan-semaglutid,Thrive Forward Longevity Lifestyle Plan Semaglutide,map,Thrive Semaglutide bundle
+product_medication,woocommerce,product_variation,562678,562680,,medications,135ae212-a4e6-4a92-8d6d-317cf4c1320a,sermorelin,Sermorelin,map,Standalone Sermorelin Woo product maps to Sermorelin medication. PP product_id remains null unless standalone product is created
+product_medication,woocommerce,product_variation,559983,559991,,medications,135ae212-a4e6-4a92-8d6d-317cf4c1320a,sermorelin,Sermorelin,map,Standalone Sermorelin Woo product maps to Sermorelin medication. PP product_id remains null unless standalone product is created
+medication,brello_db,medication_name,,,Compounded Tirzepatide With B6 (Pyridoxine) - 3 Month,medications,1d7018d1-b355-4871-b263-5eb8026d8a3e,tirzepatide,Tirzepatide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Tirzepatide,medications,1d7018d1-b355-4871-b263-5eb8026d8a3e,tirzepatide,Tirzepatide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Tirzepatide With B6 (Pyridoxine) - 3 Month,medications,1d7018d1-b355-4871-b263-5eb8026d8a3e,tirzepatide,Tirzepatide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Compounded Tirzepatide VIP - 3 Month,medications,1d7018d1-b355-4871-b263-5eb8026d8a3e,tirzepatide,Tirzepatide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Empowered+ Longevity Lifestyle Plan - Tirzepatide &amp; NAD+,medications,1d7018d1-b355-4871-b263-5eb8026d8a3e,tirzepatide,Tirzepatide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Compounded Semaglutide With B6 (Pyridoxine) - 3 Month,medications,ea864c1d-1c90-487e-b530-44199044a9d4,semaglutide,Semaglutide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Semaglutide,medications,ea864c1d-1c90-487e-b530-44199044a9d4,semaglutide,Semaglutide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Compounded Semaglutide VIP - 3 Month,medications,ea864c1d-1c90-487e-b530-44199044a9d4,semaglutide,Semaglutide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Empowered+ Longevity Lifestyle Plan - Semaglutide &amp; NAD+,medications,ea864c1d-1c90-487e-b530-44199044a9d4,semaglutide,Semaglutide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Semaglutide With B6 (Pyridoxine) - Monthly,medications,ea864c1d-1c90-487e-b530-44199044a9d4,semaglutide,Semaglutide,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,NAD+,medications,d0220468-266b-4582-b8c9-a83e2a81f647,nad,NAD+,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Compounded NAD+ - 3 MONTH PLAN,medications,d0220468-266b-4582-b8c9-a83e2a81f647,nad,NAD+,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Compounded NAD+ - Monthly,medications,d0220468-266b-4582-b8c9-a83e2a81f647,nad,NAD+,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,NAD+ - Monthly,medications,d0220468-266b-4582-b8c9-a83e2a81f647,nad,NAD+,map,Preserve source strength in metadata
+medication,brello_db,medication_name,,,Sermorelin,medications,135ae212-a4e6-4a92-8d6d-317cf4c1320a,sermorelin,Sermorelin,map,Preserve source strength in metadata
+injection_site,brello_db,injection_site,,,Stomach - Lower right,tenant_injection_site_definitions,,stomach_low_right,Stomach Low Right,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Stomach - Lower left,tenant_injection_site_definitions,,stomach_lower_left,Stomach Lower Left,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Stomach - Upper right,tenant_injection_site_definitions,,stomach_up_right,Stomach Up Right,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Stomach - Upper left,tenant_injection_site_definitions,,stomach_up_left,Stomach Up Left,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Right Leg,tenant_injection_site_definitions,,right_leg,Right Leg,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Left Leg,tenant_injection_site_definitions,,left_leg,Left Leg,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Left Arm,tenant_injection_site_definitions,,left_arm,Left Arm,map,Resolve target id by tenant_id plus label in Supabase
+injection_site,brello_db,injection_site,,,Right Arm,tenant_injection_site_definitions,,right_arm,Right Arm,map,Resolve target id by tenant_id plus label in Supabase
+rise,brello_rise_backend,user_id,,,legacy_brello_uid,patients.metadata,,legacy_brello_uid,Use legacy Brello uid for Rise calls,map,Option A selected. Do not rewrite Rise ids in Step 2

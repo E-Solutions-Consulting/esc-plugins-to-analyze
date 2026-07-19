@@ -1,0 +1,38 @@
+{
+  "_comment": "'What's Included' bullets per website slug → products.included_features (JSONB array of strings). Sourced from brellohealth.com's product pages on 2026-07-15. The pattern is a per-product medication line (or lines, for bundles) followed by six shared service bullets: syringes+instructions, Brello App, Brello Rise, Private Community, Provider Health Review, Fast Shipping. Single-medication products list their one medication '(If Approved)'; bundle products list each medication in the stack. generate-product-included-features-sql.mjs turns these into idempotent UPDATEs that set ONLY included_features, tenant- and uuid-scoped per env. compounded-nad/compounded-sermorelin/compounded-micc use the same 6 shared bullets with their own medication line. Parent bundle *pages* (glp-1-and-nad, glp-1-sermorelin-and-nad) are omitted — the platform sells only the per-medication variant products. To refresh: re-read each /product/ page's 'What's Included' section and update the arrays here.",
+  "_shared": [
+    "Syringes with Needles & Injection Instructions",
+    "Brello App: Get Support & Track Progress, All In One Place",
+    "Brello Rise: Access to Hundreds of Virtual Fitness & Nutrition Classes",
+    "Private Facebook Community",
+    "Provider Health Review",
+    "Fast Shipping"
+  ],
+  "compounded-tirzepatide": ["Tirzepatide Medication (If Approved)"],
+  "compounded-semaglutide": ["Semaglutide Medication (If Approved)"],
+  "compounded-nad": ["NAD+ Medication (If Approved)"],
+  "compounded-sermorelin": ["Sermorelin Medication (If Approved)"],
+  "compounded-micc": ["MICC Injection (If Approved)"],
+  "glp-1-and-nad-tirzepatide": [
+    "Tirzepatide Medication (If Approved)",
+    "NAD+ Medication (If Approved)"
+  ],
+  "glp-1-and-nad-semaglutide": [
+    "Semaglutide Medication (If Approved)",
+    "NAD+ Medication (If Approved)"
+  ],
+  "glp-1-sermorelin-and-nad-tirzepatide": [
+    "Tirzepatide Medication (If Approved)",
+    "Sermorelin Medication (If Approved)",
+    "NAD+ Medication (If Approved)"
+  ],
+  "glp-1-sermorelin-and-nad-semaglutide": [
+    "Semaglutide Medication (If Approved)",
+    "Sermorelin Medication (If Approved)",
+    "NAD+ Medication (If Approved)"
+  ],
+  "sermorelin-and-nad": [
+    "Sermorelin Medication (If Approved)",
+    "NAD+ Medication (If Approved)"
+  ]
+}

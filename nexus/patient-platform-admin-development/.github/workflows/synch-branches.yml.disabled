@@ -1,0 +1,88 @@
+name: Sync branches to mirror repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      mirror_repo:
+        description: "Mirror repository name only"
+        required: true
+        type: string
+        default: patient-platform-admin-7b2be62b
+
+  push:
+    branches:
+      - development
+      - staging
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.MIRROR_APP_ID }}
+          private-key: ${{ secrets.MIRROR_APP_PRIVATE_KEY }}
+          owner: Allia-Health
+
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve target repository
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "repo=Allia-Health/${{ inputs.mirror_repo }}" >> $GITHUB_OUTPUT
+          else
+            echo "repo=Allia-Health/${{ vars.MIRROR_REPO }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Sync branch or create PR on conflict
+        env:
+            TARGET_REPO: ${{ steps.vars.outputs.repo }}
+            GH_APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+            set -e
+
+            BRANCH="${GITHUB_REF_NAME}"
+            TEMP_BRANCH="sync/${BRANCH}-${GITHUB_RUN_ID}"
+
+            git config user.name "allia-sync-bot"
+            git config user.email "allia-sync-bot@users.noreply.github.com"
+
+            git remote add target \
+            "https://x-access-token:${GH_APP_TOKEN}@github.com/${TARGET_REPO}.git"
+
+            git fetch target "${BRANCH}" || true
+            git checkout -B "${BRANCH}" "origin/${BRANCH}"
+
+            if git show-ref --verify --quiet "refs/remotes/target/${BRANCH}"; then
+            if git merge "target/${BRANCH}" --allow-unrelated-histories --no-edit; then
+                git push target "${BRANCH}:${BRANCH}"
+                echo "Synced ${BRANCH} directly."
+            else
+                echo "::warning::Merge conflict detected. Creating PR instead."
+
+                git merge --abort || true
+
+                git checkout -B "${TEMP_BRANCH}" "origin/${BRANCH}"
+                git push target "${TEMP_BRANCH}:${TEMP_BRANCH}"
+
+                gh pr create \
+                --repo "${TARGET_REPO}" \
+                --base "${BRANCH}" \
+                --head "${TEMP_BRANCH}" \
+                --title "Sync ${BRANCH} from source repository" \
+                --body "Automatic sync from source branch \`${BRANCH}\` failed due to merge conflicts. Please resolve conflicts in this PR."
+            fi
+            else
+            git push target "${BRANCH}:${BRANCH}"
+            fi

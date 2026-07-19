@@ -1,0 +1,77 @@
+flowchart TD
+  START([Migration kickoff])
+
+  subgraph SOURCE["WooCommerce and Brello source systems"]
+    AUTHDATA["Auth and patient profile data"]
+    HISTORDERS["Historical orders and subscriptions"]
+    ACTIVEORDERS["Active orders and future order events"]
+    PAYMENTS["WooCommerce subscriptions and Stripe references"]
+    HEALTH["Brello health logs"]
+    RISESRC["Brello Rise identity references"]
+  end
+
+  subgraph STEP0["Step 0"]
+    ENV["Secrets, bucket access, Supabase migration, staging smoke test"]
+  end
+
+  subgraph STEP1["Step 1"]
+    ACCOUNT["Create Supabase auth users and patients"]
+    STUBS["Create order and subscription stubs"]
+  end
+
+  subgraph STEP2A["Step 2A"]
+    HEALTHAPPROVAL["Approve health target tables and schema gaps"]
+  end
+
+  subgraph STEP2["Step 2"]
+    BACKFILL["Backfill full historical orders and subscriptions"]
+    INGEST["Supabase Edge Function ingests Step 2 data"]
+    ES["Write historical order events directly to Elasticsearch"]
+    HEALTHMIG["Migrate approved health data"]
+  end
+
+  subgraph STEP3["Step 3"]
+    RTDH["RTDH production reads active order info"]
+    LINK["Link WooCommerce orders to Supabase orders"]
+    CONSUMER["Supabase consumer processes linked events"]
+  end
+
+  subgraph STEP4["Step 4"]
+    STRIPE["Same-account Stripe API handoff"]
+    MAPSTRIPE["Reuse existing Stripe customer and saved payment method"]
+    CUTOVER["Create PP-managed subscription and prevent double charging"]
+  end
+
+  subgraph CROSS["Cross-cutting"]
+    RISEMAP["Rise legacy-to-Supabase ID mapping"]
+  end
+
+  START --> ENV
+  ENV --> ACCOUNT
+  AUTHDATA --> ACCOUNT
+  HISTORDERS --> STUBS
+  ACCOUNT --> STUBS
+  STUBS --> HEALTHAPPROVAL
+  HEALTH --> HEALTHAPPROVAL
+  HEALTHAPPROVAL --> BACKFILL
+  HISTORDERS --> BACKFILL
+  BACKFILL --> INGEST
+  BACKFILL --> ES
+  INGEST --> HEALTHMIG
+  HEALTHAPPROVAL --> HEALTHMIG
+  ACTIVEORDERS --> RTDH
+  STUBS --> LINK
+  RTDH --> LINK --> CONSUMER
+  PAYMENTS --> STRIPE
+  STRIPE --> MAPSTRIPE --> CUTOVER
+  RISESRC --> RISEMAP
+  ACCOUNT --> RISEMAP
+
+  classDef done fill:#ecfdf5,stroke:#059669,color:#064e3b
+  classDef pending fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+  classDef blocker fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+  classDef risk fill:#fef2f2,stroke:#dc2626,color:#7f1d1d
+
+  class ACCOUNT,STUBS done
+  class ENV,BACKFILL,INGEST,ES,RTDH,LINK,CONSUMER,STRIPE,MAPSTRIPE,CUTOVER pending
+  class HEALTHAPPROVAL,HEALTHMIG,RISEMAP blocker

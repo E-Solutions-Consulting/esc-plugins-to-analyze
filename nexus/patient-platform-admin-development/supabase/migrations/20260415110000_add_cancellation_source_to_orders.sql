@@ -1,0 +1,2 @@
+-- Restored as a no-op to preserve remote migration history.
+-- This schema change is not part of the current main branch schema.

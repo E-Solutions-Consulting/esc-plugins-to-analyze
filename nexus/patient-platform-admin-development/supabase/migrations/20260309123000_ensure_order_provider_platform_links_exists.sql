@@ -1,0 +1,3 @@
+-- Restored as a no-op to preserve remote migration history.
+-- The table and its supporting objects are already created by
+-- 20260309100000_create_order_provider_platform_links.sql.

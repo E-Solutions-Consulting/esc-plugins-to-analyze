@@ -1,0 +1,315 @@
+{
+  "info": {
+    "_postman_id": "lifefile-webhook-collection",
+    "name": "LifeFile Webhook – Patient Platform Admin",
+    "description": "Sample requests for the `/lifefile-webhook/event` Supabase edge function.\n\n**Setup:** Set the following collection variables before running:\n- `SUPABASE_URL` – e.g. `https://sunzxjnbgtknqeivljtd.supabase.co`\n- `LIFEFILE_WEBHOOK_USERNAME` – Basic Auth username (default: `brello-backend`)\n- `LIFEFILE_WEBHOOK_PASSWORD` – Basic Auth password\n- `ORDER_REFERENCE_ID` – LifeFile orderReferenceId (e.g. `trn::YOUR-ORDER-UUID`)\n- `PATIENT_EMAIL` – Patient email for email-fallback correlation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "SUPABASE_URL",
+      "value": "https://sunzxjnbgtknqeivljtd.supabase.co",
+      "description": "Supabase project URL (dev: sunzxjnbgtknqeivljtd, staging: rhzrxfckhogjppjsioyn, prod: dfejvhgwqhywmtxyxkyo)"
+    },
+    {
+      "key": "LIFEFILE_WEBHOOK_USERNAME",
+      "value": "brello-backend",
+      "description": "HTTP Basic Auth username — stored as LIFEFILE_WEBHOOK_USERNAME secret"
+    },
+    {
+      "key": "LIFEFILE_WEBHOOK_PASSWORD",
+      "value": "",
+      "description": "HTTP Basic Auth password — stored as LIFEFILE_WEBHOOK_PASSWORD secret (do not commit)"
+    },
+    {
+      "key": "ORDER_REFERENCE_ID",
+      "value": "trn::49c33f8c-03c2-4466-9469-dc8d66bedd08",
+      "description": "LifeFile orderReferenceId. 'trn::' prefix is auto-normalised to 'order::' internally."
+    },
+    {
+      "key": "PATIENT_EMAIL",
+      "value": "rosalia@example.com",
+      "description": "Patient email used as fallback correlation method"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 – Rx Scheduled (log-only, no state change)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-rx-scheduled\",\n    \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n    \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n    \"rxStatus\": \"Rx Scheduled\",\n    \"orderStatus\": \"Received\",\n    \"lifefileOrderId\": \"102300107\",\n    \"rxNumber\": \"13821677\",\n    \"fillId\": \"17827350\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "LifeFile 'Rx Scheduled' status — maps to no internal state change (log-only). Expected: `skipped: 1, advanced: 0`."
+      },
+      "response": [
+        {
+          "name": "Expected – skipped",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-rx-scheduled\",\n  \"processed\": 1,\n  \"advanced\": 0,\n  \"skipped\": 1,\n  \"errors\": 0,\n  \"results\": [\n    {\n      \"lifefileOrderId\": \"102300107\",\n      \"action\": \"skipped\",\n      \"reason\": \"rxStatus 'Rx Scheduled' does not map to a state change\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "2 – Ready for Fulfillment → pharmacy_approved",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-ready-for-fulfillment\",\n    \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n    \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n    \"rxStatus\": \"Ready for Fulfillment\",\n    \"orderStatus\": \"Ready for Shipping\",\n    \"lifefileOrderId\": \"102300107\",\n    \"rxNumber\": \"13821677\",\n    \"fillId\": \"17827350\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Advances order from `pharmacy_approval_pending` → `pharmacy_approved`. Expected: `advanced: 1`."
+      },
+      "response": [
+        {
+          "name": "Expected – advanced",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-ready-for-fulfillment\",\n  \"processed\": 1,\n  \"advanced\": 1,\n  \"skipped\": 0,\n  \"errors\": 0,\n  \"results\": [\n    {\n      \"lifefileOrderId\": null,\n      \"action\": \"advanced\",\n      \"previousStatusKey\": \"pharmacy_approval_pending\",\n      \"newStatusKey\": \"pharmacy_approved\",\n      \"reason\": \"Advanced from pharmacy_approval_pending to pharmacy_approved\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "3 – Fulfillment → fulfillment_in_progress",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-fulfillment\",\n    \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n    \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n    \"rxStatus\": \"Fulfillment\",\n    \"orderStatus\": \"Ready for Shipping\",\n    \"lifefileOrderId\": \"102300107\",\n    \"rxNumber\": \"13821677\",\n    \"fillId\": \"17827350\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Advances order from `pharmacy_approved` → `fulfillment_in_progress`. Expected: `advanced: 1`."
+      },
+      "response": [
+        {
+          "name": "Expected – advanced",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-fulfillment\",\n  \"processed\": 1,\n  \"advanced\": 1,\n  \"skipped\": 0,\n  \"errors\": 0,\n  \"results\": [\n    {\n      \"lifefileOrderId\": null,\n      \"action\": \"advanced\",\n      \"previousStatusKey\": \"pharmacy_approved\",\n      \"newStatusKey\": \"fulfillment_in_progress\",\n      \"reason\": \"Advanced from pharmacy_approved to fulfillment_in_progress\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "4 – Final Verification → final_pharmacy_verification",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-final-verification\",\n    \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n    \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n    \"rxStatus\": \"Final Verification\",\n    \"lifefileOrderId\": \"102300107\",\n    \"rxNumber\": \"13821677\",\n    \"fillId\": \"17827350\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Advances order from `fulfillment_in_progress` → `final_pharmacy_verification`. Expected: `advanced: 1`."
+      },
+      "response": [
+        {
+          "name": "Expected – advanced",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-final-verification\",\n  \"processed\": 1,\n  \"advanced\": 1,\n  \"skipped\": 0,\n  \"errors\": 0,\n  \"results\": [\n    {\n      \"lifefileOrderId\": null,\n      \"action\": \"advanced\",\n      \"previousStatusKey\": \"fulfillment_in_progress\",\n      \"newStatusKey\": \"final_pharmacy_verification\",\n      \"reason\": \"Advanced from fulfillment_in_progress to final_pharmacy_verification\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "5 – Rx Shipping Pickup → in_transit (with tracking)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-rx-shipped\",\n    \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n    \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n    \"rxStatus\": \"Rx Shipping pickup\",\n    \"trackingNumber\": \"1Z999AA10123456784\",\n    \"lifefileOrderId\": \"102300107\",\n    \"rxNumber\": \"13821677\",\n    \"fillId\": \"17827350\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Advances order from `final_pharmacy_verification` → `in_transit`. Sets `tracking_number` and `shipped_at` on the order. Expected: `advanced: 1`."
+      },
+      "response": [
+        {
+          "name": "Expected – advanced with tracking",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-rx-shipped\",\n  \"processed\": 1,\n  \"advanced\": 1,\n  \"skipped\": 0,\n  \"errors\": 0,\n  \"results\": [\n    {\n      \"lifefileOrderId\": null,\n      \"action\": \"advanced\",\n      \"previousStatusKey\": \"final_pharmacy_verification\",\n      \"newStatusKey\": \"in_transit\",\n      \"reason\": \"Advanced from final_pharmacy_verification to in_transit\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "6 – Idempotency replay (should skip)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-idempotency-replay\",\n    \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n    \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n    \"rxStatus\": \"Ready for Fulfillment\",\n    \"orderStatus\": \"Ready for Shipping\",\n    \"lifefileOrderId\": \"102300107\",\n    \"rxNumber\": \"13821677\",\n    \"fillId\": \"17827350\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Send the same 'Ready for Fulfillment' event when order is already past `pharmacy_approved`. The forward-only guard must skip it. Expected: `skipped: 1, advanced: 0`."
+      },
+      "response": [
+        {
+          "name": "Expected – skipped (forward-only guard)",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-idempotency-replay\",\n  \"processed\": 1,\n  \"advanced\": 0,\n  \"skipped\": 1,\n  \"errors\": 0,\n  \"results\": [\n    {\n      \"lifefileOrderId\": null,\n      \"action\": \"skipped\",\n      \"previousStatusKey\": \"in_transit\",\n      \"newStatusKey\": \"pharmacy_approved\",\n      \"reason\": \"Target status does not advance the order (same or regressing)\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "7 – Unknown order (error path)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"requestId\": \"postman-unknown-order\",\n    \"orderReferenceId\": \"order::00000000-0000-0000-0000-000000000000\",\n    \"patientEmail\": \"nobody@example.com\",\n    \"rxStatus\": \"Ready for Fulfillment\",\n    \"lifefileOrderId\": \"999999999\"\n  }\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Payload with a non-existent order UUID. All 3 correlation steps fail. Expected: `errors: 1, advanced: 0`. Note: HTTP 200 — batch errors never fail the request."
+      },
+      "response": [
+        {
+          "name": "Expected – error (unresolvable order)",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"received\": true,\n  \"requestId\": \"postman-unknown-order\",\n  \"processed\": 1,\n  \"advanced\": 0,\n  \"skipped\": 0,\n  \"errors\": 1,\n  \"results\": [\n    {\n      \"lifefileOrderId\": \"999999999\",\n      \"action\": \"error\",\n      \"reason\": \"Could not correlate LifeFile payload to an internal order\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "8 – Batch payload (multiple events)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "basic",
+          "basic": [
+            { "key": "username", "value": "{{LIFEFILE_WEBHOOK_USERNAME}}" },
+            { "key": "password", "value": "{{LIFEFILE_WEBHOOK_PASSWORD}}" }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  [\n    {\n      \"requestId\": \"postman-batch-1\",\n      \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n      \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n      \"rxStatus\": \"Rx Scheduled\",\n      \"lifefileOrderId\": \"102300107\",\n      \"rxNumber\": \"13821677\",\n      \"fillId\": \"17827350\"\n    }\n  ],\n  [\n    {\n      \"requestId\": \"postman-batch-2\",\n      \"orderReferenceId\": \"{{ORDER_REFERENCE_ID}}\",\n      \"patientEmail\": \"{{PATIENT_EMAIL}}\",\n      \"rxStatus\": \"Ready for Fulfillment\",\n      \"lifefileOrderId\": \"102300107\",\n      \"rxNumber\": \"13821677\",\n      \"fillId\": \"17827350\"\n    }\n  ]\n]",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "Nested array format `[[{...}],[{...}]]` — matches the multi-fill LifeFile batch shape. Both items are processed independently. Expected: `processed: 2, skipped: 1 (Rx Scheduled), advanced: 1 (Ready for Fulfillment)`."
+      },
+      "response": []
+    },
+    {
+      "name": "9 – CORS preflight (OPTIONS)",
+      "request": {
+        "method": "OPTIONS",
+        "header": [
+          { "key": "Access-Control-Request-Method", "value": "POST" },
+          {
+            "key": "Access-Control-Request-Headers",
+            "value": "content-type, authorization"
+          },
+          { "key": "Origin", "value": "https://app.example.com" }
+        ],
+        "url": {
+          "raw": "{{SUPABASE_URL}}/functions/v1/lifefile-webhook/event",
+          "host": ["{{SUPABASE_URL}}"],
+          "path": ["functions", "v1", "lifefile-webhook", "event"]
+        },
+        "description": "CORS preflight. Expected: HTTP 204. Access-Control-Allow-Origin is echoed only when the request Origin matches CORS_ALLOWED_ORIGINS configured in Supabase function secrets for the target project."
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "_comment": "Product gallery images for metadata.pdp.images, keyed by website slug. Scraped from brellohealth.com's WooCommerce product-sitemap.xml (the <image:loc> block under each /product/ URL) on 2026-07-15 and verified 200. start-wellness.json carries this only for compounded-tirzepatide, so the other products imported with no gallery — this fills that gap for all of them. The generator (generate-product-pdp-sql.mjs) layers these onto the start-wellness.json content, so they win over the JSON's images and every other pdp field (about/benefits/citations/steps) is kept as authored. Bundles have no dedicated /product/ page, so they inherit their primary medication's gallery, exactly as the site does at runtime. Slugs here match the website slugs in products.config.ts (including the per-medication bundle variants). To refresh: re-read product-sitemap.xml and re-map — see scripts/README-import-product-pdp.md.",
+  "compounded-tirzepatide": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/tirzepatide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "compounded-semaglutide": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/semaglutide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "compounded-nad": [
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/nad-thumb-79.webp",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/1-2.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-4.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/3.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-6.png"
+  ],
+  "compounded-sermorelin": [
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/sermorelin-thumnail.jpeg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/1-2.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-4.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/3.png"
+  ],
+  "compounded-micc": [
+    "https://www.brellohealth.com/wp-content/uploads/2026/06/micc-thumb.webp",
+    "https://www.brellohealth.com/wp-content/uploads/2026/06/new-exclusive-member-access-2.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/06/new-exclusive-member-access.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/06/new-exclusive-member-access-1.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/06/new-exclusive-member-access-3.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/06/new-exclusive-member-access-4.webp"
+  ],
+  "glp-1-and-nad": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/tirzepatide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "glp-1-and-nad-tirzepatide": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/tirzepatide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "glp-1-and-nad-semaglutide": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/semaglutide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "glp-1-sermorelin-and-nad": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/tirzepatide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "glp-1-sermorelin-and-nad-tirzepatide": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/tirzepatide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "glp-1-sermorelin-and-nad-semaglutide": [
+    "https://www.brellohealth.com/wp-content/uploads/2025/01/semaglutide-thumbnail.jpg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-10.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-9.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-8.png"
+  ],
+  "sermorelin-and-nad": [
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/sermorelin-thumnail.jpeg",
+    "https://www.brellohealth.com/wp-content/uploads/2026/03/image-brello.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-5.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/1-2.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/NEW_EXCLUSIVE-MEMBER-ACCESS-Images_1.1-4.png",
+    "https://www.brellohealth.com/wp-content/uploads/2026/02/3.png"
+  ]
+}

@@ -1,0 +1,94 @@
+name: Deploy to Development (tmp)
+
+on:
+  push:
+    branches:
+      #- development
+      - Ten-3-cpm2
+  workflow_dispatch:
+
+env:
+  HUSKY: 0
+  REGION: us-central1
+  GAR_NAME: patient-platform
+  GAR_LOCATION: us-central1
+  PROJECT_ID: patient-platform-dev
+  SERVICE: admnin-dev
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev Environment
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER_DEV }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT_DEV }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authenticate Docker to Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+      - name: Build and Push Container
+        run: |
+          docker build \
+            -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}:${{ github.sha }} \
+            -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}:latest \
+            .
+          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}:${{ github.sha }}
+          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}:latest
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}:${{ github.sha }}
+          env_vars: |
+            API_PORT=8080            
+          flags: |
+            --allow-unauthenticated
+            --cpu=4
+            --memory=16Gi
+            --timeout=3600
+            --concurrency=1
+            --max-instances=5
+            --min-instances=0
+
+      - name: Run Smoke Tests
+        run: |
+          SERVICE_URL="${{ steps.deploy.outputs.url }}"
+          echo "Testing deployment at: $SERVICE_URL"
+          
+          # Wait for service to be ready
+          sleep 10
+          
+          # Test health endpoint
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL)
+          if [ $HTTP_STATUS -eq 200 ] || [ $HTTP_STATUS -eq 404 ]; then
+            echo "Service is responding (HTTP $HTTP_STATUS)"
+          else
+            echo "Service health check failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+
+      - name: Show Deployment URL
+        run: |
+          echo "Deployed to: ${{ steps.deploy.outputs.url }}"
+          echo "Environment: Development"
+          echo "Project: ${{ env.PROJECT_ID }}"

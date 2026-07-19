@@ -1,0 +1,2 @@
+-- Restored as a no-op to preserve remote migration history.
+-- The same delete policy is represented by 20260213100000_add_patient_weight_entries_delete_policy.sql.

@@ -1,0 +1,12 @@
+{
+  "_comment": "Compare-at (strike-through anchor) prices per website slug, in whole US dollars. Scraped from brellohealth.com's WooCommerce product pages on 2026-07-15: each is the variation's display_regular_price where it is GENUINELY higher than the charged display_price (a real discount, not the same number rendered struck-through). The charged price itself is NOT here and is never written — the platform is the source of truth for price_cents and its values already match the site exactly (verified against prod). generate-product-pricing-sql.mjs turns these into UPDATEs that set ONLY compare_at_price_cents. Products with no genuine anchor are omitted entirely: compounded-nad (regular == sale on the site, i.e. no discount). Parent bundle pages (glp-1-and-nad, glp-1-sermorelin-and-nad) are omitted because the platform sells them only as the per-medication variant products below, which carry the price. To refresh: re-read each /product/ page's data-product_variations (display_regular_price vs display_price) and update the dollar values here.",
+  "compounded-tirzepatide": 749,
+  "compounded-semaglutide": 599,
+  "compounded-sermorelin": 599,
+  "compounded-micc": 386,
+  "glp-1-and-nad-tirzepatide": 749,
+  "glp-1-and-nad-semaglutide": 749,
+  "glp-1-sermorelin-and-nad-tirzepatide": 1099,
+  "glp-1-sermorelin-and-nad-semaglutide": 997,
+  "sermorelin-and-nad": 819
+}

@@ -1,0 +1,17 @@
+{
+  "_comment": "Extra product uuids that are the SAME product as a mapped website slug, per environment. products.config.ts maps one platform uuid per website slug, but each environment's products table carries duplicate rows for some products — a second enabled row with the same sku and the same price that the config map does not point at (e.g. the older 'Compounded Tirzepatide' alongside the newer 'Compounded Tirzepatide - 3 month'). Left alone, those duplicates render an empty product page. Both SQL generators (content and compare-at) treat each uuid here as an additional target for its slug's content/anchor, so both rows get the same result. Only genuine duplicates are listed — verified same sku AND same price as the mapped product, and currently without pdp. Deliberately excluded: dev's 'Semaglutide Plan'/'Tirzepatide Plan' (sku sema-plan-3month / tirz-plan-3months) — different skus and one different price ($599), i.e. scratch/test products, not duplicates. Verified against each environment's DB on 2026-07-15. To refresh: list products per env, find enabled rows sharing a mapped product's sku+price but missing metadata.pdp, and add their uuid under the matching website slug.",
+  "development": {
+    "compounded-semaglutide": ["9edac9a0-e2f4-4de1-a5e9-d29c0921906e"],
+    "compounded-tirzepatide": ["8ce07cee-7e98-4768-bbb0-0918b00b0da9"]
+  },
+  "staging": {
+    "compounded-nad": ["260266e6-bf4e-4a7a-a212-3c7c65dd6c25"],
+    "compounded-semaglutide": ["c1a6bcbb-34e4-4442-b1ca-2a234a5dea75"],
+    "compounded-tirzepatide": ["cec932c6-ecd4-4382-8036-bf92531b873a"],
+    "glp-1-and-nad-tirzepatide": ["d30263d4-7788-44da-8824-835751e63630"]
+  },
+  "production": {
+    "compounded-semaglutide": ["3435f2fd-4d09-4704-a52e-c722775f8445"],
+    "compounded-tirzepatide": ["95737fde-85a1-48b0-871d-f14a6d3bb400"]
+  }
+}
