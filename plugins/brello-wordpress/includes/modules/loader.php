@@ -1,0 +1,263 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+/**
+ * ============================================================
+ *  SAFE PRODUCTION MODULE LOADER
+ * ============================================================
+ *
+ * - Uses safe_require() to avoid fatal errors.
+ * - Missing files are logged AND shown in WP Admin Notices.
+ */
+class BH_Modules_Loader {
+
+    /**
+     * Store missing modules for admin notice
+     *
+     * @var array
+     */
+    private $missing_modules = [];
+
+    public function __construct() {
+
+        $base = plugin_dir_path( __FILE__ );
+
+        try {
+
+        /**
+         * Hook admin notices AFTER we try to load everything.
+         */
+        add_action( 'admin_notices', [ $this, 'show_missing_module_notices' ] );
+
+        /**
+         * ============================================================
+         * COMMON (Utilities, shared state, helpers)
+         * ============================================================
+         */
+        $this->safe_require( $base . 'common/constants.php' );
+        $this->safe_require( $base . 'common/helpers.php' );
+        $this->safe_require( $base . 'common/db-ext.php' );
+        $this->safe_require( $base . 'common/order-meta.php' );
+
+
+        /**
+         * ============================================================
+         * UI (Login UI, frontend UI helpers)
+         * ============================================================
+         */
+        //$this->safe_require( $base . 'ui/bh-ui.php' );
+
+
+        /**
+         * ============================================================
+         * API (REST Endpoints)
+         * ============================================================
+         */
+        $this->safe_require( $base . 'api/rest-api.php' );
+
+
+        /**
+         * ============================================================
+         * US STATES
+         * ============================================================
+         */
+        $this->safe_require( $base . 'states/licensed-states/licensed-states-manager.php' );
+        $this->safe_require( $base . 'states/licensed-states/mapdata-generator.php' );
+        $this->safe_require( $base . 'states/states.php' );
+        $this->safe_require( $base . 'states/states-ui.php' );
+        $this->safe_require( $base . 'states/states-admin.php' );
+
+        /**
+         * ============================================================
+         * INTEGRATIONS (Tracking + External platforms)
+         * ============================================================
+         */
+        $this->safe_require( $base . 'integrations/loader.php' );
+
+        /**
+         * ============================================================
+         * ADMIN (Roles & Permissions)
+         * ============================================================
+         */
+        $this->safe_require( $base . 'admin/roles-and-permissions.php' );
+        $this->safe_require( $base . 'admin/brello-menu-restriction.php' );
+
+
+        /**
+         * ============================================================
+         * PAGE RESTRICTIONS (Access control for pages)
+         * ============================================================
+         */
+        $this->safe_require( $base . 'pages/restrictions.php' );
+
+
+        /**
+         * ============================================================
+         * WOOCOMMERCE MODULES
+         * ============================================================
+         */
+
+        /**
+         * --------------------------------
+         * WC Test Mode
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'testing/test-mode.php' );
+
+        /**
+         * --------------------------------
+         * COUPONS
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/coupons/loader.php' );
+
+
+        /**
+         * --------------------------------
+         * PRODUCTS
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/products/bh-products.php' );
+        $this->safe_require( $base . 'wc/products/loader.php' );
+
+
+        /**
+         * --------------------------------
+         * CART
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/cart/cart.php' );
+
+
+        /**
+         * --------------------------------
+         * CHECKOUT
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/checkout/loader.php' );
+
+
+        /**
+         * --------------------------------
+         * ORDERS
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/orders/orders.php' );
+        $this->safe_require( $base . 'wc/orders/orders-admin.php' );
+
+        $this->safe_require( $base . 'wc/orders/columns/orders-columns.php' );
+
+        // Telegra integration
+        $this->safe_require( $base . 'wc/orders/telegra/orders-telegra-admin.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/orders-telegra.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/class-bh-telegra-async.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/orders-telegra-workflow.php' );
+        //$this->safe_require( $base . 'wc/orders/telegra/webhook-status-guard.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/landing-checkout-endpoint.php' );
+
+        $this->safe_require( $base . 'wc/orders/telegra/renewal-handler.php' );
+        $this->safe_require( $base . 'wc/orders/telegra/renewal-blocker.php' );
+
+        $this->safe_require( $base . 'wc/welcome-kit/loader.php' );
+
+        // Orders filters
+        //$this->safe_require( $base . 'wc/filters/bh-date-range-filter-core.php' );
+
+
+        /**
+         * --------------------------------
+         * SUBSCRIPTIONS
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/subscriptions/bh-renewal-endpoint.php' );
+        $this->safe_require( $base . 'wc/subscriptions/early-renewal-handler.php' );
+
+        $this->safe_require( $base . 'wc/subscriptions/state-reactivation/loader.php' );
+        
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-admin.php' );
+        $this->safe_require( $base . 'wc/subscriptions/subscriptions-next-payment-date.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/bh-subscriptions-pause.php' );
+
+        $this->safe_require( $base . 'wc/subscriptions/free-renewals/loader.php' );
+
+        // Subscription filters
+        //$this->safe_require( $base . 'wc/subscriptions/filters/bh-date-range-filter-subscriptions.php' );
+        //$this->safe_require( $base . 'wc/subscriptions/filters/bh-state-filter-subscriptions.php' );
+
+
+        /**
+         * --------------------------------
+         * UPSELLS
+         * --------------------------------
+         */
+        //$this->safe_require( $base . 'wc/upsells/bh-upsells.php' );
+
+
+        /**
+         * --------------------------------
+         * WC ADMIN
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/admin/admin.php' );
+
+        /**
+         * --------------------------------
+         * PERFORMANCE
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'performance/loader.php' );
+
+
+        } catch ( Exception $e ) {
+            error_log( '[BH Modules Loader] Exception during module loading: ' . $e->getMessage() );
+        }
+
+    }
+
+    /**
+     * Safely load PHP modules without breaking the site.
+     * Logs missing files and registers them for admin notice.
+     */
+    private function safe_require( $path ) {
+
+        if ( file_exists( $path ) ) {
+            require_once $path;
+            return;
+        }
+
+        // Track missing file
+        $this->missing_modules[] = $path;
+
+        // Log in error_log for debugging
+        error_log( "[BH Modules Loader] Missing file: {$path}" );
+    }
+
+
+    /**
+     * Display admin notice if there are missing modules.
+     */
+    public function show_missing_module_notices() {
+
+        if ( empty( $this->missing_modules ) ) {
+            return;
+        }
+
+        ?>
+        <div class="notice notice-error">
+            <p><strong>BH Modules Loader Warning:</strong></p>
+            <p>The following module files are missing and could not be loaded:</p>
+            <ul>
+                <?php foreach ( $this->missing_modules as $file ) : ?>
+                    <li><?php echo esc_html( $file ); ?></li>
+                <?php endforeach; ?>
+            </ul>
+            <p>Please check your modules directory.</p>
+        </div>
+        <?php
+    }
+}
+
+new BH_Modules_Loader();

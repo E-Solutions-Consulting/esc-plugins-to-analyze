@@ -1,0 +1,14 @@
+/* Welcome Kit — "Kit Ready to Send" status badge (brand purple #1f025a) */
+
+span.woocommerce-order-status__indicator.is-kit_ready_to_send,
+body.wp-admin .order-status.status-kit_ready_to_send {
+    background-color: rgb(195, 255, 188);
+    color: #1f025a;
+    border: 1px solid #4fe73e;
+}
+
+body.wp-admin ul.subsubsub li.wc-kit_ready_to_send a {
+    background-color: rgba(195, 255, 188, 0.08);
+    color: #1f025a;
+    border: 1px solid #4fe73e;
+}

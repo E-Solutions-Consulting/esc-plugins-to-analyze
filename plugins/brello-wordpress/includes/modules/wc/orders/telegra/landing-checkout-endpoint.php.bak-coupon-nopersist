@@ -1,0 +1,2963 @@
+<?php
+/**
+ * Landing page → WooCommerce bridge.
+ *
+ * POST /wp-json/bh/v1/landing-checkout
+ *
+ * Creates the same member records as normal WC checkout (user, parent order,
+ * WCS subscription, Stripe auth + saved-card metas), then sets on-hold so
+ * existing AH_Orders_Telegra_Workflow + TelemdNow hooks run unchanged.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
+
+	class AH_Landing_Checkout_Endpoint {
+
+		const ROUTE_NAMESPACE = 'bh/v1';
+		const ROUTE           = '/landing-checkout';
+		const STATUS_ROUTE    = '/landing-checkout-status';
+		const CONFIG_ROUTE    = '/landing-checkout-config';
+		const COUPON_ROUTE    = '/landing-checkout-coupon';
+		const VALIDATE_ROUTE  = '/landing-checkout-validate';
+		const SECRET_HEADER   = 'X-Brello-Landing-Secret';
+		/** Stripe minimum charge in cents (USD). Discounted total must remain >= this. */
+		const STRIPE_MIN_AMOUNT_CENTS = 50;
+		const SOURCE_META     = '_brello_landing_source';
+		const CHANNEL_META    = '_brello_checkout_channel';
+		const VARIANT_META    = '_brello_landing_variant';
+		const FLOW_META       = '_brello_landing_flow';
+		const ON_HOLD_HOOK    = 'bh_landing_checkout_set_on_hold';
+		/** Same PO Box pattern as Bh_Checkout_Validations::restrict_po_boxes_in_checkout. */
+		const PO_BOX_REGEX    = '/(post\s*office\s*box|p\s*[.\-\s]*o\s*[.\-\s]*box|po[-\s]*box|pob\s*\d*|\bp\s*o\s*b\b|\bp\s*o\s*\d|\bpob\b|\bbox\s*#?\s*\d+)/i';
+		/** Same copy as Bh_Checkout_Validations::validate_logged_in_user_restrictions. */
+		const ACTIVE_SUB_SUPPORT_MESSAGE = 'Note: It looks like you already have an active subscription with us. Please contact Customer Support at info@brellohealth.com so we can review your current plan and help update your subscription if needed. You can also reach our team through the live chat available in the bottom-right corner.';
+
+		public function __construct() {
+			add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+			add_action( self::ON_HOLD_HOOK, array( $this, 'run_set_on_hold' ), 10, 1 );
+		}
+
+		public function register_routes() {
+			register_rest_route(
+				self::ROUTE_NAMESPACE,
+				self::ROUTE,
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'handle_landing_checkout' ),
+					'permission_callback' => array( $this, 'verify_bridge_secret' ),
+				)
+			);
+
+			register_rest_route(
+				self::ROUTE_NAMESPACE,
+				self::STATUS_ROUTE,
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'handle_landing_status' ),
+					'permission_callback' => array( $this, 'verify_bridge_secret' ),
+				)
+			);
+
+			register_rest_route(
+				self::ROUTE_NAMESPACE,
+				self::CONFIG_ROUTE,
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'handle_landing_config' ),
+					'permission_callback' => array( $this, 'verify_bridge_secret' ),
+				)
+			);
+
+			register_rest_route(
+				self::ROUTE_NAMESPACE,
+				self::COUPON_ROUTE,
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'handle_landing_coupon' ),
+					'permission_callback' => array( $this, 'verify_bridge_secret' ),
+				)
+			);
+
+			// Pre-payment parity with WP woocommerce_checkout_process (before Stripe hold).
+			register_rest_route(
+				self::ROUTE_NAMESPACE,
+				self::VALIDATE_ROUTE,
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'handle_landing_validate' ),
+					'permission_callback' => array( $this, 'verify_bridge_secret' ),
+				)
+			);
+		}
+
+		/**
+		 * @param WP_REST_Request $request Request.
+		 * @return true|WP_Error
+		 */
+		public function verify_bridge_secret( $request ) {
+			$expected = $this->get_bridge_secret();
+			if ( empty( $expected ) ) {
+				return new WP_Error(
+					'landing_bridge_misconfigured',
+					'Landing bridge secret is not configured.',
+					array( 'status' => 503 )
+				);
+			}
+
+			$provided = $request->get_header( self::SECRET_HEADER );
+			if ( empty( $provided ) || ! hash_equals( $expected, $provided ) ) {
+				return new WP_Error(
+					'landing_bridge_unauthorized',
+					'Invalid landing bridge secret.',
+					array( 'status' => 401 )
+				);
+			}
+
+			return true;
+		}
+
+		/**
+		 * @return string
+		 */
+		private function get_bridge_secret() {
+			if ( defined( 'BH_LANDING_BRIDGE_SECRET' ) && BH_LANDING_BRIDGE_SECRET ) {
+				return (string) BH_LANDING_BRIDGE_SECRET;
+			}
+
+			return (string) get_option( 'brello_landing_bridge_secret', '' );
+		}
+
+		/**
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public function handle_landing_checkout( $request ) {
+			try {
+				return $this->process_landing_checkout( $request );
+			} catch ( \Throwable $e ) {
+				// If order already exists for this PI, never pretend create failed.
+				$body = $request->get_json_params();
+				$pi   = ( is_array( $body ) && ! empty( $body['payment_intent_id'] ) )
+					? sanitize_text_field( (string) $body['payment_intent_id'] )
+					: '';
+				$existing = $pi ? $this->find_order_by_intent( $pi ) : null;
+				if ( $existing ) {
+					if ( function_exists( 'bh_run_purchase_side_effects' ) ) {
+						bh_run_purchase_side_effects( $existing, 'landing_bridge_recover' );
+					}
+					$response            = $this->build_order_response( $existing, false );
+					$response['success'] = true;
+					$response['warning'] = 'Order exists, but a later step crashed: ' . $e->getMessage();
+					return new WP_REST_Response( $response, 200 );
+				}
+
+				return new WP_Error(
+					'landing_bridge_fatal',
+					'Landing checkout crashed: ' . $e->getMessage(),
+					array(
+						'status' => 500,
+						'file'   => basename( $e->getFile() ),
+						'line'   => $e->getLine(),
+					)
+				);
+			}
+		}
+
+		/**
+		 * GET /wp-json/bh/v1/landing-checkout-status?payment_intent_id=pi_… or order_id=
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public function handle_landing_status( $request ) {
+			$pi_id    = sanitize_text_field( (string) $request->get_param( 'payment_intent_id' ) );
+			$order_id = absint( $request->get_param( 'order_id' ) );
+
+			$order = null;
+			if ( $order_id > 0 ) {
+				$order = wc_get_order( $order_id );
+			} elseif ( $pi_id && preg_match( '/^pi_/', $pi_id ) ) {
+				$order = $this->find_order_by_intent( $pi_id );
+			} else {
+				return new WP_Error(
+					'landing_bridge_status_missing_id',
+					'Provide payment_intent_id or order_id.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( ! $order ) {
+				return new WP_REST_Response(
+					array(
+						'found'   => false,
+						'success' => false,
+						'message' => 'No WooCommerce order found for that reference yet.',
+						'flow'    => $this->summarize_flow_steps( $this->flow_step_definitions() ),
+					),
+					404
+				);
+			}
+
+			$response          = $this->build_order_response( $order, true );
+			$response['found'] = true;
+			return new WP_REST_Response( $response, 200 );
+		}
+
+		/**
+		 * GET /wp-json/bh/v1/landing-checkout-config?product_id=
+		 *
+		 * Returns licensed shippable states + product price/mapping checks for Next parity.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public function handle_landing_config( $request ) {
+			$product_id = absint( $request->get_param( 'product_id' ) );
+			$expected   = absint( $request->get_param( 'expected_amount_cents' ) );
+
+			$states = $this->get_shippable_us_states();
+
+			$payload = array(
+				'success'           => true,
+				'shippable_states'  => $states,
+				'shippable_codes'   => array_keys( $states ),
+				'product'           => null,
+			);
+
+			if ( $product_id < 1 ) {
+				return new WP_REST_Response( $payload, 200 );
+			}
+
+			$product = wc_get_product( $product_id );
+			if ( ! $product || ! $product->exists() ) {
+				return new WP_Error(
+					'landing_bridge_product_missing',
+					'Product not found.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$price_cents = (int) round( (float) $product->get_price() * 100 );
+			$is_sub      = class_exists( 'WC_Subscriptions_Product' )
+				&& WC_Subscriptions_Product::is_subscription( $product );
+			$mapping_err = $this->validate_telemdnow_mapping( $product );
+			$mapped      = ! is_wp_error( $mapping_err );
+
+			$price_ok = true;
+			if ( $expected > 0 && $price_cents !== $expected ) {
+				$price_ok = false;
+			}
+
+			$parent_id = $product->is_type( 'variation' ) ? $product->get_parent_id() : $product->get_id();
+			$cats_ok   = has_term( array( 'weight-loss', 'protocol' ), 'product_cat', $parent_id );
+
+			$payload['product'] = array(
+				'id'                 => $product_id,
+				'name'               => $product->get_name(),
+				'price_cents'        => $price_cents,
+				'currency'           => strtolower( (string) get_woocommerce_currency() ),
+				'is_subscription'    => $is_sub,
+				'telemdnow_mapped'   => $mapped,
+				'telemdnow_error'    => is_wp_error( $mapping_err ) ? $mapping_err->get_error_message() : '',
+				'price_matches'      => $price_ok,
+				'expected_amount_cents' => $expected > 0 ? $expected : null,
+				'weight_loss_or_protocol' => $cats_ok,
+				'ok'                 => $is_sub && $mapped && $price_ok,
+			);
+
+			if ( ! $payload['product']['ok'] ) {
+				$payload['success'] = false;
+				return new WP_REST_Response( $payload, 400 );
+			}
+
+			return new WP_REST_Response( $payload, 200 );
+		}
+
+		/**
+		 * POST /wp-json/bh/v1/landing-checkout-coupon
+		 *
+		 * Validates a WooCommerce coupon against the landing product without
+		 * persisting an order. Returns discounted totals so the client can update
+		 * the Stripe PaymentIntent amount before card confirmation.
+		 *
+		 * Body:
+		 *   - product_id  (int, required)
+		 *   - quantity    (int, default 1)
+		 *   - coupon_code (string, required)
+		 *   - email       (string, optional) — used to satisfy email-restricted coupons.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public function handle_landing_coupon( $request ) {
+			$body       = $request->get_json_params();
+			$body       = is_array( $body ) ? $body : array();
+			$product_id = isset( $body['product_id'] ) ? absint( $body['product_id'] ) : 0;
+			$quantity   = isset( $body['quantity'] ) ? absint( $body['quantity'] ) : 1;
+			if ( $quantity < 1 ) {
+				$quantity = 1;
+			}
+			$code_raw   = isset( $body['coupon_code'] ) ? sanitize_text_field( (string) $body['coupon_code'] ) : '';
+			$email_raw  = isset( $body['email'] ) ? sanitize_email( (string) $body['email'] ) : '';
+
+			if ( $product_id < 1 ) {
+				return new WP_Error(
+					'landing_coupon_invalid_product',
+					'product_id is required.',
+					array( 'status' => 400 )
+				);
+			}
+			if ( '' === $code_raw ) {
+				return new WP_Error(
+					'landing_coupon_missing_code',
+					'coupon_code is required.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$product = wc_get_product( $product_id );
+			if ( ! $product || ! $product->exists() ) {
+				return new WP_Error(
+					'landing_coupon_product_missing',
+					'Product not found.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$preview = $this->preview_coupon_against_product( $code_raw, $product, $quantity, $email_raw );
+			if ( is_wp_error( $preview ) ) {
+				return $preview;
+			}
+
+			return new WP_REST_Response( $preview, 200 );
+		}
+
+		/**
+		 * Build a temporary WC_Order, apply a coupon, calculate totals, and roll it back.
+		 *
+		 * Returns a preview payload used both by the coupon REST endpoint and by
+		 * the checkout endpoint to compute the expected PaymentIntent amount.
+		 *
+		 * @param string     $code     Coupon code (raw).
+		 * @param WC_Product $product  Landing product / variation.
+		 * @param int        $quantity Quantity (>=1).
+		 * @param string     $email    Billing email (optional; used for email-restricted coupons).
+		 * @return array|WP_Error {
+		 *   valid, code, discount_type, discount_amount_cents, subtotal_cents,
+		 *   total_cents, currency, label
+		 * }
+		 */
+		private function preview_coupon_against_product( $code, $product, $quantity, $email = '' ) {
+			$code = trim( (string) $code );
+			if ( '' === $code ) {
+				return new WP_Error(
+					'landing_coupon_missing_code',
+					'coupon_code is required.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( ! class_exists( 'WC_Coupon' ) || ! function_exists( 'wc_get_coupon_id_by_code' ) ) {
+				return new WP_Error(
+					'landing_coupon_wc_missing',
+					'WooCommerce is required to validate coupons.',
+					array( 'status' => 503 )
+				);
+			}
+
+			$coupon_id = wc_get_coupon_id_by_code( $code );
+			if ( $coupon_id < 1 ) {
+				return new WP_Error(
+					'landing_coupon_not_found',
+					sprintf( 'Coupon "%s" does not exist.', $code ),
+					array( 'status' => 400 )
+				);
+			}
+
+			$coupon = new WC_Coupon( $coupon_id );
+			if ( ! $coupon->get_id() ) {
+				return new WP_Error(
+					'landing_coupon_not_found',
+					sprintf( 'Coupon "%s" does not exist.', $code ),
+					array( 'status' => 400 )
+				);
+			}
+
+			$temp_order = wc_create_order(
+				array(
+					'status'      => 'pending',
+					'created_via' => 'tirzepatide-landing-coupon-preview',
+				)
+			);
+			if ( is_wp_error( $temp_order ) ) {
+				return new WP_Error(
+					'landing_coupon_preview_failed',
+					$temp_order->get_error_message(),
+					array( 'status' => 500 )
+				);
+			}
+
+			$rollback = function () use ( $temp_order ) {
+				try {
+					if ( $temp_order instanceof WC_Order ) {
+						$temp_order->delete( true );
+					}
+				} catch ( \Throwable $e ) {
+					// Silent — temp order will be garbage-collected by WC trash cleanup.
+					unset( $e );
+				}
+			};
+
+			try {
+				$temp_order->add_product( $product, max( 1, (int) $quantity ) );
+				if ( '' !== $email ) {
+					$temp_order->set_billing_email( $email );
+				}
+				$temp_order->calculate_totals();
+
+				$subtotal_cents = (int) round( (float) $temp_order->get_subtotal() * 100 );
+
+				$apply = $temp_order->apply_coupon( $coupon );
+				if ( is_wp_error( $apply ) ) {
+					$rollback();
+					return new WP_Error(
+						'landing_coupon_invalid',
+						$this->plain_text_message( $apply->get_error_message() ),
+						array( 'status' => 400 )
+					);
+				}
+
+				$temp_order->calculate_totals();
+
+				// If the coupon fell off during recalculation (e.g. product restriction),
+				// treat it as invalid rather than silently returning the full price.
+				$applied_codes = array_map( 'strtolower', $temp_order->get_coupon_codes() );
+				if ( ! in_array( strtolower( $code ), $applied_codes, true ) ) {
+					$rollback();
+					return new WP_Error(
+						'landing_coupon_not_applicable',
+						sprintf( 'Coupon "%s" is not applicable to this product.', $code ),
+						array( 'status' => 400 )
+					);
+				}
+
+				$total_cents    = (int) round( (float) $temp_order->get_total() * 100 );
+				$discount_cents = max( 0, $subtotal_cents - $total_cents );
+
+				if ( $total_cents < self::STRIPE_MIN_AMOUNT_CENTS ) {
+					$rollback();
+					return new WP_Error(
+						'landing_coupon_below_min',
+						sprintf(
+							'Discounted total (%s) is below the minimum charge of %s.',
+							$this->plain_price( $total_cents / 100 ),
+							$this->plain_price( self::STRIPE_MIN_AMOUNT_CENTS / 100 )
+						),
+						array( 'status' => 400 )
+					);
+				}
+
+				$label = $this->format_coupon_label( $coupon );
+
+				$payload = array(
+					'valid'                 => true,
+					'code'                  => $coupon->get_code(),
+					'discount_type'         => (string) $coupon->get_discount_type(),
+					'discount_amount_cents' => $discount_cents,
+					'subtotal_cents'        => $subtotal_cents,
+					'total_cents'           => $total_cents,
+					'currency'              => strtolower( (string) $temp_order->get_currency() ),
+					'label'                 => $label,
+				);
+
+				$rollback();
+				return $payload;
+			} catch ( \Throwable $e ) {
+				$rollback();
+				return new WP_Error(
+					'landing_coupon_preview_failed',
+					$e->getMessage(),
+					array( 'status' => 500 )
+				);
+			}
+		}
+
+		/**
+		 * Human-friendly label for a coupon, e.g. "SAVE20 — 20% off".
+		 *
+		 * @param WC_Coupon $coupon Coupon.
+		 * @return string
+		 */
+		private function format_coupon_label( $coupon ) {
+			$code   = strtoupper( (string) $coupon->get_code() );
+			$type   = (string) $coupon->get_discount_type();
+			$amount = (float) $coupon->get_amount();
+
+			$suffix = '';
+			if ( in_array( $type, array( 'percent', 'recurring_percent', 'sign_up_fee_percent' ), true ) ) {
+				$suffix = sprintf( '%s%% off', rtrim( rtrim( number_format( $amount, 2 ), '0' ), '.' ) );
+			} elseif ( $amount > 0 ) {
+				$suffix = $this->plain_price( $amount ) . ' off';
+			}
+
+			return $suffix ? sprintf( '%s — %s', $code, $suffix ) : $code;
+		}
+
+		/**
+		 * Format a monetary amount as plain text (no HTML tags, no HTML entities).
+		 * `wc_price()` returns markup like `<span>&#36;10.00</span>` which is fine
+		 * for admin/thank-you UI but leaks tags/entities into JSON error strings
+		 * we surface to the landing client. This normalizes to e.g. `$10.00`.
+		 *
+		 * @param float|int $amount Decimal amount (dollars).
+		 * @return string
+		 */
+		private function plain_price( $amount ) {
+			$html = wc_price( (float) $amount );
+			return $this->plain_text_message( (string) $html );
+		}
+
+		/**
+		 * Strip HTML tags and decode HTML entities so a message returned by WC /
+		 * WCS validators (which often contain `wc_price()` markup) is safe to
+		 * surface to the landing client as a plain string.
+		 *
+		 * @param string $message Raw message, possibly containing HTML.
+		 * @return string
+		 */
+		private function plain_text_message( $message ) {
+			$stripped = wp_strip_all_tags( (string) $message );
+			$decoded  = html_entity_decode( $stripped, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			return trim( preg_replace( '/\s+/u', ' ', $decoded ) );
+		}
+
+		/**
+		 * POST /wp-json/bh/v1/landing-checkout-validate
+		 *
+		 * Pre-Stripe business checks: terms, address, PO box, shippable state, and
+		 * active-subscription category conflict (WP logged-in parity). Landing has
+		 * no login session, so past email/phone orders are not blocked — only
+		 * active/pending/on-hold subscriptions by category matrix.
+		 * Does not create an order or touch payment.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public function handle_landing_validate( $request ) {
+			$body = $request->get_json_params();
+			if ( ! is_array( $body ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_json',
+					'Request body must be JSON.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$validated = $this->validate_customer_business_rules( $body );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+
+			$product = wc_get_product( $validated['product_id'] );
+			if ( ! $product || ! $product->exists() ) {
+				return new WP_Error(
+					'landing_bridge_product_missing',
+					'Product not found.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$mapping_error = $this->validate_telemdnow_mapping( $product );
+			if ( is_wp_error( $mapping_error ) ) {
+				return $mapping_error;
+			}
+
+			// Everflow Event 8 — Begin Checkout (payment step / pre-pay validate).
+			$amount = (float) $product->get_price();
+			do_action(
+				'ah_everflow_begin_checkout',
+				array(
+					'eftid'      => isset( $validated['eftid'] ) ? (string) $validated['eftid'] : '',
+					'email'      => isset( $validated['customer']['email'] ) ? (string) $validated['customer']['email'] : '',
+					'product_id' => (int) $validated['product_id'],
+					'amount'     => $amount,
+					'source'     => 'landing_validate',
+				)
+			);
+
+			return new WP_REST_Response(
+				array(
+					'success'    => true,
+					'validated'  => true,
+					'product_id' => $validated['product_id'],
+					'email'      => $validated['customer']['email'],
+				),
+				200
+			);
+		}
+
+		/**
+		 * Deferred on-hold → Telegra trigger (keeps REST response fast / reliable).
+		 *
+		 * @param int|array $order_id Order id or AS args.
+		 */
+		public function run_set_on_hold( $order_id ) {
+			if ( is_array( $order_id ) && isset( $order_id['order_id'] ) ) {
+				$order_id = $order_id['order_id'];
+			}
+			$order_id = absint( $order_id );
+			$order    = $order_id ? wc_get_order( $order_id ) : false;
+			if ( ! $order ) {
+				return;
+			}
+
+			// Already past pending (manual fix / prior run).
+			if ( ! $order->has_status( 'pending' ) ) {
+				$this->persist_flow_step( $order, 'on_hold_telegra_trigger', 'done', 'Already ' . $order->get_status() );
+				return;
+			}
+
+			try {
+				$order->update_status(
+					'on-hold',
+					'Landing checkout (deferred): Stripe authorization verified — triggering Telegra path.'
+				);
+				$order = wc_get_order( $order_id );
+				if ( $order ) {
+					$this->persist_flow_step( $order, 'on_hold_telegra_trigger', 'done' );
+
+					// When async Telegra is on, workflow queues BH_Telegra_Async instead of sync flip.
+					// If sync path left visit link already, mark done.
+					if ( $order->get_meta( 'telemdnow_entity_id' ) || $order->get_meta( 'telemdnow_visit_link' ) ) {
+						$this->persist_flow_step( $order, 'telegra_visit_link', 'done' );
+						if ( class_exists( 'BH_Telegra_Async' ) ) {
+							$order->update_meta_data( BH_Telegra_Async::STATUS_META, 'done' );
+							$order->save();
+						}
+					} else {
+						$detail = 'Waiting for TelemdNow entity/visit link (sync trigger)';
+						$this->persist_flow_step( $order, 'telegra_visit_link', 'pending', $detail );
+					}
+				}
+			} catch ( \Throwable $e ) {
+				$order->add_order_note( 'Landing deferred on-hold failed: ' . $e->getMessage() );
+				$this->persist_flow_step( $order, 'on_hold_telegra_trigger', 'failed', $e->getMessage() );
+			}
+		}
+
+		/**
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		private function process_landing_checkout( $request ) {
+			$body = $request->get_json_params();
+			if ( ! is_array( $body ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_json',
+					'Request body must be JSON.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$validated = $this->validate_payload( $body );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+
+			$pi_id      = $validated['payment_intent_id'];
+			$product_id = $validated['product_id'];
+			$quantity   = $validated['quantity'];
+			$customer   = $validated['customer'];
+			$source     = $validated['source'];
+
+			$existing = $this->find_order_by_intent( $pi_id );
+			if ( $existing ) {
+				if ( function_exists( 'bh_run_purchase_side_effects' ) ) {
+					bh_run_purchase_side_effects( $existing, 'landing_bridge_idempotent' );
+				}
+				return rest_ensure_response( $this->build_order_response( $existing, true ) );
+			}
+
+			if ( ! function_exists( 'wcs_create_subscription' ) || ! class_exists( 'WC_Subscriptions_Product' ) ) {
+				return new WP_Error(
+					'landing_bridge_wcs_missing',
+					'WooCommerce Subscriptions is required for landing checkout.',
+					array( 'status' => 503 )
+				);
+			}
+
+			if ( ! class_exists( 'WC_Stripe_API' ) ) {
+				return new WP_Error(
+					'landing_bridge_stripe_missing',
+					'WooCommerce Stripe gateway is required to verify PaymentIntents.',
+					array( 'status' => 503 )
+				);
+			}
+
+			$product = wc_get_product( $product_id );
+			if ( ! $product || ! $product->exists() ) {
+				return new WP_Error(
+					'landing_bridge_product_missing',
+					'Product not found.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+				return new WP_Error(
+					'landing_bridge_product_not_subscription',
+					'LANDING_WC_PRODUCT_ID must be a WooCommerce Subscriptions product/variation.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$mapping_error = $this->validate_telemdnow_mapping( $product );
+			if ( is_wp_error( $mapping_error ) ) {
+				return $mapping_error;
+			}
+
+			// Optional coupon: preview against the same product so we know the
+			// expected PaymentIntent amount BEFORE talking to Stripe.
+			$coupon_code    = isset( $validated['coupon_code'] ) ? (string) $validated['coupon_code'] : '';
+			$expected_cents = null;
+			$coupon_preview = null;
+			if ( '' !== $coupon_code ) {
+				$coupon_preview = $this->preview_coupon_against_product(
+					$coupon_code,
+					$product,
+					$quantity,
+					$customer['email']
+				);
+				if ( is_wp_error( $coupon_preview ) ) {
+					return $coupon_preview;
+				}
+				$expected_cents = (int) $coupon_preview['total_cents'];
+			}
+
+			// Verify real Stripe PaymentIntent via WC Stripe keys BEFORE creating any records.
+			$stripe_verified = $this->verify_payment_intent_with_stripe(
+				$pi_id,
+				$validated['stripe_customer_id'],
+				$validated['payment_method_id'],
+				$product,
+				$quantity,
+				$expected_cents,
+				isset( $validated['stripe_charge_id'] ) ? (string) $validated['stripe_charge_id'] : ''
+			);
+			if ( is_wp_error( $stripe_verified ) ) {
+				return $stripe_verified;
+			}
+
+			// Canonical IDs from Stripe (never trust client-only values after verify).
+			$stripe_cus = $stripe_verified['stripe_customer_id'];
+			$stripe_pm  = $stripe_verified['payment_method_id'];
+			$charge_id  = isset( $stripe_verified['charge_id'] ) ? (string) $stripe_verified['charge_id'] : '';
+
+			$user_id = $this->resolve_customer_user( $customer );
+			if ( is_wp_error( $user_id ) ) {
+				return $user_id;
+			}
+
+			$order = wc_create_order(
+				array(
+					'status'      => 'pending',
+					'customer_id' => $user_id,
+					'created_via' => 'tirzepatide-landing',
+				)
+			);
+
+			if ( is_wp_error( $order ) ) {
+				return new WP_Error(
+					'landing_bridge_order_create_failed',
+					$order->get_error_message(),
+					array( 'status' => 500 )
+				);
+			}
+
+			$order->set_customer_id( $user_id );
+			$order->add_product( $product, $quantity );
+			$this->apply_customer_addresses( $order, $customer );
+			$this->sync_user_billing( $user_id, $customer );
+			$this->sync_user_stripe_customer( $user_id, $stripe_cus );
+
+			$order->set_payment_method( 'stripe' );
+			$order->set_payment_method_title( 'Credit Card (Stripe)' );
+			$this->apply_stripe_metas( $order, $pi_id, $stripe_cus, $stripe_pm, $charge_id, true );
+			$order->update_meta_data( self::SOURCE_META, $source );
+			$checkout_channel = isset( $validated['checkout_channel'] )
+				? sanitize_key( (string) $validated['checkout_channel'] )
+				: 'custom_landing';
+			if ( empty( $checkout_channel ) ) {
+				$checkout_channel = 'custom_landing';
+			}
+			$landing_variant = isset( $validated['landing_variant'] )
+				? sanitize_key( (string) $validated['landing_variant'] )
+				: 'tirzepatide';
+			$order->update_meta_data( self::CHANNEL_META, $checkout_channel );
+			if ( ! empty( $landing_variant ) ) {
+				$order->update_meta_data( self::VARIANT_META, $landing_variant );
+			}
+
+			$this->apply_marketing_metas( $order, ! empty( $validated['marketing_opt_in'] ) );
+
+			// WooCommerce Origin column (classic uses Sourcebuster on WP checkout).
+			$this->apply_wc_order_attribution(
+				$order,
+				isset( $validated['order_attribution'] ) && is_array( $validated['order_attribution'] )
+					? $validated['order_attribution']
+					: array()
+			);
+
+			// Everflow TID — single helper (Woo + landing). Body value preferred, then cookies/request.
+			$eftid_explicit = '';
+			if ( ! empty( $validated['eftid'] ) ) {
+				$eftid_explicit = (string) $validated['eftid'];
+			}
+			if ( class_exists( 'BH_Everflow_Helper' ) ) {
+				BH_Everflow_Helper::attach_to_order( $order, $eftid_explicit, 'landing_checkout' );
+			} elseif ( $eftid_explicit !== '' ) {
+				$order->update_meta_data( 'eftid', $eftid_explicit );
+			}
+
+			// Apply coupon (if any) on the real order so totals match the Stripe PI amount.
+			if ( '' !== $coupon_code ) {
+				$applied = $order->apply_coupon( $coupon_code );
+				if ( is_wp_error( $applied ) ) {
+					$order->update_status( 'cancelled', 'Landing checkout: coupon apply failed — rolled back. ' . $applied->get_error_message() );
+					return new WP_Error(
+						'landing_bridge_coupon_apply_failed',
+						$this->plain_text_message( $applied->get_error_message() ),
+						array( 'status' => 400 )
+					);
+				}
+			}
+
+			$order->calculate_totals();
+
+			// Second amount check against actual order total (tax/shipping if any).
+			$amount_check = $this->assert_intent_amount_matches_order( $stripe_verified['amount'], $stripe_verified['currency'], $order );
+			if ( is_wp_error( $amount_check ) ) {
+				$order->update_status( 'cancelled', 'Landing checkout: PaymentIntent amount mismatch — rolled back.' );
+				return $amount_check;
+			}
+
+			$order->save();
+			$this->persist_flow_step( $order, 'customer_account', 'done', 'user_id=' . $user_id );
+			$this->persist_flow_step( $order, 'order_created', 'done' );
+			$this->persist_flow_step( $order, 'stripe_metas', 'done', $pi_id . ' / ' . $charge_id );
+
+			// Event 8 backup if landing validate was skipped / no eftid earlier.
+			do_action(
+				'ah_everflow_begin_checkout',
+				array(
+					'order'  => $order,
+					'source' => 'landing_checkout',
+				)
+			);
+
+			// Event 10 — WC Order Created (landing does not hit checkout_order_processed).
+			do_action( 'ah_everflow_order_created', $order, 'landing_checkout' );
+
+			$referral_code = isset( $validated['referral_code'] ) ? (string) $validated['referral_code'] : '';
+			if ( $referral_code !== '' ) {
+				if ( class_exists( 'AH_Friendbuy_Referral_Tracker' ) ) {
+					AH_Friendbuy_Referral_Tracker::persist_code_for_order( $order, $referral_code );
+				} else {
+					// Integrations loader off: still dual-write WC meta + ExtDB for MAPI/backfill.
+					if ( ! $order->get_meta( '_friendbuy_referral_code' ) ) {
+						$order->update_meta_data( '_friendbuy_referral_code', $referral_code );
+						$order->save();
+					}
+					if ( class_exists( 'BH_ExtDB' ) && BH_ExtDB::is_available() ) {
+						$existing = BH_ExtDB::get_var(
+							'SELECT meta_value FROM bh_order_meta WHERE order_id = ? AND meta_key = ? LIMIT 1',
+							array( $order->get_id(), '_friendbuy_referral_code' )
+						);
+						if ( empty( $existing ) ) {
+							BH_ExtDB::insert(
+								'bh_order_meta',
+								array(
+									'order_id'   => $order->get_id(),
+									'meta_key'   => '_friendbuy_referral_code',
+									'meta_value' => $referral_code,
+								)
+							);
+						}
+					}
+				}
+			}
+
+			// Stripe Dashboard parity with classic WC Stripe (PI/charge + customer).
+			$this->sync_stripe_payment_description( $pi_id, $order, $charge_id );
+			$this->sync_stripe_customer_profile( $stripe_cus, $user_id, $order );
+
+			$subscription = $this->create_subscription_for_order( $order, $product, $quantity, $pi_id, $stripe_cus, $stripe_pm, $charge_id, $coupon_code );
+			if ( is_wp_error( $subscription ) ) {
+				$this->persist_flow_step( $order, 'subscription_created', 'failed', $subscription->get_error_message() );
+				$order->update_status(
+					'cancelled',
+					'Landing checkout: subscription create failed — rolled back. ' . $subscription->get_error_message()
+				);
+				return $subscription;
+			}
+			$this->persist_flow_step( $order, 'subscription_created', 'done', 'subscription_id=' . $subscription->get_id() );
+
+			// CRITICAL: run on-hold + Telegra inline in this request.
+			// Staging has DISABLE_WP_CRON=true; deferred AS jobs can sit 1–2+ minutes
+			// (or longer) before pickup — customer sees "stuck" on success while
+			// visit link is not ready yet. Inline keeps total time ~Telegra API only.
+			$this->run_set_on_hold( $order->get_id() );
+
+			// Non-UI thank-you side effects (Attentive AS, etc.) — same helper as classic thank-you.
+			if ( function_exists( 'bh_run_purchase_side_effects' ) ) {
+				bh_run_purchase_side_effects( $order, 'landing_bridge' );
+			}
+
+			$order = wc_get_order( $order->get_id() );
+			if ( ! $order ) {
+				return new WP_Error(
+					'landing_bridge_order_missing',
+					'Order could not be reloaded after create.',
+					array( 'status' => 500 )
+				);
+			}
+
+			$response            = $this->build_order_response( $order, false );
+			$response['success'] = true;
+			if ( empty( $order->get_meta( 'telemdnow_visit_link' ) ) && empty( $order->get_meta( 'telemdnow_entity_id' ) ) ) {
+				$response['warning'] = 'Order created but Telegra intake link is not ready yet. Check email shortly or refresh status.';
+			}
+
+			// Always 200 when order exists so Next/UI treat this as success (partial flow is in `flow`).
+			return new WP_REST_Response( $response, 200 );
+		}
+
+		/**
+		 * Normalize WC Stripe API payloads (object or array) into an array.
+		 *
+		 * @param mixed $value Stripe response.
+		 * @return array|WP_Error
+		 */
+		private function stripe_payload_to_array( $value ) {
+			if ( is_wp_error( $value ) ) {
+				return $value;
+			}
+			if ( is_object( $value ) ) {
+				$encoded = wp_json_encode( $value );
+				$value   = is_string( $encoded ) ? json_decode( $encoded, true ) : null;
+			}
+			if ( ! is_array( $value ) ) {
+				return new WP_Error(
+					'landing_bridge_stripe_empty',
+					'Stripe returned an empty PaymentIntent response. Check WC Stripe API keys.',
+					array( 'status' => 502 )
+				);
+			}
+			return $value;
+		}
+
+		/**
+		 * Retrieve PaymentIntent from Stripe (WC Stripe secret keys) and validate auth-hold.
+		 *
+		 * @param string     $pi_id           PaymentIntent id.
+		 * @param string     $claim_cus       Customer id from request.
+		 * @param string     $claim_pm        Payment method id from request.
+		 * @param WC_Product $product         Product for amount check (when no override).
+		 * @param int        $quantity        Qty.
+		 * @param int|null   $expected_override When set, use this amount (cents) instead of
+		 *                                    the product price × qty. Used when a coupon
+		 *                                    has discounted the total.
+		 * @param string     $claim_charge    Optional charge id from Next.js (ch_…).
+		 * @return array|WP_Error { stripe_customer_id, payment_method_id, amount, currency, charge_id }
+		 */
+		private function verify_payment_intent_with_stripe( $pi_id, $claim_cus, $claim_pm, $product, $quantity, $expected_override = null, $claim_charge = '' ) {
+			// Expand latest_charge so we always get ch_… for WC transaction_id / capture gate.
+			$intent = WC_Stripe_API::retrieve( 'payment_intents/' . rawurlencode( $pi_id ) . '?expand[]=latest_charge' );
+			$intent = $this->stripe_payload_to_array( $intent );
+			if ( is_wp_error( $intent ) ) {
+				return new WP_Error(
+					'landing_bridge_stripe_api_error',
+					$intent->get_error_message(),
+					array( 'status' => 502 )
+				);
+			}
+
+			if ( ! empty( $intent['error'] ) ) {
+				$message = is_array( $intent['error'] ) && ! empty( $intent['error']['message'] )
+					? (string) $intent['error']['message']
+					: 'Stripe PaymentIntent lookup failed.';
+				return new WP_Error(
+					'landing_bridge_stripe_intent_error',
+					$message,
+					array( 'status' => 400 )
+				);
+			}
+
+			$status = isset( $intent['status'] ) ? (string) $intent['status'] : '';
+			if ( 'requires_capture' !== $status ) {
+				return new WP_Error(
+					'landing_bridge_pi_not_authorized',
+					sprintf(
+						'PaymentIntent must be an uncaptured authorization (requires_capture). Current status: %s.',
+						$status ? $status : 'unknown'
+					),
+					array( 'status' => 400 )
+				);
+			}
+
+			$capture_method = isset( $intent['capture_method'] ) ? (string) $intent['capture_method'] : '';
+			if ( $capture_method && 'manual' !== $capture_method ) {
+				return new WP_Error(
+					'landing_bridge_pi_not_manual_capture',
+					'PaymentIntent capture_method must be manual for the Telegra auth-hold path.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$pi_customer = '';
+			if ( isset( $intent['customer'] ) ) {
+				if ( is_array( $intent['customer'] ) ) {
+					$pi_customer = isset( $intent['customer']['id'] ) ? (string) $intent['customer']['id'] : '';
+				} else {
+					$pi_customer = (string) $intent['customer'];
+				}
+			}
+
+			$pi_pm = '';
+			if ( isset( $intent['payment_method'] ) ) {
+				if ( is_array( $intent['payment_method'] ) ) {
+					$pi_pm = isset( $intent['payment_method']['id'] ) ? (string) $intent['payment_method']['id'] : '';
+				} else {
+					$pi_pm = (string) $intent['payment_method'];
+				}
+			}
+
+			if ( empty( $pi_customer ) || ! preg_match( '/^cus_/', $pi_customer ) ) {
+				return new WP_Error(
+					'landing_bridge_pi_missing_customer',
+					'PaymentIntent has no Stripe customer. Card cannot be saved for renewals.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( empty( $pi_pm ) || ! preg_match( '/^pm_/', $pi_pm ) ) {
+				return new WP_Error(
+					'landing_bridge_pi_missing_pm',
+					'PaymentIntent has no payment_method. Card cannot be saved for renewals.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( ! hash_equals( $pi_customer, $claim_cus ) || ! hash_equals( $pi_pm, $claim_pm ) ) {
+				return new WP_Error(
+					'landing_bridge_pi_identity_mismatch',
+					'Request stripe_customer_id / payment_method_id do not match the PaymentIntent on Stripe.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$pi_amount   = isset( $intent['amount'] ) ? (int) $intent['amount'] : 0;
+			$pi_currency = isset( $intent['currency'] ) ? strtolower( (string) $intent['currency'] ) : '';
+
+			$expected_amount = ( null !== $expected_override && (int) $expected_override > 0 )
+				? (int) $expected_override
+				: $this->product_amount_in_smallest_unit( $product, $quantity );
+			$store_currency  = strtolower( get_woocommerce_currency() );
+
+			if ( $expected_amount < 1 ) {
+				return new WP_Error(
+					'landing_bridge_product_price_invalid',
+					'WooCommerce product price is missing or zero.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( $pi_currency !== $store_currency ) {
+				return new WP_Error(
+					'landing_bridge_pi_currency_mismatch',
+					sprintf(
+						'PaymentIntent currency (%s) does not match store currency (%s).',
+						$pi_currency,
+						$store_currency
+					),
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( $pi_amount !== $expected_amount ) {
+				return new WP_Error(
+					'landing_bridge_pi_amount_mismatch',
+					sprintf(
+						'PaymentIntent amount (%d) does not match expected amount (%d).',
+						$pi_amount,
+						$expected_amount
+					),
+					array( 'status' => 400 )
+				);
+			}
+
+			// Charge/payment id (ch_… or py_…) required for WC Stripe transaction link / capture gate.
+			// Link often creates py_… (same Charge API shape) instead of classic ch_….
+			// Retry PI retrieve, then GET /v1/charges?payment_intent=, then claimed id from Next.
+			$charge_id = $this->extract_charge_id_from_intent( $intent );
+			if ( ! $this->is_stripe_charge_id( $charge_id ) ) {
+				$charge_id = $this->retry_extract_charge_id_from_payment_intent( $pi_id );
+			}
+			if ( ! $this->is_stripe_charge_id( $charge_id ) ) {
+				$charge_id = $this->fetch_charge_id_from_charges_list( $pi_id );
+			}
+			if ( ! $this->is_stripe_charge_id( $charge_id ) && $claim_charge ) {
+				$charge_id = $this->verify_claimed_charge_id( $pi_id, $claim_charge );
+			}
+			if ( ! $this->is_stripe_charge_id( $charge_id ) ) {
+				if ( function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function'           => 'landing_bridge_charge_missing_debug',
+							'pi_id'              => $pi_id,
+							'status'             => isset( $intent['status'] ) ? (string) $intent['status'] : '',
+							'latest_charge'      => isset( $intent['latest_charge'] ) ? $intent['latest_charge'] : null,
+							'amount_capturable'  => isset( $intent['amount_capturable'] ) ? $intent['amount_capturable'] : null,
+							'has_charges_key'    => isset( $intent['charges'] ),
+							'intent_keys'        => array_keys( $intent ),
+						)
+					);
+				}
+				return new WP_Error(
+					'landing_bridge_pi_missing_charge',
+					'PaymentIntent is authorized but has no Charge/Payment id (ch_… or py_…). Cannot attach WC Stripe transaction link / capture metas.',
+					array( 'status' => 400 )
+				);
+			}
+
+			return array(
+				'stripe_customer_id' => $pi_customer,
+				'payment_method_id'  => $pi_pm,
+				'amount'             => $pi_amount,
+				'currency'           => $pi_currency,
+				'charge_id'          => $charge_id,
+			);
+		}
+
+		/**
+		 * Re-fetch PaymentIntent a few times when charge id is missing after auth.
+		 * Does not change checkout flow — only waits and re-reads Stripe.
+		 *
+		 * @param string $pi_id PaymentIntent id (pi_…).
+		 * @return string Charge id (ch_…) or empty string.
+		 */
+		private function retry_extract_charge_id_from_payment_intent( $pi_id ) {
+			$pi_id = sanitize_text_field( (string) $pi_id );
+			if ( empty( $pi_id ) || ! preg_match( '/^pi_/', $pi_id ) ) {
+				return '';
+			}
+
+			// Extra attempts after the first retrieve in verify_payment_intent_with_stripe.
+			// Total wait ≥ 5s so Link/express charge attach has time to show up.
+			$delays_us = array( 1000000, 1500000, 2500000 ); // 1.0s + 1.5s + 2.5s = 5.0s
+			$attempts  = count( $delays_us );
+
+			for ( $i = 0; $i < $attempts; $i++ ) {
+				usleep( (int) $delays_us[ $i ] );
+
+				$refetch = WC_Stripe_API::retrieve(
+					'payment_intents/' . rawurlencode( $pi_id ) . '?expand[]=latest_charge'
+				);
+				$refetch = $this->stripe_payload_to_array( $refetch );
+				if ( is_wp_error( $refetch ) || ! is_array( $refetch ) || ! empty( $refetch['error'] ) ) {
+					continue;
+				}
+
+				$status = isset( $refetch['status'] ) ? (string) $refetch['status'] : '';
+				// Hold must still be uncaptured — do not invent a charge if auth was lost.
+				if ( 'requires_capture' !== $status ) {
+					if ( function_exists( 'bh_plugins_error_log' ) ) {
+						bh_plugins_error_log(
+							array(
+								'function' => 'landing_bridge_charge_retry_status_changed',
+								'pi_id'    => $pi_id,
+								'status'   => $status ? $status : 'unknown',
+								'try'      => $i + 1,
+							)
+						);
+					}
+					return '';
+				}
+
+				$charge_id = $this->extract_charge_id_from_intent( $refetch );
+				if ( $this->is_stripe_charge_id( $charge_id ) ) {
+					if ( function_exists( 'bh_plugins_error_log' ) ) {
+						bh_plugins_error_log(
+							array(
+								'function'  => 'landing_bridge_charge_retry_ok',
+								'pi_id'     => $pi_id,
+								'charge_id' => $charge_id,
+								'try'       => $i + 1,
+							)
+						);
+					}
+					return $charge_id;
+				}
+			}
+
+			if ( function_exists( 'bh_plugins_error_log' ) ) {
+				bh_plugins_error_log(
+					array(
+						'function' => 'landing_bridge_charge_retry_exhausted',
+						'pi_id'    => $pi_id,
+						'attempts' => $attempts,
+					)
+				);
+			}
+
+			return '';
+		}
+
+		/**
+		 * Fallback: list Charges for this PaymentIntent (Stripe docs path when
+		 * PaymentIntent.latest_charge is empty — common with Link/express).
+		 *
+		 * @param string $pi_id PaymentIntent id (pi_…).
+		 * @return string Charge id (ch_…) or empty string.
+		 */
+		private function fetch_charge_id_from_charges_list( $pi_id ) {
+			$pi_id = sanitize_text_field( (string) $pi_id );
+			if ( empty( $pi_id ) || ! preg_match( '/^pi_/', $pi_id ) ) {
+				return '';
+			}
+
+			// Use retrieve()+query string (wp_remote_get). WC_Stripe_API::request GET+body is unreliable.
+			$path   = 'charges?payment_intent=' . rawurlencode( $pi_id ) . '&limit=10';
+			$result = WC_Stripe_API::retrieve( $path );
+			$result = $this->stripe_payload_to_array( $result );
+			if ( is_wp_error( $result ) || ! is_array( $result ) || ! empty( $result['error'] ) ) {
+				if ( function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function' => 'landing_bridge_charges_list_failed',
+							'pi_id'    => $pi_id,
+							'error'    => is_wp_error( $result )
+								? $result->get_error_message()
+								: ( isset( $result['error']['message'] ) ? (string) $result['error']['message'] : 'unknown' ),
+						)
+					);
+				}
+				return '';
+			}
+
+			$data = isset( $result['data'] ) && is_array( $result['data'] ) ? $result['data'] : array();
+			if ( empty( $data ) ) {
+				if ( function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function' => 'landing_bridge_charges_list_empty',
+							'pi_id'    => $pi_id,
+						)
+					);
+				}
+				return '';
+			}
+
+			// Prefer an uncaptured auth charge; otherwise first ch_… / py_… for this PI.
+			$fallback = '';
+			foreach ( $data as $charge ) {
+				if ( ! is_array( $charge ) || empty( $charge['id'] ) ) {
+					continue;
+				}
+				$id = (string) $charge['id'];
+				if ( ! $this->is_stripe_charge_id( $id ) ) {
+					continue;
+				}
+				$charge_pi = '';
+				if ( isset( $charge['payment_intent'] ) ) {
+					$charge_pi = is_array( $charge['payment_intent'] )
+						? ( isset( $charge['payment_intent']['id'] ) ? (string) $charge['payment_intent']['id'] : '' )
+						: (string) $charge['payment_intent'];
+				}
+				if ( $charge_pi && ! hash_equals( $pi_id, $charge_pi ) ) {
+					continue;
+				}
+				if ( ! $fallback ) {
+					$fallback = $id;
+				}
+				// Manual-capture auth holds are typically captured=false.
+				if ( array_key_exists( 'captured', $charge ) && false === $charge['captured'] ) {
+					if ( function_exists( 'bh_plugins_error_log' ) ) {
+						bh_plugins_error_log(
+							array(
+								'function'  => 'landing_bridge_charges_list_ok',
+								'pi_id'     => $pi_id,
+								'charge_id' => $id,
+								'captured'  => false,
+							)
+						);
+					}
+					return $id;
+				}
+			}
+
+			if ( $fallback && function_exists( 'bh_plugins_error_log' ) ) {
+				bh_plugins_error_log(
+					array(
+						'function'  => 'landing_bridge_charges_list_ok',
+						'pi_id'     => $pi_id,
+						'charge_id' => $fallback,
+						'captured'  => 'unknown_or_true',
+					)
+				);
+			}
+
+			return $fallback;
+		}
+
+		/**
+		 * True for classic Charge ids (ch_…) and Link/modern Payment ids (py_…).
+		 * Stripe treats py_ with the same Charge API shape.
+		 *
+		 * @param string $id Stripe id.
+		 * @return bool
+		 */
+		private function is_stripe_charge_id( $id ) {
+			$id = is_string( $id ) ? trim( $id ) : '';
+			return (bool) preg_match( '/^(ch_|py_)/', $id );
+		}
+
+		/**
+		 * Verify a client-provided charge/payment id belongs to this PaymentIntent.
+		 *
+		 * @param string $pi_id         PaymentIntent id.
+		 * @param string $claim_charge  Charge id (ch_…) or payment id (py_…).
+		 * @return string Charge/payment id or empty.
+		 */
+		private function verify_claimed_charge_id( $pi_id, $claim_charge ) {
+			$pi_id        = sanitize_text_field( (string) $pi_id );
+			$claim_charge = sanitize_text_field( (string) $claim_charge );
+			if ( empty( $pi_id ) || ! $this->is_stripe_charge_id( $claim_charge ) ) {
+				return '';
+			}
+
+			$charge = WC_Stripe_API::retrieve( 'charges/' . rawurlencode( $claim_charge ) );
+			$charge = $this->stripe_payload_to_array( $charge );
+			if ( is_wp_error( $charge ) || ! is_array( $charge ) || ! empty( $charge['error'] ) ) {
+				return '';
+			}
+
+			$charge_pi = '';
+			if ( isset( $charge['payment_intent'] ) ) {
+				$charge_pi = is_array( $charge['payment_intent'] )
+					? ( isset( $charge['payment_intent']['id'] ) ? (string) $charge['payment_intent']['id'] : '' )
+					: (string) $charge['payment_intent'];
+			}
+			if ( ! $charge_pi || ! hash_equals( $pi_id, $charge_pi ) ) {
+				return '';
+			}
+
+			$id = isset( $charge['id'] ) ? (string) $charge['id'] : '';
+			if ( ! $this->is_stripe_charge_id( $id ) ) {
+				return '';
+			}
+
+			if ( function_exists( 'bh_plugins_error_log' ) ) {
+				bh_plugins_error_log(
+					array(
+						'function'  => 'landing_bridge_claimed_charge_ok',
+						'pi_id'     => $pi_id,
+						'charge_id' => $id,
+					)
+				);
+			}
+
+			return $id;
+		}
+
+		/**
+		 * Resolve Stripe Charge/Payment id from a PaymentIntent payload (API array form).
+		 * Accepts classic ch_… and Link/modern py_… ids.
+		 *
+		 * @param array $intent PaymentIntent as array.
+		 * @return string Charge/payment id or empty.
+		 */
+		private function extract_charge_id_from_intent( array $intent ) {
+			if ( ! empty( $intent['latest_charge'] ) ) {
+				if ( is_array( $intent['latest_charge'] ) ) {
+					$id = isset( $intent['latest_charge']['id'] ) ? (string) $intent['latest_charge']['id'] : '';
+					if ( $this->is_stripe_charge_id( $id ) ) {
+						return $id;
+					}
+				} else {
+					$id = (string) $intent['latest_charge'];
+					if ( $this->is_stripe_charge_id( $id ) ) {
+						return $id;
+					}
+				}
+			}
+
+			if ( ! empty( $intent['charges']['data'] ) && is_array( $intent['charges']['data'] ) ) {
+				$charges = $intent['charges']['data'];
+				$last    = end( $charges );
+				if ( is_array( $last ) && ! empty( $last['id'] ) ) {
+					$id = (string) $last['id'];
+					if ( $this->is_stripe_charge_id( $id ) ) {
+						return $id;
+					}
+				}
+			}
+
+			return '';
+		}
+
+		/**
+		 * @param WC_Product $product  Product.
+		 * @param int        $quantity Qty.
+		 * @return int Amount in cents (or store smallest unit).
+		 */
+		private function product_amount_in_smallest_unit( $product, $quantity ) {
+			$unit = (float) $product->get_price();
+			return (int) round( $unit * max( 1, (int) $quantity ) * 100 );
+		}
+
+		/**
+		 * Compare PI to the final order total (post-coupon), so it works with or
+		 * without a coupon applied. Landing does not add tax/shipping lines, so
+		 * subtotal ≡ total when there is no coupon.
+		 *
+		 * @param int      $pi_amount   Stripe amount.
+		 * @param string   $pi_currency Stripe currency.
+		 * @param WC_Order $order       Order after calculate_totals().
+		 * @return true|WP_Error
+		 */
+		private function assert_intent_amount_matches_order( $pi_amount, $pi_currency, $order ) {
+			$order_currency = strtolower( $order->get_currency() );
+			if ( $pi_currency !== $order_currency ) {
+				return new WP_Error(
+					'landing_bridge_order_currency_mismatch',
+					'Order currency does not match PaymentIntent.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$total_cents = (int) round( (float) $order->get_total( 'edit' ) * 100 );
+			if ( $pi_amount !== $total_cents ) {
+				return new WP_Error(
+					'landing_bridge_order_amount_mismatch',
+					sprintf(
+						'Order total (%d) does not match PaymentIntent amount (%d). Align WC product price / coupon with landing amount.',
+						$total_cents,
+						$pi_amount
+					),
+					array( 'status' => 400 )
+				);
+			}
+
+			return true;
+		}
+
+		/**
+		 * Mirror WC Stripe user option used on renewals / gateway lookups.
+		 *
+		 * @param int    $user_id User ID.
+		 * @param string $cus_id  Stripe customer id.
+		 */
+		private function sync_user_stripe_customer( $user_id, $cus_id ) {
+			if ( $user_id < 1 || empty( $cus_id ) ) {
+				return;
+			}
+			update_user_option( $user_id, '_stripe_customer_id', $cus_id, false );
+		}
+
+		/**
+		 * Business rules shared by pre-payment validate + full checkout.
+		 * Purchase conflict uses WP logged-in parity (active subscription + category
+		 * matrix via email→user). Guest-style past email/phone order duplicate is not enforced.
+		 * No PaymentIntent / Stripe customer required.
+		 *
+		 * @param array $body Raw JSON body.
+		 * @return array|WP_Error Normalized customer + product fields.
+		 */
+		private function validate_customer_business_rules( array $body ) {
+			// Mirror WP validate_accept_terms.
+			$terms_ok = ! empty( $body['terms_accepted'] ) && (
+				true === $body['terms_accepted']
+				|| '1' === (string) $body['terms_accepted']
+				|| 'true' === strtolower( (string) $body['terms_accepted'] )
+				|| 'on' === strtolower( (string) $body['terms_accepted'] )
+			);
+			if ( ! $terms_ok ) {
+				return new WP_Error(
+					'landing_bridge_terms_required',
+					'You must accept the Terms & Conditions to continue.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$product_id = isset( $body['product_id'] ) ? absint( $body['product_id'] ) : 0;
+			if ( $product_id < 1 ) {
+				return new WP_Error(
+					'landing_bridge_invalid_product',
+					'product_id is required.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$quantity = isset( $body['quantity'] ) ? absint( $body['quantity'] ) : 1;
+			if ( $quantity < 1 ) {
+				$quantity = 1;
+			}
+
+			$customer_in = isset( $body['customer'] ) && is_array( $body['customer'] ) ? $body['customer'] : array();
+			$email       = isset( $customer_in['email'] ) ? sanitize_email( (string) $customer_in['email'] ) : '';
+			$phone_raw   = isset( $customer_in['phone'] ) ? sanitize_text_field( (string) $customer_in['phone'] ) : '';
+			$first_name  = isset( $customer_in['first_name'] ) ? sanitize_text_field( (string) $customer_in['first_name'] ) : '';
+			$last_name   = isset( $customer_in['last_name'] ) ? sanitize_text_field( (string) $customer_in['last_name'] ) : '';
+			$company     = isset( $customer_in['company'] ) ? sanitize_text_field( (string) $customer_in['company'] ) : '';
+
+			if ( empty( $email ) || ! is_email( $email ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_email',
+					'A valid customer email is required.',
+					array( 'status' => 400 )
+				);
+			}
+			if ( empty( $first_name ) || empty( $last_name ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_name',
+					'Customer first_name and last_name are required.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$phone = $this->normalize_phone_e164_us( $phone_raw );
+			if ( is_wp_error( $phone ) ) {
+				return $phone;
+			}
+
+			$shipping = isset( $customer_in['shipping'] ) && is_array( $customer_in['shipping'] ) ? $customer_in['shipping'] : array();
+			$billing  = isset( $customer_in['billing'] ) && is_array( $customer_in['billing'] ) ? $customer_in['billing'] : array();
+
+			// Default contact fields onto addresses (WC stores them per address).
+			$shipping = $this->hydrate_address_contact_defaults(
+				$shipping,
+				$first_name,
+				$last_name,
+				$company,
+				$phone
+			);
+
+			$shipping_norm = $this->normalize_address( $shipping );
+			if ( is_wp_error( $shipping_norm ) ) {
+				return $shipping_norm;
+			}
+
+			if ( empty( $billing ) ) {
+				$billing_norm = $shipping_norm;
+			} else {
+				$billing = $this->hydrate_address_contact_defaults(
+					$billing,
+					$first_name,
+					$last_name,
+					$company,
+					$phone
+				);
+				$billing_norm = $this->normalize_address( $billing );
+				if ( is_wp_error( $billing_norm ) ) {
+					return $billing_norm;
+				}
+			}
+
+			$po_err = $this->assert_no_po_boxes( $shipping_norm, $billing_norm );
+			if ( is_wp_error( $po_err ) ) {
+				return $po_err;
+			}
+
+			$state_err = $this->assert_shippable_states( $shipping_norm['state'], $billing_norm['state'] );
+			if ( is_wp_error( $state_err ) ) {
+				return $state_err;
+			}
+
+			// WP logged-in parity: block only on active/pending/on-hold subscription
+			// category conflict (resolve customer by email). Do not block on past orders
+			// by email/phone (classic guest restrict_one_product_per_email_or_phone).
+			$sub_err = $this->assert_no_active_subscription_conflict( $email, $product_id );
+			if ( is_wp_error( $sub_err ) ) {
+				return $sub_err;
+			}
+
+			$source = isset( $body['source'] ) ? sanitize_key( (string) $body['source'] ) : 'tirzepatide-landing';
+			if ( empty( $source ) ) {
+				$source = 'tirzepatide-landing';
+			}
+
+			$checkout_channel = isset( $body['checkout_channel'] )
+				? sanitize_key( (string) $body['checkout_channel'] )
+				: 'custom_landing';
+			if ( empty( $checkout_channel ) ) {
+				$checkout_channel = 'custom_landing';
+			}
+			$landing_variant = isset( $body['landing_variant'] )
+				? sanitize_key( (string) $body['landing_variant'] )
+				: 'tirzepatide';
+
+			$coupon_code = isset( $body['coupon_code'] ) ? sanitize_text_field( (string) $body['coupon_code'] ) : '';
+			$coupon_code = trim( $coupon_code );
+
+			// Everflow transaction id — resolve via shared helper when available.
+			$eftid = '';
+			if ( isset( $body['eftid'] ) ) {
+				$eftid = sanitize_text_field( (string) $body['eftid'] );
+			} elseif ( isset( $body['everflow_transaction_id'] ) ) {
+				$eftid = sanitize_text_field( (string) $body['everflow_transaction_id'] );
+			}
+			if ( class_exists( 'BH_Everflow_Helper' ) ) {
+				$eftid = BH_Everflow_Helper::resolve_eftid( $eftid );
+			} else {
+				$eftid = trim( $eftid );
+			}
+
+			// Friendbuy referral attribution (classic ?referralCode= → ExtDB).
+			$referral_code = '';
+			if ( isset( $body['referral_code'] ) ) {
+				$referral_code = sanitize_text_field( (string) $body['referral_code'] );
+			} elseif ( isset( $body['referralCode'] ) ) {
+				$referral_code = sanitize_text_field( (string) $body['referralCode'] );
+			}
+			$referral_code = trim( $referral_code );
+
+			$order_attribution = $this->normalize_order_attribution(
+				isset( $body['order_attribution'] ) && is_array( $body['order_attribution'] )
+					? $body['order_attribution']
+					: array()
+			);
+
+			return array(
+				'product_id'         => $product_id,
+				'quantity'           => $quantity,
+				'customer'           => array(
+					'email'      => $email,
+					'phone'      => $phone,
+					'first_name' => $first_name,
+					'last_name'  => $last_name,
+					'company'    => $company,
+					'shipping'   => $shipping_norm,
+					'billing'    => $billing_norm,
+				),
+				'marketing_opt_in'   => ! empty( $body['marketing_opt_in'] ),
+				'terms_accepted'     => true,
+				'source'             => $source,
+				'checkout_channel'   => $checkout_channel,
+				'landing_variant'    => $landing_variant,
+				'coupon_code'        => $coupon_code,
+				'eftid'              => $eftid,
+				'referral_code'      => $referral_code,
+				'order_attribution'  => $order_attribution,
+			);
+		}
+
+		/**
+		 * Normalize WC Order Attribution fields from landing client.
+		 *
+		 * @param array $raw Raw attribution map.
+		 * @return array
+		 */
+		private function normalize_order_attribution( array $raw ) {
+			$url_keys = array( 'referrer', 'session_entry' );
+			$keys     = array(
+				'source_type',
+				'utm_source',
+				'utm_medium',
+				'utm_campaign',
+				'utm_content',
+				'utm_term',
+				'utm_id',
+				'referrer',
+				'session_entry',
+				'user_agent',
+			);
+			$out = array();
+			foreach ( $keys as $key ) {
+				if ( ! isset( $raw[ $key ] ) ) {
+					continue;
+				}
+				$value = trim( (string) $raw[ $key ] );
+				if ( '' === $value ) {
+					continue;
+				}
+				// URLs: keep query strings intact (sanitize_text_field can mangle &).
+				if ( in_array( $key, $url_keys, true ) ) {
+					$value = esc_url_raw( $value );
+				} else {
+					$value = sanitize_text_field( $value );
+				}
+				$value = trim( $value );
+				if ( '' !== $value ) {
+					// Hard caps — WC metabox / meta size safety.
+					$max = in_array( $key, $url_keys, true ) ? 1024 : ( 'user_agent' === $key ? 512 : 200 );
+					$out[ $key ] = substr( $value, 0, $max );
+				}
+			}
+			return $out;
+		}
+
+		/**
+		 * Stamp WooCommerce Order Attribution metas so Orders → Origin is not Unknown.
+		 * Classic WP checkout gets these from Sourcebuster JS; landing must set them.
+		 *
+		 * @param WC_Order $order Order.
+		 * @param array    $attr  Normalized attribution.
+		 */
+		private function apply_wc_order_attribution( $order, array $attr ) {
+			if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+				return;
+			}
+
+			$source_type = isset( $attr['source_type'] ) ? sanitize_key( (string) $attr['source_type'] ) : '';
+			$utm_source  = isset( $attr['utm_source'] ) ? sanitize_text_field( (string) $attr['utm_source'] ) : '';
+
+			// Always ensure Origin is readable (never leave blank → Unknown).
+			if ( '' === $source_type || '' === $utm_source ) {
+				$source_type = 'utm';
+				$utm_source  = 'tirzepatide-landing';
+				if ( empty( $attr['utm_medium'] ) ) {
+					$attr['utm_medium'] = 'landing';
+				}
+			}
+
+			$allowed_types = array( 'utm', 'organic', 'referral', 'typein', 'mobile_app', 'admin', 'pos' );
+			if ( ! in_array( $source_type, $allowed_types, true ) ) {
+				$source_type = 'utm';
+			}
+
+			$map = array(
+				'source_type'  => $source_type,
+				'utm_source'   => $utm_source,
+				'utm_medium'   => isset( $attr['utm_medium'] ) ? $attr['utm_medium'] : '',
+				'utm_campaign' => isset( $attr['utm_campaign'] ) ? $attr['utm_campaign'] : '',
+				'utm_content'  => isset( $attr['utm_content'] ) ? $attr['utm_content'] : '',
+				'utm_term'     => isset( $attr['utm_term'] ) ? $attr['utm_term'] : '',
+				'utm_id'       => isset( $attr['utm_id'] ) ? $attr['utm_id'] : '',
+				'referrer'     => isset( $attr['referrer'] ) ? $attr['referrer'] : '',
+				'session_entry'=> isset( $attr['session_entry'] ) ? $attr['session_entry'] : '',
+				'user_agent'   => isset( $attr['user_agent'] ) ? $attr['user_agent'] : '',
+			);
+
+			foreach ( $map as $field => $value ) {
+				$value = is_string( $value ) ? trim( $value ) : '';
+				if ( '' === $value ) {
+					continue;
+				}
+				$order->update_meta_data( '_wc_order_attribution_' . $field, $value );
+			}
+		}
+
+		/**
+		 * @param array $body Raw JSON body.
+		 * @return array|WP_Error
+		 */
+		private function validate_payload( array $body ) {
+			$pi_id = isset( $body['payment_intent_id'] ) ? sanitize_text_field( (string) $body['payment_intent_id'] ) : '';
+			if ( empty( $pi_id ) || ! preg_match( '/^pi_/', $pi_id ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_pi',
+					'payment_intent_id must be a Stripe PaymentIntent id (pi_…).',
+					array( 'status' => 400 )
+				);
+			}
+
+			$stripe_cus = isset( $body['stripe_customer_id'] ) ? sanitize_text_field( (string) $body['stripe_customer_id'] ) : '';
+			$stripe_pm  = isset( $body['payment_method_id'] ) ? sanitize_text_field( (string) $body['payment_method_id'] ) : '';
+
+			if ( empty( $stripe_cus ) || ! preg_match( '/^cus_/', $stripe_cus ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_stripe_customer',
+					'stripe_customer_id (cus_…) is required for renewals.',
+					array( 'status' => 400 )
+				);
+			}
+			if ( empty( $stripe_pm ) || ! preg_match( '/^pm_/', $stripe_pm ) ) {
+				return new WP_Error(
+					'landing_bridge_invalid_payment_method',
+					'payment_method_id (pm_…) is required for renewals.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$business = $this->validate_customer_business_rules( $body );
+			if ( is_wp_error( $business ) ) {
+				return $business;
+			}
+
+			$stripe_charge = isset( $body['stripe_charge_id'] ) ? sanitize_text_field( (string) $body['stripe_charge_id'] ) : '';
+			if ( $stripe_charge && ! $this->is_stripe_charge_id( $stripe_charge ) ) {
+				$stripe_charge = '';
+			}
+
+			return array_merge(
+				$business,
+				array(
+					'payment_intent_id'  => $pi_id,
+					'stripe_customer_id' => $stripe_cus,
+					'payment_method_id'  => $stripe_pm,
+					'stripe_charge_id'   => $stripe_charge,
+				)
+			);
+		}
+
+		/**
+		 * Dual-write marketing consent so Attentive/WP pipelines see landing orders.
+		 *
+		 * @param WC_Order $order   Order.
+		 * @param bool     $opted_in Marketing opt-in.
+		 */
+		private function apply_marketing_metas( $order, $opted_in ) {
+			$yes_no = $opted_in ? 'yes' : 'no';
+
+			// Landing-specific key (kept for backwards compatibility).
+			if ( $opted_in ) {
+				$order->update_meta_data( '_brello_marketing_opt_in', 'yes' );
+			}
+
+			// Same keys as BH_Checkout_UI::save_marketing_subscription_checkbox.
+			$order->update_meta_data( '_bh_marketing_subscription_checkout', $yes_no );
+			$order->update_meta_data( '_bh_marketing_subscription', $yes_no );
+			$order->update_meta_data( '_bh_marketing_subscription_checkout_consent', $yes_no );
+
+			if ( class_exists( 'AH_Order_Meta' ) ) {
+				AH_Order_Meta::set( $order->get_id(), '_bh_marketing_subscription_checkout', $yes_no );
+				AH_Order_Meta::set( $order->get_id(), '_bh_marketing_subscription_checkout_consent', $yes_no );
+			}
+
+			$user_id = (int) $order->get_user_id();
+			if ( $opted_in && $user_id > 0 ) {
+				update_user_meta( $user_id, 'bh_marketing_subscription', 'yes' );
+				update_user_meta( $user_id, 'bh_marketing_subscription_updated', current_time( 'mysql' ) );
+			}
+		}
+
+		/**
+		 * US phone → +1XXXXXXXXXX (same rules as AH_Checkout_Phone_Standardization).
+		 *
+		 * @param string $phone Raw phone.
+		 * @return string|WP_Error
+		 */
+		private function normalize_phone_e164_us( $phone ) {
+			$digits = preg_replace( '/\D+/', '', (string) $phone );
+			if ( strlen( $digits ) === 11 && substr( $digits, 0, 1 ) === '1' ) {
+				$digits = substr( $digits, 1 );
+			}
+			if ( strlen( $digits ) > 10 ) {
+				$digits = substr( $digits, -10 );
+			}
+			if ( strlen( $digits ) !== 10 ) {
+				return new WP_Error(
+					'landing_bridge_invalid_phone',
+					'Phone number must be 10 digits (e.g. (727) 326-3213).',
+					array( 'status' => 400 )
+				);
+			}
+			return '+1' . $digits;
+		}
+
+		/**
+		 * Mirror Bh_Checkout_Validations::restrict_po_boxes_in_checkout.
+		 *
+		 * @param array $shipping Shipping address.
+		 * @param array $billing  Billing address.
+		 * @return true|WP_Error
+		 */
+		private function assert_no_po_boxes( array $shipping, array $billing ) {
+			$fields = array(
+				'shipping_address_1' => $shipping['address_1'] ?? '',
+				'shipping_address_2' => $shipping['address_2'] ?? '',
+				'billing_address_1'  => $billing['address_1'] ?? '',
+				'billing_address_2'  => $billing['address_2'] ?? '',
+			);
+
+			foreach ( $fields as $value ) {
+				if ( '' === trim( (string) $value ) ) {
+					continue;
+				}
+				$normalized = trim( preg_replace( '/\s+/', ' ', (string) $value ) );
+				if ( preg_match( self::PO_BOX_REGEX, $normalized, $matches ) ) {
+					return new WP_Error(
+						'landing_bridge_po_box',
+						sprintf(
+							'Note: PO boxes cannot be used as a delivery address(%s). Please provide a valid physical address.',
+							$matches[0]
+						),
+						array( 'status' => 400 )
+					);
+				}
+			}
+
+			return true;
+		}
+
+		/**
+		 * Same shippable set as WP checkout (AH_States::get_states_for_current_user — excludes unavailable).
+		 *
+		 * @return array<string,string> code => label
+		 */
+		private function get_shippable_us_states() {
+			if ( ! class_exists( 'AH_States' ) ) {
+				return array();
+			}
+			$all      = AH_States::get_all();
+			$filtered = AH_States::get_states_for_current_user( $all, true );
+			if ( isset( $filtered['US'] ) && is_array( $filtered['US'] ) ) {
+				return $filtered['US'];
+			}
+			return is_array( $filtered ) ? $filtered : array();
+		}
+
+		/**
+		 * Mirror Bh_Features_Public::restrict_shipping_states.
+		 *
+		 * @param string $shipping_state State code.
+		 * @param string $billing_state  State code.
+		 * @return true|WP_Error
+		 */
+		private function assert_shippable_states( $shipping_state, $billing_state ) {
+			$shippable = $this->get_shippable_us_states();
+			if ( empty( $shippable ) ) {
+				// Fail open only if states module missing; otherwise empty = misconfigured.
+				if ( ! class_exists( 'AH_States' ) ) {
+					return true;
+				}
+				return new WP_Error(
+					'landing_bridge_states_misconfigured',
+					'Sorry, we only ship to certain states.',
+					array( 'status' => 503 )
+				);
+			}
+
+			$codes = array_map( 'strtoupper', array_keys( $shippable ) );
+			$ship  = strtoupper( sanitize_text_field( (string) $shipping_state ) );
+			$bill  = strtoupper( sanitize_text_field( (string) $billing_state ) );
+
+			if ( ! in_array( $ship, $codes, true ) || ! in_array( $bill, $codes, true ) ) {
+				return new WP_Error(
+					'landing_bridge_state_not_licensed',
+					'Sorry, we only ship to certain states.',
+					array( 'status' => 400 )
+				);
+			}
+
+			return true;
+		}
+
+		/**
+		 * Mirror Bh_Checkout_Validations::validate_logged_in_user_restrictions.
+		 *
+		 * Sole purchase-conflict gate on landing (WP logged-in parity). Landing has
+		 * no WP login cookie, so we resolve the customer by email (same account the
+		 * bridge later links/creates) and block when that user already has an
+		 * active/pending/on-hold subscription in the category matrix.
+		 *
+		 * Matrix (same as classic checkout):
+		 * - Buying protocol  → block if any weight-loss / supplements / protocol sub
+		 * - Buying weight-loss or supplements → block if same category OR protocol sub
+		 *
+		 * @param string $email      Customer email.
+		 * @param int    $product_id Product/variation being purchased.
+		 * @return true|WP_Error
+		 */
+		private function assert_no_active_subscription_conflict( $email, $product_id ) {
+			$email = strtolower( trim( (string) $email ) );
+			if ( '' === $email || ! is_email( $email ) ) {
+				return true;
+			}
+
+			$user = get_user_by( 'email', $email );
+			if ( ! $user || (int) $user->ID < 1 ) {
+				// New email — no existing account to conflict with.
+				return true;
+			}
+			$user_id = (int) $user->ID;
+
+			$product = wc_get_product( absint( $product_id ) );
+			if ( ! $product || ! $product->exists() ) {
+				return true;
+			}
+
+			// Classic only checks subscription products in the cart.
+			if ( class_exists( 'WC_Subscriptions_Product' ) && ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+				return true;
+			}
+
+			$parent_id = $product->is_type( 'variation' ) ? $product->get_parent_id() : $product->get_id();
+			$terms     = wp_get_post_terms( $parent_id, 'product_cat', array( 'fields' => 'slugs' ) );
+			if ( empty( $terms ) || is_wp_error( $terms ) ) {
+				return true;
+			}
+
+			$cart_categories = array_values( array_unique( array_map( 'strval', $terms ) ) );
+			if ( empty( $cart_categories ) ) {
+				return true;
+			}
+
+			if ( in_array( 'protocol', $cart_categories, true ) ) {
+				// Buying Empowered+ / protocol: no prior weight-loss, supplements, or protocol.
+				$categories_to_check = array( 'weight-loss', 'supplements', 'protocol' );
+			} else {
+				// Buying individual (weight-loss or supplements): also block if protocol active.
+				$categories_to_check = array_values(
+					array_unique(
+						array_merge(
+							array_intersect( $cart_categories, array( 'weight-loss', 'supplements' ) ),
+							array( 'protocol' )
+						)
+					)
+				);
+			}
+
+			if ( empty( $categories_to_check ) ) {
+				return true;
+			}
+
+			global $wpdb;
+
+			foreach ( $categories_to_check as $cat_slug ) {
+				$existing = $wpdb->get_var(
+					$wpdb->prepare(
+						"SELECT 1
+						 FROM {$wpdb->prefix}wc_orders o
+						 JOIN {$wpdb->prefix}wc_orders sub ON sub.parent_order_id = o.id
+						 JOIN {$wpdb->prefix}wc_order_product_lookup opl ON o.id = opl.order_id
+						 JOIN {$wpdb->prefix}term_relationships tr ON tr.object_id = opl.product_id
+						 JOIN {$wpdb->prefix}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+						 JOIN {$wpdb->prefix}terms t ON t.term_id = tt.term_id
+						 WHERE sub.type = 'shop_subscription'
+						   AND sub.customer_id = %d
+						   AND sub.status IN ('wc-active', 'wc-pending', 'wc-on-hold')
+						   AND tt.taxonomy = 'product_cat'
+						   AND t.slug = %s
+						 LIMIT 1",
+						$user_id,
+						$cat_slug
+					)
+				);
+
+				if ( $existing ) {
+					return new WP_Error(
+						'landing_bridge_active_subscription',
+						self::ACTIVE_SUB_SUPPORT_MESSAGE,
+						array(
+							'status'   => 400,
+							'category' => $cat_slug,
+							'user_id'  => $user_id,
+						)
+					);
+				}
+			}
+
+			return true;
+		}
+
+		/**
+		 * Fill missing address contact fields from top-level customer defaults.
+		 * Allows separate billing first/last/phone while keeping shipping defaults.
+		 *
+		 * @param array  $address    Raw address array.
+		 * @param string $first_name Default first name.
+		 * @param string $last_name  Default last name.
+		 * @param string $company    Default company.
+		 * @param string $phone      Default phone (E.164).
+		 * @return array
+		 */
+		private function hydrate_address_contact_defaults( array $address, $first_name, $last_name, $company, $phone ) {
+			if ( empty( $address['first_name'] ) ) {
+				$address['first_name'] = $first_name;
+			}
+			if ( empty( $address['last_name'] ) ) {
+				$address['last_name'] = $last_name;
+			}
+			if ( empty( $address['company'] ) && '' !== (string) $company ) {
+				$address['company'] = $company;
+			}
+			if ( empty( $address['phone'] ) ) {
+				$address['phone'] = $phone;
+			}
+			return $address;
+		}
+
+		/**
+		 * @param array $address Address fields.
+		 * @return array|WP_Error
+		 */
+		private function normalize_address( array $address ) {
+			$normalized = array(
+				'first_name' => isset( $address['first_name'] ) ? sanitize_text_field( (string) $address['first_name'] ) : '',
+				'last_name'  => isset( $address['last_name'] ) ? sanitize_text_field( (string) $address['last_name'] ) : '',
+				'company'    => isset( $address['company'] ) ? sanitize_text_field( (string) $address['company'] ) : '',
+				'phone'      => isset( $address['phone'] ) ? sanitize_text_field( (string) $address['phone'] ) : '',
+				'address_1'  => isset( $address['address_1'] ) ? sanitize_text_field( (string) $address['address_1'] ) : '',
+				'address_2'  => isset( $address['address_2'] ) ? sanitize_text_field( (string) $address['address_2'] ) : '',
+				'city'       => isset( $address['city'] ) ? sanitize_text_field( (string) $address['city'] ) : '',
+				'state'      => isset( $address['state'] ) ? sanitize_text_field( (string) $address['state'] ) : '',
+				'postcode'   => isset( $address['postcode'] ) ? sanitize_text_field( (string) $address['postcode'] ) : '',
+				'country'    => isset( $address['country'] ) ? sanitize_text_field( (string) $address['country'] ) : 'US',
+			);
+
+			if ( empty( $normalized['country'] ) ) {
+				$normalized['country'] = 'US';
+			}
+
+			// Optional phone on address: normalize when present (billing may differ).
+			if ( '' !== $normalized['phone'] ) {
+				$phone_norm = $this->normalize_phone_e164_us( $normalized['phone'] );
+				if ( is_wp_error( $phone_norm ) ) {
+					return $phone_norm;
+				}
+				$normalized['phone'] = $phone_norm;
+			}
+
+			if (
+				empty( $normalized['address_1'] ) ||
+				empty( $normalized['city'] ) ||
+				empty( $normalized['state'] ) ||
+				empty( $normalized['postcode'] )
+			) {
+				return new WP_Error(
+					'landing_bridge_invalid_address',
+					'Address requires address_1, city, state, and postcode.',
+					array( 'status' => 400 )
+				);
+			}
+
+			return $normalized;
+		}
+
+		/**
+		 * @param WC_Product $product Product or variation.
+		 * @return true|WP_Error
+		 */
+		private function validate_telemdnow_mapping( $product ) {
+			$lookup_id = $product->get_id();
+			$mapping   = get_post_meta( $lookup_id, 'telemdnow_product_variation_id', true );
+
+			if ( ! empty( $mapping ) && 'no_telemdnow_processing' !== $mapping ) {
+				return true;
+			}
+
+			// Common mistake: env points at variable parent; Telegra meta lives on the variation.
+			if ( $product->is_type( 'variable' ) ) {
+				$children = $product->get_children();
+				$mapped   = array();
+				foreach ( $children as $child_id ) {
+					$child_map = get_post_meta( $child_id, 'telemdnow_product_variation_id', true );
+					if ( ! empty( $child_map ) && 'no_telemdnow_processing' !== $child_map ) {
+						$mapped[] = (int) $child_id;
+					}
+				}
+				if ( ! empty( $mapped ) ) {
+					return new WP_Error(
+						'landing_bridge_product_unmapped',
+						sprintf(
+							'LANDING_WC_PRODUCT_ID %d is a variable parent. Use a mapped variation ID instead (found mapped variation(s): %s). Price must be $499.',
+							$lookup_id,
+							implode( ', ', $mapped )
+						),
+						array( 'status' => 400 )
+					);
+				}
+			}
+
+			return new WP_Error(
+				'landing_bridge_product_unmapped',
+				sprintf(
+					'Product/variation ID %d has no telemdnow_product_variation_id. In WP Admin → Products → open that product (or its variation) → set the TelemdNow / Telegra product variation mapping (same as live Tirzepatide plan). Then put that same ID in LANDING_WC_PRODUCT_ID.',
+					$lookup_id
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		/**
+		 * @param array $customer Normalized customer.
+		 * @return int|WP_Error User ID.
+		 */
+		private function resolve_customer_user( array $customer ) {
+			$email = $customer['email'];
+			$user  = get_user_by( 'email', $email );
+
+			if ( $user ) {
+				return (int) $user->ID;
+			}
+
+			$username = function_exists( 'wc_create_new_customer_username' )
+				? wc_create_new_customer_username(
+					$email,
+					array(
+						'first_name' => $customer['first_name'],
+						'last_name'  => $customer['last_name'],
+					)
+				)
+				: sanitize_user( current( explode( '@', $email ) ), true );
+
+			$user_id = wc_create_new_customer(
+				$email,
+				$username,
+				'',
+				array(
+					'first_name' => $customer['first_name'],
+					'last_name'  => $customer['last_name'],
+				)
+			);
+
+			if ( is_wp_error( $user_id ) ) {
+				return new WP_Error(
+					'landing_bridge_user_create_failed',
+					$user_id->get_error_message(),
+					array( 'status' => 500 )
+				);
+			}
+
+			return (int) $user_id;
+		}
+
+		/**
+		 * @param int   $user_id  User ID.
+		 * @param array $customer Normalized customer.
+		 */
+		private function sync_user_billing( $user_id, array $customer ) {
+			$billing  = isset( $customer['billing'] ) && is_array( $customer['billing'] ) ? $customer['billing'] : array();
+			$shipping = isset( $customer['shipping'] ) && is_array( $customer['shipping'] ) ? $customer['shipping'] : array();
+
+			$billing_first  = ! empty( $billing['first_name'] ) ? $billing['first_name'] : $customer['first_name'];
+			$billing_last   = ! empty( $billing['last_name'] ) ? $billing['last_name'] : $customer['last_name'];
+			$billing_phone  = ! empty( $billing['phone'] ) ? $billing['phone'] : $customer['phone'];
+			$billing_company = isset( $billing['company'] ) ? $billing['company'] : ( isset( $customer['company'] ) ? $customer['company'] : '' );
+
+			$shipping_first  = ! empty( $shipping['first_name'] ) ? $shipping['first_name'] : $customer['first_name'];
+			$shipping_last   = ! empty( $shipping['last_name'] ) ? $shipping['last_name'] : $customer['last_name'];
+			$shipping_company = isset( $shipping['company'] ) ? $shipping['company'] : $billing_company;
+
+			$map = array(
+				'billing_first_name'  => $billing_first,
+				'billing_last_name'   => $billing_last,
+				'billing_company'     => $billing_company,
+				'billing_email'       => $customer['email'],
+				'billing_phone'       => $billing_phone,
+				'billing_address_1'   => $billing['address_1'] ?? '',
+				'billing_address_2'   => $billing['address_2'] ?? '',
+				'billing_city'        => $billing['city'] ?? '',
+				'billing_state'       => $billing['state'] ?? '',
+				'billing_postcode'    => $billing['postcode'] ?? '',
+				'billing_country'     => $billing['country'] ?? 'US',
+				'shipping_first_name' => $shipping_first,
+				'shipping_last_name'  => $shipping_last,
+				'shipping_company'    => $shipping_company,
+				'shipping_address_1'  => $shipping['address_1'] ?? '',
+				'shipping_address_2'  => $shipping['address_2'] ?? '',
+				'shipping_city'       => $shipping['city'] ?? '',
+				'shipping_state'      => $shipping['state'] ?? '',
+				'shipping_postcode'   => $shipping['postcode'] ?? '',
+				'shipping_country'    => $shipping['country'] ?? 'US',
+			);
+
+			foreach ( $map as $key => $value ) {
+				update_user_meta( $user_id, $key, $value );
+			}
+
+			wp_update_user(
+				array(
+					'ID'         => $user_id,
+					'first_name' => $customer['first_name'],
+					'last_name'  => $customer['last_name'],
+				)
+			);
+		}
+
+		/**
+		 * @param WC_Order $order    Order.
+		 * @param array    $customer Normalized customer.
+		 */
+		private function apply_customer_addresses( $order, array $customer ) {
+			$billing_in  = isset( $customer['billing'] ) && is_array( $customer['billing'] ) ? $customer['billing'] : array();
+			$shipping_in = isset( $customer['shipping'] ) && is_array( $customer['shipping'] ) ? $customer['shipping'] : array();
+
+			$shipping_company = isset( $shipping_in['company'] ) ? (string) $shipping_in['company'] : '';
+			$billing_company  = isset( $billing_in['company'] ) ? (string) $billing_in['company'] : '';
+			// One company field on landing form — if billing omitted it, reuse shipping.
+			if ( '' === $billing_company && '' !== $shipping_company ) {
+				$billing_company = $shipping_company;
+			}
+			if ( '' === $billing_company && isset( $customer['company'] ) && '' !== (string) $customer['company'] ) {
+				$billing_company = (string) $customer['company'];
+			}
+			if ( '' === $shipping_company && '' !== $billing_company ) {
+				$shipping_company = $billing_company;
+			}
+
+			$billing = array(
+				'first_name' => ! empty( $billing_in['first_name'] ) ? $billing_in['first_name'] : $customer['first_name'],
+				'last_name'  => ! empty( $billing_in['last_name'] ) ? $billing_in['last_name'] : $customer['last_name'],
+				'company'    => $billing_company,
+				'email'      => $customer['email'],
+				'phone'      => ! empty( $billing_in['phone'] ) ? $billing_in['phone'] : $customer['phone'],
+				'address_1'  => $billing_in['address_1'] ?? '',
+				'address_2'  => $billing_in['address_2'] ?? '',
+				'city'       => $billing_in['city'] ?? '',
+				'state'      => $billing_in['state'] ?? '',
+				'postcode'   => $billing_in['postcode'] ?? '',
+				'country'    => $billing_in['country'] ?? 'US',
+			);
+
+			$shipping = array(
+				'first_name' => ! empty( $shipping_in['first_name'] ) ? $shipping_in['first_name'] : $customer['first_name'],
+				'last_name'  => ! empty( $shipping_in['last_name'] ) ? $shipping_in['last_name'] : $customer['last_name'],
+				'company'    => $shipping_company,
+				'phone'      => ! empty( $shipping_in['phone'] ) ? $shipping_in['phone'] : $customer['phone'],
+				'address_1'  => $shipping_in['address_1'] ?? '',
+				'address_2'  => $shipping_in['address_2'] ?? '',
+				'city'       => $shipping_in['city'] ?? '',
+				'state'      => $shipping_in['state'] ?? '',
+				'postcode'   => $shipping_in['postcode'] ?? '',
+				'country'    => $shipping_in['country'] ?? 'US',
+			);
+
+			$order->set_address( $billing, 'billing' );
+			$order->set_address( $shipping, 'shipping' );
+		}
+
+		/**
+		 * Write the same Stripe order fields WC Stripe gateway expects for:
+		 * - admin Stripe dashboard link (_transaction_id = charge id)
+		 * - manual-capture later via capture_payment on processing/completed
+		 * - familiar CS order notes
+		 *
+		 * Does NOT change order status here (still pending → run_set_on_hold).
+		 *
+		 * @param WC_Order|WC_Subscription $object     Order or subscription.
+		 * @param string                   $pi_id      PaymentIntent id.
+		 * @param string                   $cus_id     Stripe customer id.
+		 * @param string                   $pm_id      Payment method id.
+		 * @param string                   $charge_id  Stripe charge id (ch_…).
+		 * @param bool                     $add_notes  Whether to add lifecycle notes (parent order only).
+		 */
+		private function apply_stripe_metas( $object, $pi_id, $cus_id, $pm_id, $charge_id = '', $add_notes = false ) {
+			$object->update_meta_data( '_stripe_intent_id', $pi_id );
+			$object->update_meta_data( '_stripe_charge_captured', 'no' );
+			$object->update_meta_data( '_stripe_customer_id', $cus_id );
+			$object->update_meta_data( '_stripe_source_id', $pm_id );
+			$object->update_meta_data( '_stripe_currency', strtolower( (string) get_woocommerce_currency() ) );
+
+			if ( $this->is_stripe_charge_id( $charge_id ) ) {
+				// Powers WC admin "Stripe payment" link + capture_payment() entry gate.
+				// Link may use py_… instead of classic ch_….
+				$object->set_transaction_id( $charge_id );
+			}
+
+			if ( $add_notes && is_a( $object, 'WC_Order' ) ) {
+				// Same copy as WC_Stripe_Order_Helper::add_payment_intent_to_order / gateway process_response.
+				$object->add_order_note(
+					sprintf(
+						/* translators: %s Stripe PaymentIntent id */
+						__( 'Stripe payment intent created (Payment Intent ID: %s)', 'woocommerce-gateway-stripe' ),
+						$pi_id
+					)
+				);
+				if ( $charge_id ) {
+					$object->add_order_note(
+						sprintf(
+							/* translators: %s Stripe Charge id */
+							__( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization. Refunding is unavailable until payment has been captured.', 'woocommerce-gateway-stripe' ),
+							$charge_id
+						)
+					);
+				}
+			}
+		}
+
+		/**
+		 * Set PaymentIntent (+ Charge) description like WC Stripe classic:
+		 * "{blog name} - Order {order number}".
+		 *
+		 * Non-fatal: checkout continues if Stripe update fails.
+		 *
+		 * @param string        $pi_id     PaymentIntent id.
+		 * @param WC_Order|int  $order     Order or order id.
+		 * @param string        $charge_id Optional charge id (ch_…).
+		 */
+		private function sync_stripe_payment_description( $pi_id, $order, $charge_id = '' ) {
+			$pi_id = sanitize_text_field( (string) $pi_id );
+			if ( is_numeric( $order ) ) {
+				$order = wc_get_order( absint( $order ) );
+			}
+			if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+				return;
+			}
+			$order_id = $order->get_id();
+			if ( $order_id < 1 || empty( $pi_id ) || ! preg_match( '/^pi_/', $pi_id ) ) {
+				return;
+			}
+			if ( ! class_exists( 'WC_Stripe_API' ) ) {
+				return;
+			}
+
+			// Same format as WC_Stripe_Helper::get_payment_intent_description().
+			if ( class_exists( 'WC_Stripe_Helper' ) && method_exists( 'WC_Stripe_Helper', 'get_payment_intent_description' ) ) {
+				$description = WC_Stripe_Helper::get_payment_intent_description( $order );
+			} else {
+				$description = sprintf(
+					'%1$s - Order %2$s',
+					wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+					$order->get_order_number()
+				);
+			}
+
+			$pi_params = array(
+				'description'        => $description,
+				'metadata[order_id]' => (string) $order_id,
+				'metadata[source]'   => 'tirzepatide-landing',
+			);
+
+			// Shipping on PI (country shows in Stripe when present).
+			$ship_country = $order->get_shipping_country() ? $order->get_shipping_country() : $order->get_billing_country();
+			if ( $ship_country ) {
+				$ship_name = trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() );
+				if ( '' === $ship_name ) {
+					$ship_name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+				}
+				$pi_params['shipping[name]']                   = $ship_name;
+				$pi_params['shipping[address][line1]']         = $order->get_shipping_address_1() ? $order->get_shipping_address_1() : $order->get_billing_address_1();
+				$pi_params['shipping[address][line2]']         = $order->get_shipping_address_2() ? $order->get_shipping_address_2() : $order->get_billing_address_2();
+				$pi_params['shipping[address][city]']          = $order->get_shipping_city() ? $order->get_shipping_city() : $order->get_billing_city();
+				$pi_params['shipping[address][state]']         = $order->get_shipping_state() ? $order->get_shipping_state() : $order->get_billing_state();
+				$pi_params['shipping[address][postal_code]']  = $order->get_shipping_postcode() ? $order->get_shipping_postcode() : $order->get_billing_postcode();
+				$pi_params['shipping[address][country]']       = $ship_country;
+				$phone = $order->get_billing_phone();
+				if ( $phone ) {
+					$pi_params['shipping[phone]'] = $phone;
+				}
+			}
+
+			try {
+				$response = WC_Stripe_API::request(
+					$pi_params,
+					'payment_intents/' . $pi_id,
+					'POST'
+				);
+				if ( is_wp_error( $response ) && function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function' => 'sync_stripe_payment_description',
+							'pi_id'    => $pi_id,
+							'order_id' => $order_id,
+							'error'    => $response->get_error_message(),
+						)
+					);
+				}
+
+				// Charge description often stays stale unless updated separately.
+				$charge_id = sanitize_text_field( (string) $charge_id );
+				if ( $this->is_stripe_charge_id( $charge_id ) ) {
+					$ch_response = WC_Stripe_API::request(
+						array(
+							'description'        => $description,
+							'metadata[order_id]' => (string) $order_id,
+							'metadata[source]'   => 'tirzepatide-landing',
+						),
+						'charges/' . $charge_id,
+						'POST'
+					);
+					if ( is_wp_error( $ch_response ) && function_exists( 'bh_plugins_error_log' ) ) {
+						bh_plugins_error_log(
+							array(
+								'function'  => 'sync_stripe_payment_description_charge',
+								'charge_id' => $charge_id,
+								'order_id'  => $order_id,
+								'error'     => $ch_response->get_error_message(),
+							)
+						);
+					}
+				}
+			} catch ( \Throwable $e ) {
+				if ( function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function' => 'sync_stripe_payment_description',
+							'pi_id'    => $pi_id,
+							'order_id' => $order_id,
+							'error'    => $e->getMessage(),
+						)
+					);
+				}
+			}
+		}
+
+		/**
+		 * Sync Stripe Customer like WC_Stripe_Customer:
+		 * description "Name: First Last, Username: login" + billing address/country.
+		 *
+		 * Non-fatal.
+		 *
+		 * @param string   $stripe_cus Stripe customer id (cus_…).
+		 * @param int      $user_id    WP user id.
+		 * @param WC_Order $order      Order with addresses.
+		 */
+		private function sync_stripe_customer_profile( $stripe_cus, $user_id, $order ) {
+			$stripe_cus = sanitize_text_field( (string) $stripe_cus );
+			$user_id    = absint( $user_id );
+			if ( empty( $stripe_cus ) || ! preg_match( '/^cus_/', $stripe_cus ) || ! $order || ! is_a( $order, 'WC_Order' ) ) {
+				return;
+			}
+			if ( ! class_exists( 'WC_Stripe_API' ) ) {
+				return;
+			}
+
+			$user = $user_id > 0 ? get_userdata( $user_id ) : false;
+			$first = $order->get_billing_first_name();
+			$last  = $order->get_billing_last_name();
+			$name  = trim( $first . ' ' . $last );
+			$login = $user ? $user->user_login : sanitize_user( current( explode( '@', $order->get_billing_email() ) ), true );
+
+			// Same string classic WC Stripe puts on the Customer object.
+			$description = sprintf( 'Name: %1$s %2$s, Username: %3$s', $first, $last, $login );
+
+			$params = array(
+				'email'                    => $order->get_billing_email(),
+				'name'                     => $name,
+				'description'              => $description,
+				'phone'                    => $order->get_billing_phone(),
+				'address[line1]'           => $order->get_billing_address_1(),
+				'address[line2]'           => $order->get_billing_address_2(),
+				'address[city]'            => $order->get_billing_city(),
+				'address[state]'           => $order->get_billing_state(),
+				'address[postal_code]'     => $order->get_billing_postcode(),
+				'address[country]'         => $order->get_billing_country() ? $order->get_billing_country() : 'US',
+				'metadata[source]'         => 'tirzepatide-landing',
+				'metadata[wp_user_id]'     => (string) $user_id,
+				'metadata[order_id]'       => (string) $order->get_id(),
+			);
+
+			$ship_line1 = $order->get_shipping_address_1();
+			if ( $ship_line1 ) {
+				$ship_name = trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() );
+				if ( '' === $ship_name ) {
+					$ship_name = $name;
+				}
+				$params['shipping[name]']                  = $ship_name;
+				$params['shipping[address][line1]']        = $ship_line1;
+				$params['shipping[address][line2]']        = $order->get_shipping_address_2();
+				$params['shipping[address][city]']         = $order->get_shipping_city();
+				$params['shipping[address][state]']        = $order->get_shipping_state();
+				$params['shipping[address][postal_code]'] = $order->get_shipping_postcode();
+				$params['shipping[address][country]']      = $order->get_shipping_country() ? $order->get_shipping_country() : 'US';
+				if ( $order->get_billing_phone() ) {
+					$params['shipping[phone]'] = $order->get_billing_phone();
+				}
+			}
+
+			try {
+				$response = WC_Stripe_API::request( $params, 'customers/' . $stripe_cus, 'POST' );
+				if ( is_wp_error( $response ) && function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function'   => 'sync_stripe_customer_profile',
+							'customer'   => $stripe_cus,
+							'order_id'   => $order->get_id(),
+							'error'      => $response->get_error_message(),
+						)
+					);
+				}
+			} catch ( \Throwable $e ) {
+				if ( function_exists( 'bh_plugins_error_log' ) ) {
+					bh_plugins_error_log(
+						array(
+							'function' => 'sync_stripe_customer_profile',
+							'customer' => $stripe_cus,
+							'order_id' => $order->get_id(),
+							'error'    => $e->getMessage(),
+						)
+					);
+				}
+			}
+		}
+
+		/**
+		 * Create a WCS subscription linked to the parent order (same end-state as WC checkout).
+		 *
+		 * @param WC_Order   $order       Parent order.
+		 * @param WC_Product $product     Subscription product.
+		 * @param int        $quantity    Qty.
+		 * @param string     $pi_id       PaymentIntent id.
+		 * @param string     $cus_id      Stripe customer id.
+		 * @param string     $pm_id       Payment method id.
+		 * @param string     $charge_id   Stripe charge id.
+		 * @param string     $coupon_code Optional coupon (mirrors WCS cart-flow: parent + subscription both receive the coupon so recurring types affect renewals).
+		 * @return WC_Subscription|WP_Error
+		 */
+		private function create_subscription_for_order( $order, $product, $quantity, $pi_id, $cus_id, $pm_id, $charge_id = '', $coupon_code = '' ) {
+			$period   = WC_Subscriptions_Product::get_period( $product );
+			$interval = (int) WC_Subscriptions_Product::get_interval( $product );
+			if ( $interval < 1 ) {
+				$interval = 1;
+			}
+			if ( empty( $period ) ) {
+				$period = 'month';
+			}
+
+			$start = gmdate( 'Y-m-d H:i:s' );
+
+			$subscription = wcs_create_subscription(
+				array(
+					'order_id'         => $order->get_id(),
+					'customer_id'      => $order->get_user_id(),
+					'billing_period'   => $period,
+					'billing_interval' => $interval,
+					'start_date'       => $start,
+					'created_via'      => 'tirzepatide-landing',
+					'status'           => 'pending',
+				)
+			);
+
+			if ( is_wp_error( $subscription ) ) {
+				return new WP_Error(
+					'landing_bridge_subscription_failed',
+					$subscription->get_error_message(),
+					array( 'status' => 500 )
+				);
+			}
+
+			if ( function_exists( 'wcs_copy_order_address' ) ) {
+				$subscription = wcs_copy_order_address( $order, $subscription );
+			}
+
+			$subscription->add_product( $product, $quantity );
+			$subscription->set_payment_method( 'stripe' );
+			$subscription->set_payment_method_title( 'Credit Card (Stripe)' );
+			$subscription->set_requires_manual_renewal( false );
+			$this->apply_stripe_metas( $subscription, $pi_id, $cus_id, $pm_id, $charge_id, false );
+
+			// Mirror WC Subscriptions cart flow: apply the same coupon to the
+			// subscription so recurring coupon types (recurring_percent /
+			// recurring_fee / _wcs_number_payments) correctly discount future
+			// renewals. WCS filters decide per discount_type whether the
+			// subscription total actually drops.
+			if ( '' !== (string) $coupon_code ) {
+				try {
+					$sub_applied = $subscription->apply_coupon( (string) $coupon_code );
+					if ( is_wp_error( $sub_applied ) ) {
+						$subscription->add_order_note(
+							'Landing checkout: coupon not applied to subscription (non-fatal): ' . $sub_applied->get_error_message()
+						);
+					}
+				} catch ( \Throwable $e ) {
+					$subscription->add_order_note(
+						'Landing checkout: coupon apply on subscription threw (non-fatal): ' . $e->getMessage()
+					);
+				}
+			}
+
+			$subscription->calculate_totals();
+			$subscription->save();
+
+			// Fires AH_Subscription_Next_Payment_Date::set_on_checkout (existing, unchanged).
+			try {
+				do_action( 'woocommerce_checkout_subscription_created', $subscription, $order, null );
+			} catch ( \Throwable $e ) {
+				$subscription->add_order_note(
+					'Landing checkout: subscription_created hook error (non-fatal): ' . $e->getMessage()
+				);
+			}
+
+			return $subscription;
+		}
+
+		/**
+		 * @param string $pi_id PaymentIntent id.
+		 * @return WC_Order|null
+		 */
+		private function find_order_by_intent( $pi_id ) {
+			$orders = wc_get_orders(
+				array(
+					'limit'      => 1,
+					'meta_key'   => '_stripe_intent_id',
+					'meta_value' => $pi_id,
+					'return'     => 'objects',
+					'orderby'    => 'ID',
+					'order'      => 'DESC',
+				)
+			);
+
+			if ( empty( $orders ) ) {
+				return null;
+			}
+
+			return $orders[0];
+		}
+
+		/**
+		 * @param WC_Order $order      Order.
+		 * @param bool     $idempotent Whether this was an existing order.
+		 * @return array
+		 */
+		private function build_order_response( $order, $idempotent ) {
+			$subscription_id = 0;
+			$my_account_url  = wc_get_page_permalink( 'myaccount' );
+
+			if ( function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+				$subs = wcs_get_subscriptions_for_order( $order->get_id(), array( 'order_type' => 'parent' ) );
+				if ( ! empty( $subs ) ) {
+					$sub             = reset( $subs );
+					$subscription_id = $sub->get_id();
+					if ( function_exists( 'wcs_get_view_subscription_url' ) ) {
+						$my_account_url = wcs_get_view_subscription_url( $subscription_id );
+					} else {
+						$my_account_url = wc_get_endpoint_url( 'view-subscription', $subscription_id, $my_account_url );
+					}
+				}
+			}
+
+			$flow = $this->build_flow_status( $order, $subscription_id );
+
+			$tracking = function_exists( 'bh_build_purchase_tracking_payload' )
+				? bh_build_purchase_tracking_payload( $order )
+				: array();
+
+			$order_total_cents    = (int) round( (float) $order->get_total( 'edit' ) * 100 );
+			$order_subtotal_cents = (int) round( (float) $order->get_subtotal() * 100 );
+			$order_discount_cents = (int) round( (float) $order->get_discount_total() * 100 );
+			$coupon_codes         = $order->get_coupon_codes();
+
+			$payload = array(
+				'success'              => true,
+				'order_id'             => $order->get_id(),
+				'order_key'            => $order->get_order_key(),
+				'status'               => $order->get_status(),
+				'customer_id'          => (int) $order->get_user_id(),
+				'subscription_id'      => (int) $subscription_id,
+				'my_account_url'       => $my_account_url ? (string) $my_account_url : '',
+				'telemdnow_entity_id'  => (string) $order->get_meta( 'telemdnow_entity_id' ),
+				'telemdnow_visit_link' => (string) $order->get_meta( 'telemdnow_visit_link' ),
+				'idempotent'           => (bool) $idempotent,
+				'flow'                 => $flow,
+				'payment_intent_id'    => (string) $order->get_meta( '_stripe_intent_id' ),
+				// Thank-you parity for landing client-side conversion pixels (no WC thank-you UI).
+				'total'                => isset( $tracking['total'] ) ? (float) $tracking['total'] : (float) $order->get_total(),
+				'subtotal'             => isset( $tracking['subtotal'] ) ? (float) $tracking['subtotal'] : (float) $order->get_subtotal(),
+				'currency'             => isset( $tracking['currency'] ) ? (string) $tracking['currency'] : (string) $order->get_currency(),
+				'billing_email'        => isset( $tracking['billing_email'] ) ? (string) $tracking['billing_email'] : (string) $order->get_billing_email(),
+				'billing_phone'        => isset( $tracking['billing_phone'] ) ? (string) $tracking['billing_phone'] : (string) $order->get_billing_phone(),
+				'discount_codes'       => isset( $tracking['discount_codes'] ) ? (string) $tracking['discount_codes'] : implode( ', ', $coupon_codes ),
+				'coupon_codes'         => array_values( $coupon_codes ),
+				'discount_total'       => (float) $order->get_discount_total(),
+				'total_cents'          => $order_total_cents,
+				'subtotal_cents'       => $order_subtotal_cents,
+				'discount_total_cents' => $order_discount_cents,
+				// Classic aliases (same values as WP $tracking_data) for parity/debug.
+				'sale_amount'          => isset( $tracking['sale_amount'] ) ? (float) $tracking['sale_amount'] : (float) $order->get_total(),
+				'subtotal_amount'      => isset( $tracking['subtotal_amount'] ) ? (float) $tracking['subtotal_amount'] : (float) $order->get_subtotal(),
+				'discount_code'        => isset( $tracking['discount_code'] ) ? (string) $tracking['discount_code'] : implode( ', ', $coupon_codes ),
+				'thank_you_url'        => isset( $tracking['thank_you_url'] ) ? (string) $tracking['thank_you_url'] : (string) $order->get_checkout_order_received_url(),
+				'line_items'           => isset( $tracking['line_items'] ) && is_array( $tracking['line_items'] ) ? $tracking['line_items'] : array(),
+			);
+
+			if ( class_exists( 'BH_Telegra_Async' ) ) {
+				$telegra                     = BH_Telegra_Async::get_status_payload( $order );
+				$payload['telegra_status']   = $telegra['status'];
+				$payload['telegra_message']  = $telegra['message'];
+				$payload['async_telegra']    = ! empty( $telegra['async_enabled'] );
+			}
+
+			return $payload;
+		}
+
+		/**
+		 * Queue on-hold asynchronously so Telegra cannot time out the bridge response.
+		 *
+		 * @param int $order_id Order ID.
+		 */
+		private function queue_on_hold( $order_id ) {
+			$order_id = absint( $order_id );
+			if ( $order_id < 1 ) {
+				return;
+			}
+
+			// Do NOT set BH_Telegra_Async STATUS_META here — that meta means the
+			// Telegra worker job was queued. Setting it early made queue() skip
+			// enqueueing bh_telegra_process_order after on-hold.
+
+			if ( function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( self::ON_HOLD_HOOK, array( $order_id ), 'brello-landing' ) ) {
+				return;
+			}
+
+			if ( function_exists( 'as_enqueue_async_action' ) ) {
+				as_enqueue_async_action( self::ON_HOLD_HOOK, array( $order_id ), 'brello-landing' );
+				return;
+			}
+
+			if ( function_exists( 'as_schedule_single_action' ) ) {
+				as_schedule_single_action( time(), self::ON_HOLD_HOOK, array( $order_id ), 'brello-landing' );
+				return;
+			}
+
+			wp_schedule_single_event( time() + 1, self::ON_HOLD_HOOK, array( $order_id ) );
+			if ( function_exists( 'spawn_cron' ) ) {
+				spawn_cron( time() );
+			}
+		}
+
+		/**
+		 * @param WC_Order $order  Order.
+		 * @param string   $step   Step id.
+		 * @param string   $status done|pending|queued|failed.
+		 * @param string   $detail Optional detail.
+		 */
+		private function persist_flow_step( $order, $step, $status, $detail = '' ) {
+			$flow = $order->get_meta( self::FLOW_META );
+			if ( ! is_array( $flow ) ) {
+				$flow = array();
+			}
+			if ( empty( $flow['steps'] ) || ! is_array( $flow['steps'] ) ) {
+				$flow['steps'] = array();
+			}
+
+			$flow['steps'][ $step ] = array(
+				'status' => $status,
+				'at'     => gmdate( 'c' ),
+				'detail' => (string) $detail,
+			);
+			$flow['updated_at'] = gmdate( 'c' );
+
+			$order->update_meta_data( self::FLOW_META, $flow );
+			$order->save();
+		}
+
+		/**
+		 * @return array
+		 */
+		private function flow_step_definitions() {
+			return array(
+				array(
+					'id'    => 'payment_authorized',
+					'label' => 'Stripe payment authorized (hold)',
+					'done'  => false,
+					'state' => 'pending',
+				),
+				array(
+					'id'    => 'customer_account',
+					'label' => 'WordPress / WooCommerce customer account',
+					'done'  => false,
+					'state' => 'pending',
+				),
+				array(
+					'id'    => 'order_created',
+					'label' => 'Parent order created',
+					'done'  => false,
+					'state' => 'pending',
+				),
+				array(
+					'id'    => 'subscription_created',
+					'label' => 'WooCommerce subscription created',
+					'done'  => false,
+					'state' => 'pending',
+				),
+				array(
+					'id'    => 'stripe_metas',
+					'label' => 'Stripe intent / customer metas saved',
+					'done'  => false,
+					'state' => 'pending',
+				),
+				array(
+					'id'    => 'on_hold_telegra_trigger',
+					'label' => 'Order moved on-hold (Telegra trigger)',
+					'done'  => false,
+					'state' => 'pending',
+				),
+				array(
+					'id'    => 'telegra_visit_link',
+					'label' => 'Telegra entity + intake visit link',
+					'done'  => false,
+					'state' => 'pending',
+				),
+			);
+		}
+
+		/**
+		 * @param WC_Order $order           Order.
+		 * @param int      $subscription_id Subscription id if known.
+		 * @return array
+		 */
+		private function build_flow_status( $order, $subscription_id = 0 ) {
+			$has_user    = (int) $order->get_user_id() > 0;
+			$has_sub     = $subscription_id > 0;
+			$has_intent  = (bool) $order->get_meta( '_stripe_intent_id' );
+			$has_telegra = (bool) ( $order->get_meta( 'telemdnow_entity_id' ) || $order->get_meta( 'telemdnow_visit_link' ) );
+			$status      = $order->get_status();
+			$trigger     = (string) get_option( 'telemdnow_trigger_action', '' );
+			$on_holdish  = in_array( $status, array( 'on-hold', 'processing', 'completed' ), true )
+				|| ( $trigger && $status === $trigger )
+				|| $has_telegra
+				|| ! $order->has_status( array( 'pending', 'cancelled', 'failed' ) );
+
+			$stored       = $order->get_meta( self::FLOW_META );
+			$stored_steps = ( is_array( $stored ) && isset( $stored['steps'] ) && is_array( $stored['steps'] ) )
+				? $stored['steps']
+				: array();
+
+			$steps = $this->flow_step_definitions();
+
+			$steps[0]['done'] = true;
+			$steps[1]['done'] = $has_user;
+			$steps[2]['done'] = true;
+			$steps[3]['done'] = $has_sub;
+			$steps[4]['done'] = $has_intent;
+			$steps[5]['done'] = $on_holdish || ( isset( $stored_steps['on_hold_telegra_trigger']['status'] ) && 'done' === $stored_steps['on_hold_telegra_trigger']['status'] );
+			$steps[6]['done'] = $has_telegra;
+
+			if ( isset( $stored_steps['on_hold_telegra_trigger']['status'] ) && 'queued' === $stored_steps['on_hold_telegra_trigger']['status'] && ! $steps[5]['done'] ) {
+				$steps[5]['state'] = 'queued';
+			}
+			if ( ! $steps[6]['done'] && $steps[5]['done'] ) {
+				$steps[6]['state'] = 'pending';
+			}
+
+			$summary                 = $this->summarize_flow_steps( $steps );
+			$summary['stored']       = $stored_steps;
+			$summary['order_status'] = $status;
+			return $summary;
+		}
+
+		/**
+		 * @param array $steps Steps.
+		 * @return array
+		 */
+		private function summarize_flow_steps( array $steps ) {
+			foreach ( $steps as &$step ) {
+				if ( ! empty( $step['done'] ) ) {
+					$step['state'] = 'done';
+				} elseif ( empty( $step['state'] ) ) {
+					$step['state'] = 'pending';
+				}
+			}
+			unset( $step );
+
+			$done_count = 0;
+			$remaining  = array();
+			foreach ( $steps as $step ) {
+				if ( ! empty( $step['done'] ) ) {
+					$done_count++;
+				} else {
+					$remaining[] = $step['label'];
+				}
+			}
+
+			$total = count( $steps );
+			return array(
+				'complete'        => $done_count === $total,
+				'completed_count' => $done_count,
+				'total_count'     => $total,
+				'remaining_count' => $total - $done_count,
+				'remaining'       => $remaining,
+				'steps'           => $steps,
+			);
+		}
+	}
+
+	new AH_Landing_Checkout_Endpoint();
+}

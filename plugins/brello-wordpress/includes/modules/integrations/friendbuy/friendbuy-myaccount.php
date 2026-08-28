@@ -1,0 +1,248 @@
+<?php
+// includes/class-friendbuy-webhook-handler.php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class FriendBuy_MyAccount_Handler {
+
+    private $webhook_secret;
+    private $referral_manager;
+    private $coupon_manager;
+
+    private $log_file=  'bh_plugins-friendbuy_webhooks';
+    private $log_error_file=  'bh_plugin_errors-friendbuy_webhooks';
+
+    public function __construct() {
+        $this->webhook_secret = get_option('friendbuy_webhook_secret', '06d164cd-d790-41eb-b75f-ae5a54074a7c');        
+        $this->init_hooks();
+    }
+
+    private function init_hooks() {
+
+        add_action('init', [$this, 'add_menu_my_account'], 10, 0);
+        add_filter('woocommerce_account_menu_items', [$this, 'add_item_menu_my_account']);
+
+        add_action('woocommerce_account_friendbuy-rewards_endpoint', [$this, 'rewards_endpoint_content']);
+
+        add_filter( 'wp_nav_menu_objects', [$this, 'hide_logged_in_only_pages_from_guests'], 10, 2 );
+
+    }
+
+    function add_menu_my_account() {
+        add_rewrite_endpoint('friendbuy-rewards', EP_ROOT | EP_PAGES);
+    }
+    function add_item_menu_my_account__($items) {
+        // if ( !AH_Friendbuy_Feature_Gate::is_enabled() ) {
+        //     return $items;
+        // }
+        $items['friendbuy-rewards'] = __('Rewards', 'friendbuy');
+        return $items;
+    }
+    function add_item_menu_my_account( $items ) {
+
+        // if ( ! AH_Friendbuy_Feature_Gate::is_enabled() ) {
+        //     return $items;
+        // }
+
+        $new_items = [];
+
+        foreach ( $items as $key => $label ) {
+
+            if ( 'edit-address' === $key ) {
+                $new_items['friendbuy-rewards'] = __( 'Rewards', 'friendbuy' );
+            }
+            $new_items[ $key ] = $label;
+        }
+
+        return $new_items;
+    }
+
+    function rewards_endpoint_content() {
+
+        // if ( ! AH_Friendbuy_Feature_Gate::is_enabled() ) {
+        //     wp_redirect( home_url('my-account') );
+        //     exit;
+        // }
+
+        global $wpdb;
+        $user_id = get_current_user_id();
+        $table = "{$wpdb->prefix}referral_rewards";
+        
+        // Get all rewards, including partially used ones
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table 
+            WHERE user_id = %d 
+            ORDER BY 
+                CASE 
+                    WHEN status = 'partially_used' THEN 1
+                    WHEN used = 1 THEN 2
+                    WHEN expires_at < NOW() THEN 1
+                    ELSE 0 
+                END,
+                created_on DESC", 
+            $user_id
+        ));
+
+        echo '<h3>Rewards History</h3>';
+        if (!$rows) {
+            echo '<p>You have no registered rewards yet.</p>';
+            return;
+        }
+
+        echo '<table class="shop_table shop_table_responsive my_account_orders">';
+        echo '<thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Status</th><th>Coupon Code</th><th>Friend Email</th><th>Expires</th></tr></thead><tbody>';
+        
+        foreach ($rows as $r) {
+            $status = '';
+            $amount_display = '$' . number_format($r->amount, 2);
+            
+            // Handle partially used rewards
+            if ($r->status === 'partially_used') {
+                $remaining = $r->amount - $r->used_amount;
+                $amount_display = '$' . number_format($remaining, 2) . ' of $' . number_format($r->amount, 2);
+                $status = 'Partially Used ($' . number_format($remaining, 2) . ' remaining)';
+            } 
+            // Handle used rewards
+            elseif ($r->used) {
+                $status = 'Used';
+            } 
+            // Handle expired rewards
+            elseif ($r->expires_at && strtotime($r->expires_at) < time()) {
+                $status = 'Expired';
+            } 
+            // Active rewards
+            else {
+                $status = 'Active';
+            }
+
+            echo '<tr>';
+            echo '<td>' . $r->id . '</td>';
+            echo '<td>' . esc_html(date('M j, Y', strtotime($r->created_on))) . '</td>';
+            echo '<td>' . $amount_display . '</td>';
+            echo '<td>' . $status . '</td>';
+            echo '<td>' . esc_html($r->coupon_code) . '</td>';
+            echo '<td>' . esc_html($r->friend_email) . '</td>';
+            echo '<td>' . ($r->expires_at ? date('M j, Y', strtotime($r->expires_at)) : 'Never') . '</td>';
+            echo '</tr>';
+        }
+        
+        // Add current balance
+        $balance = $this->calculate_referral_balance($user_id);
+        echo '<tr class="reward-balance-row">';
+        echo '<td colspan="7" style="text-align: right; font-weight: bold;">Current Available Balance: $' . number_format($balance, 2) . '</td>';
+        echo '</tr>';
+        
+        echo '</tbody></table>';
+        
+        // Add some basic styling
+        echo '<style>
+            .shop_table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            .shop_table th, .shop_table td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+            }
+            .shop_table th {
+                background-color: #f8f8f8;
+                font-weight: 600;
+            }
+            .reward-balance-row td {
+                background-color: #f8f8f8;
+                font-size: 1.1em;
+                padding: 15px 12px;
+            }
+            .shop_table tr:hover {
+                background-color: #f9f9f9;
+            }
+        </style>';
+    }
+    /**
+     * TODO: Create a global function for calculate
+     * 
+     * */
+    private function calculate_referral_balance($user_id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'referral_rewards';
+        
+        // Get unused and partially used rewards
+        $balance = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(
+                CASE 
+                    WHEN status = 'partially_used' THEN (amount - COALESCE(used_amount, 0))
+                    WHEN used = 0 AND (expires_at IS NULL OR expires_at > %s) THEN amount
+                    ELSE 0
+                END
+            ), 0)
+            FROM $table_name 
+            WHERE user_id = %d 
+            AND (used = 0 OR status = 'partially_used')
+            AND (expires_at IS NULL OR expires_at > %s)",
+            current_time('mysql'),
+            $user_id,
+            current_time('mysql')
+        ));
+        
+        return max(0, floatval($balance));
+    }
+
+    function hide_logged_in_only_pages_from_guests( $items, $args ) {
+
+        // if ( AH_Friendbuy_Feature_Gate::is_enabled() ) {
+        //     return $items;
+        // }
+
+        if ( is_user_logged_in() ) {
+            return $items;
+        }
+
+        foreach ( $items as $key => $item ) {
+
+            if ( strpos( $item->url, '/refer' ) !== false ) {
+                unset( $items[ $key ] );
+            }
+
+        }
+
+        return $items;
+
+    }
+
+}
+
+// add_filter( 'ah_page_access_allow', function( $allow, $page_id, $user_id ) {
+
+//     // Only affect specific page
+//     if ( $page_id != 275943 ) {
+//      return $allow;
+//     }
+
+//     if ( ! AH_Friendbuy_Feature_Gate::is_enabled() ) {
+//         return false;
+//     }
+
+//     return $allow;
+
+// }, 10, 3 );
+// add_filter( 'wp_nav_menu_objects', function( $items, $args ) {
+
+//     if ( AH_Friendbuy_Feature_Gate::is_enabled() ) {
+//         return $items;
+//     }
+
+//     foreach ( $items as $key => $item ) {
+
+//         if ( strpos( $item->url, '/refer' ) !== false ) {
+//             unset( $items[ $key ] );
+//         }
+
+//     }
+
+//     return $items;
+
+// }, 10, 2 );

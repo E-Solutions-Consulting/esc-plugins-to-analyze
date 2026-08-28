@@ -1,0 +1,1583 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class AH_Everflow_Async_Sender {
+
+    const GROUP = 'ah-everflow';
+
+    public function __construct() {
+
+        // TEMP 2026-08-23: skip Everflow S2S HTTP during hybrid DB cutover (30s timeouts).
+        if ( defined( 'BH_DISABLE_EVERFLOW' ) && BH_DISABLE_EVERFLOW ) {
+            return;
+        }
+
+        add_filter( 'woocommerce_order_actions', [ $this, 'add_order_action' ] );
+        add_action( 'woocommerce_order_action_ah_send_to_everflow', [ $this, 'enqueue_async_send' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_5', [ $this, 'manual_send_event_5' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_6', [ $this, 'manual_send_event_6' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_8', [ $this, 'manual_send_event_8' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_9', [ $this, 'manual_send_event_9' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_10', [ $this, 'manual_send_event_10' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_11', [ $this, 'manual_send_event_11' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_12', [ $this, 'manual_send_event_12' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_13', [ $this, 'manual_send_event_13' ] );
+        add_action( 'woocommerce_order_action_ah_send_everflow_event_14', [ $this, 'manual_send_event_14' ] );
+
+        /**
+         * Payable Event 5 — Charge Succeeded when payment is actually captured.
+         * Primary: woocommerce_payment_complete.
+         * Backup: processing/completed after Stripe capture — custom statuses
+         * (e.g. Send to Telegra → Completed) often capture without firing payment_complete.
+         */
+        add_action( 'woocommerce_payment_complete', [ $this, 'on_payment_complete' ], 10, 1 );
+        add_action( 'woocommerce_order_status_processing', [ $this, 'on_order_processing' ], 10, 1 );
+        add_action( 'woocommerce_order_status_completed', [ $this, 'on_order_completed' ], 10, 1 );
+        // Late: Stripe often captures mid-status-change; early hooks can see auth-only.
+        add_action( 'woocommerce_order_status_changed', [ $this, 'on_status_changed_late' ], 99, 4 );
+
+        /** Event 6 (WC Refund) + full Event 5 reversal on any refund (partial or full). */
+        add_action( 'woocommerce_order_refunded', [ $this, 'on_order_refunded' ], 20, 2 );
+
+        /**
+         * Event 9 — WC Subscription Created (Critical).
+         * S2S (not JS): Telegra redirect often skips thank-you; subscription exists server-side.
+         */
+        add_action( 'woocommerce_checkout_subscription_created', [ $this, 'on_subscription_created' ], 20, 3 );
+
+        /**
+         * Event 8 — WC Begin Checkout.
+         * Landing: validate (pre-pay) + order backup.
+         * Shop: JS on checkout + express click; S2S via ah_everflow_begin_checkout.
+         */
+        add_action( 'ah_everflow_begin_checkout', [ $this, 'on_begin_checkout' ], 10, 1 );
+
+        /**
+         * Event 10 — WC Order Created (Medium lifecycle).
+         * Classic + Blocks checkout; landing fires ah_everflow_order_created after save.
+         * After eftid attach (conversion hooks @20) — use priority 30.
+         */
+        add_action( 'woocommerce_checkout_order_processed', [ $this, 'on_checkout_order_processed' ], 30, 3 );
+        add_action( 'woocommerce_store_api_checkout_order_processed', [ $this, 'on_store_api_order_processed' ], 30, 1 );
+        add_action( 'ah_everflow_order_created', [ $this, 'on_order_created_action' ], 10, 2 );
+
+        /**
+         * Events 11–13 — order/payment failure lifecycle (S2S sync).
+         * 11 = cancelled status; 12 = failed status; 13 = gateway payment error (distinct moment).
+         */
+        add_action( 'woocommerce_order_status_cancelled', [ $this, 'on_order_cancelled' ], 20, 2 );
+        add_action( 'woocommerce_order_status_failed', [ $this, 'on_order_failed' ], 20, 2 );
+        add_action( 'wc_gateway_stripe_process_payment_error', [ $this, 'on_stripe_payment_error' ], 20, 2 );
+        add_action( 'woocommerce_subscription_renewal_payment_failed', [ $this, 'on_renewal_payment_failed' ], 20, 2 );
+
+        /**
+         * Event 14 — WC Subscription Renewal (successful renewal payment).
+         * Not payable unless client says so — reporting lifecycle only for now.
+         */
+        add_action( 'woocommerce_subscription_renewal_payment_complete', [ $this, 'on_renewal_payment_complete' ], 20, 2 );
+
+        add_action( 'ah_process_everflow_send', [ $this, 'process_async_send' ], 10, 1 );
+        add_action( 'ah_process_everflow_event', [ $this, 'process_async_event' ], 10, 2 );
+    }
+
+    public function add_order_action( $actions ) {
+        $actions['ah_send_to_everflow']       = __( 'Send order to Everflow (async / Base)', 'ah' );
+        $actions['ah_send_everflow_event_5']  = __( 'Send Everflow Event 5 (Charge Succeeded)', 'ah' );
+        $actions['ah_send_everflow_event_6']  = __( 'Send Everflow Event 6 (WC Refund) + reverse Event 5 (any refund)', 'ah' );
+        $actions['ah_send_everflow_event_8']  = __( 'Send Everflow Event 8 (WC Begin Checkout)', 'ah' );
+        $actions['ah_send_everflow_event_9']  = __( 'Send Everflow Event 9 (WC Subscription Created)', 'ah' );
+        $actions['ah_send_everflow_event_10'] = __( 'Send Everflow Event 10 (WC Order Created)', 'ah' );
+        $actions['ah_send_everflow_event_11'] = __( 'Send Everflow Event 11 (WC Order Cancelled)', 'ah' );
+        $actions['ah_send_everflow_event_12'] = __( 'Send Everflow Event 12 (WC Order Failed)', 'ah' );
+        $actions['ah_send_everflow_event_13'] = __( 'Send Everflow Event 13 (WC Payment Failed)', 'ah' );
+        $actions['ah_send_everflow_event_14'] = __( 'Send Everflow Event 14 (WC Subscription Renewal)', 'ah' );
+        return $actions;
+    }
+
+    /**
+     * Landing / shared: begin checkout payload.
+     *
+     * @param array $payload {
+     *   @type string   $eftid
+     *   @type string   $email
+     *   @type int      $product_id
+     *   @type float    $amount
+     *   @type string   $source
+     *   @type WC_Order $order Optional — when firing from order create backup.
+     * }
+     */
+    public function on_begin_checkout( $payload ) {
+        if ( ! is_array( $payload ) ) {
+            return;
+        }
+        $order = isset( $payload['order'] ) ? $payload['order'] : null;
+        if ( $order instanceof WC_Order ) {
+            $this->fire_event_8_for_order( $order, isset( $payload['source'] ) ? (string) $payload['source'] : 'landing_order' );
+            return;
+        }
+        $this->fire_event_8_landing( $payload );
+    }
+
+    /**
+     * Manual resend Event 8 from order.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_8( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+        $order->delete_meta_data( BH_Everflow_Helper::META_EVENT_8_SENT );
+        $order->save_meta_data();
+        $ok = $this->fire_event_8_for_order( $order, 'manual_admin' );
+        $order->add_order_note(
+            $ok
+                ? 'Everflow Event 8 (WC Begin Checkout) sent manually.'
+                : 'Everflow Event 8 NOT sent — missing eftid or see ah-everflow log.'
+        );
+    }
+
+    /**
+     * Landing validate (no order yet) — true “begin checkout” before pay.
+     *
+     * @param array $payload
+     * @return bool
+     */
+    private function fire_event_8_landing( array $payload ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        $eftid = BH_Everflow_Helper::normalize_eftid(
+            isset( $payload['eftid'] ) ? (string) $payload['eftid'] : ''
+        );
+        if ( $eftid === '' ) {
+            $eftid = BH_Everflow_Helper::resolve_eftid();
+        }
+        if ( $eftid === '' ) {
+            $logger->warning( 'Event 8 landing skip — no eftid', $context );
+            return false;
+        }
+
+        $product_id = isset( $payload['product_id'] ) ? (int) $payload['product_id'] : 0;
+        $email      = isset( $payload['email'] ) ? sanitize_email( (string) $payload['email'] ) : '';
+        $source     = isset( $payload['source'] ) ? sanitize_key( (string) $payload['source'] ) : 'landing_validate';
+        $amount     = isset( $payload['amount'] ) ? (float) $payload['amount'] : 0;
+
+        $dedupe_key = 'ah_ef_e8_' . md5( $eftid . '|' . $product_id . '|' . strtolower( $email ) );
+        if ( get_transient( $dedupe_key ) ) {
+            $logger->info( 'Event 8 landing skip — already sent this session key', $context );
+            return false;
+        }
+
+        $product = $product_id > 0 ? wc_get_product( $product_id ) : null;
+        $ps      = 'product';
+        if ( $product instanceof WC_Product ) {
+            $sku = trim( (string) $product->get_sku() );
+            $ps  = $sku !== '' ? $sku : $product->get_slug();
+            if ( $amount <= 0 ) {
+                $amount = (float) $product->get_price();
+            }
+        }
+
+        $oid = 'checkout_' . $product_id . '_' . substr( md5( $eftid ), 0, 8 );
+        $order_json = [
+            'oid'   => $oid,
+            'amt'   => number_format( max( 0, $amount ), 2, '.', '' ),
+            'items' => [
+                [
+                    'ps'  => (string) $ps,
+                    'p'   => number_format( max( 0, $amount ), 2, '.', '' ),
+                    'qty' => 1,
+                ],
+            ],
+        ];
+
+        $args = [
+            'nid'            => BH_Everflow_Helper::NID,
+            'transaction_id' => $eftid,
+            'adv_event_id'   => (int) BH_Everflow_Helper::EVENT_BEGIN_CHECKOUT,
+            'amount'         => number_format( max( 0, $amount ), 2, '.', '' ),
+            'order_id'       => $oid,
+            'order'          => wp_json_encode( $order_json ),
+        ];
+        if ( $email !== '' ) {
+            $args['email'] = $email;
+        }
+
+        $endpoint = add_query_arg( $args, BH_Everflow_Helper::TRACKING_DOMAIN );
+        $logger->info( "Event 8 landing via {$source}: {$endpoint}", $context );
+
+        $response = wp_remote_get(
+            $endpoint,
+            [
+                'timeout'   => 30,
+                'blocking'  => true,
+                'sslverify' => true,
+            ]
+        );
+
+        if ( is_wp_error( $response ) ) {
+            $logger->error( 'Event 8 landing failed: ' . $response->get_error_message(), $context );
+            return false;
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $logger->info( 'Event 8 landing response: ' . substr( (string) $body, 0, 200 ), $context );
+        set_transient( $dedupe_key, time(), HOUR_IN_SECONDS );
+        return true;
+    }
+
+    /**
+     * Event 8 from WC order (landing backup / shop manual / if validate skipped).
+     *
+     * @param WC_Order $order
+     * @param string   $source
+     * @return bool
+     */
+    private function fire_event_8_for_order( $order, $source = '' ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        if ( ! $order instanceof WC_Order ) {
+            return false;
+        }
+
+        if ( $order->get_meta( BH_Everflow_Helper::META_EVENT_8_SENT ) ) {
+            $logger->info(
+                sprintf( 'Event 8 skip order %d — already sent', $order->get_id() ),
+                $context
+            );
+            return false;
+        }
+
+        // If landing validate already fired for this TID+product, mark order and skip postback.
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( $eftid === '' ) {
+            BH_Everflow_Helper::attach_to_order( $order, '', 'event_8_' . $source );
+            $order->save();
+            $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        }
+        if ( $eftid === '' ) {
+            wc_get_logger()->warning(
+                'Event 8 skip order ' . $order->get_id() . ' — no eftid',
+                [ 'source' => 'ah-everflow' ]
+            );
+            return false;
+        }
+
+        $product_id = 0;
+        foreach ( $order->get_items() as $item ) {
+            if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
+                $product_id = (int) $item->get_product_id();
+                break;
+            }
+        }
+        $email      = (string) $order->get_billing_email();
+        $dedupe_key = 'ah_ef_e8_' . md5( $eftid . '|' . $product_id . '|' . strtolower( $email ) );
+        if ( get_transient( $dedupe_key ) ) {
+            $order->update_meta_data( BH_Everflow_Helper::META_EVENT_8_SENT, time() );
+            $order->update_meta_data( '_ah_everflow_event_8_source', 'deduped_' . sanitize_text_field( $source ) );
+            $order->save_meta_data();
+            $order->add_order_note(
+                'Everflow Event 8 (WC Begin Checkout) already sent at landing validate — marked on order.'
+            );
+            return true;
+        }
+
+        $amount = (float) $order->get_total();
+        $logger->info(
+            sprintf( 'Fire Event 8 (Begin Checkout) order %d via %s (sync)', $order->get_id(), $source ),
+            $context
+        );
+
+        try {
+            $this->send_postback(
+                (int) $order->get_id(),
+                (int) BH_Everflow_Helper::EVENT_BEGIN_CHECKOUT,
+                $amount > 0 ? $amount : null
+            );
+        } catch ( Exception $e ) {
+            $logger->error( 'Event 8 failed: ' . $e->getMessage(), $context );
+            $order->add_order_note( 'Everflow Event 8 (WC Begin Checkout) FAILED: ' . $e->getMessage() );
+            return false;
+        }
+
+        $order->update_meta_data( BH_Everflow_Helper::META_EVENT_8_SENT, time() );
+        $order->update_meta_data( '_ah_everflow_event_8_source', sanitize_text_field( $source ) );
+        $order->save_meta_data();
+        set_transient( $dedupe_key, time(), HOUR_IN_SECONDS );
+        return true;
+    }
+
+    /**
+     * Classic checkout — order exists + eftid usually saved @ priority 20.
+     *
+     * @param int   $order_id
+     * @param array $posted_data
+     * @param mixed $order
+     */
+    public function on_checkout_order_processed( $order_id, $posted_data = [], $order = null ) {
+        if ( ! $order instanceof WC_Order ) {
+            $order = wc_get_order( $order_id );
+        }
+        $this->fire_event_10( $order, 'checkout_order_processed' );
+    }
+
+    /**
+     * Store API / Blocks checkout.
+     *
+     * @param WC_Order|mixed $order
+     */
+    public function on_store_api_order_processed( $order ) {
+        $this->fire_event_10( $order, 'store_api_order_processed' );
+    }
+
+    /**
+     * Landing / custom: do_action( 'ah_everflow_order_created', $order, $source ).
+     *
+     * @param WC_Order|mixed $order
+     * @param string         $source
+     */
+    public function on_order_created_action( $order, $source = 'custom' ) {
+        $this->fire_event_10( $order, $source ? (string) $source : 'custom' );
+    }
+
+    /**
+     * Manual resend Event 10 from admin order actions.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_10( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+        $order->delete_meta_data( BH_Everflow_Helper::META_EVENT_10_SENT );
+        $order->delete_meta_data( '_ah_everflow_event_10_source' );
+        $order->save_meta_data();
+        $ok = $this->fire_event_10( $order, 'manual_admin' );
+        $order->add_order_note(
+            $ok
+                ? 'Everflow Event 10 (WC Order Created) sent manually.'
+                : 'Everflow Event 10 NOT sent — missing eftid or see ah-everflow log.'
+        );
+    }
+
+    /**
+     * Event 10 — WC Order Created (sync S2S). Not payable; reporting funnel.
+     * Skip coupon-preview / trash temp orders. Dedupe on order meta.
+     *
+     * @param WC_Order|mixed $order
+     * @param string         $source
+     * @return bool
+     */
+    private function fire_event_10( $order, $source = '' ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        if ( ! $order instanceof WC_Order ) {
+            $logger->warning( 'Event 10 skip — invalid order', $context );
+            return false;
+        }
+
+        $created_via = (string) $order->get_created_via();
+        if ( strpos( $created_via, 'coupon-preview' ) !== false ) {
+            return false;
+        }
+
+        if ( $order->get_meta( BH_Everflow_Helper::META_EVENT_10_SENT ) ) {
+            $logger->info(
+                sprintf(
+                    'Event 10 skip order %d — already sent (source attempted: %s)',
+                    $order->get_id(),
+                    $source
+                ),
+                $context
+            );
+            return false;
+        }
+
+        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
+            BH_Everflow_Helper::attach_to_order( $order, '', 'event_10_' . $source );
+            $order->save();
+        }
+
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( $eftid === '' ) {
+            $logger->warning(
+                'Event 10 skip order ' . $order->get_id() . ' — no eftid',
+                $context
+            );
+            return false;
+        }
+
+        $logger->info(
+            sprintf(
+                'Fire Event 10 (WC Order Created) order %d via %s (sync)',
+                $order->get_id(),
+                $source
+            ),
+            $context
+        );
+
+        try {
+            $this->send_postback(
+                (int) $order->get_id(),
+                (int) BH_Everflow_Helper::EVENT_ORDER_CREATED,
+                (float) $order->get_total()
+            );
+        } catch ( Exception $e ) {
+            $logger->error( 'Event 10 failed: ' . $e->getMessage(), $context );
+            $order->add_order_note( 'Everflow Event 10 (WC Order Created) FAILED: ' . $e->getMessage() );
+            return false;
+        }
+
+        $order->update_meta_data( BH_Everflow_Helper::META_EVENT_10_SENT, time() );
+        $order->update_meta_data( '_ah_everflow_event_10_source', sanitize_text_field( $source ) );
+        $order->save_meta_data();
+
+        return true;
+    }
+
+    /**
+     * Event 11 — WC Order Cancelled.
+     *
+     * @param int            $order_id
+     * @param WC_Order|mixed $order
+     */
+    public function on_order_cancelled( $order_id, $order = null ) {
+        if ( ! $order instanceof WC_Order ) {
+            $order = wc_get_order( $order_id );
+        }
+        $this->fire_lifecycle_event(
+            $order,
+            (int) BH_Everflow_Helper::EVENT_ORDER_CANCELLED,
+            BH_Everflow_Helper::META_EVENT_11_SENT,
+            '11 (WC Order Cancelled)',
+            'status_cancelled'
+        );
+    }
+
+    /**
+     * Event 12 — WC Order Failed (status = failed).
+     *
+     * @param int            $order_id
+     * @param WC_Order|mixed $order
+     */
+    public function on_order_failed( $order_id, $order = null ) {
+        if ( ! $order instanceof WC_Order ) {
+            $order = wc_get_order( $order_id );
+        }
+        $this->fire_lifecycle_event(
+            $order,
+            (int) BH_Everflow_Helper::EVENT_ORDER_FAILED,
+            BH_Everflow_Helper::META_EVENT_12_SENT,
+            '12 (WC Order Failed)',
+            'status_failed'
+        );
+    }
+
+    /**
+     * Event 13 — WC Payment Failed (Stripe gateway error at pay time).
+     *
+     * @param mixed          $error
+     * @param WC_Order|mixed $order
+     */
+    public function on_stripe_payment_error( $error, $order ) {
+        $this->fire_lifecycle_event(
+            $order,
+            (int) BH_Everflow_Helper::EVENT_PAYMENT_FAILED,
+            BH_Everflow_Helper::META_EVENT_13_SENT,
+            '13 (WC Payment Failed)',
+            'stripe_process_payment_error'
+        );
+    }
+
+    /**
+     * Event 13 — renewal payment declined (not Event 14; 14 = successful renewal).
+     *
+     * @param mixed          $subscription
+     * @param WC_Order|mixed $renewal_order
+     */
+    public function on_renewal_payment_failed( $subscription, $renewal_order ) {
+        $this->fire_lifecycle_event(
+            $renewal_order,
+            (int) BH_Everflow_Helper::EVENT_PAYMENT_FAILED,
+            BH_Everflow_Helper::META_EVENT_13_SENT,
+            '13 (WC Payment Failed)',
+            'renewal_payment_failed'
+        );
+    }
+
+    /**
+     * Manual Event 11.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_11( $order ) {
+        $this->manual_send_lifecycle(
+            $order,
+            BH_Everflow_Helper::META_EVENT_11_SENT,
+            (int) BH_Everflow_Helper::EVENT_ORDER_CANCELLED,
+            '11 (WC Order Cancelled)'
+        );
+    }
+
+    /**
+     * Manual Event 12.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_12( $order ) {
+        $this->manual_send_lifecycle(
+            $order,
+            BH_Everflow_Helper::META_EVENT_12_SENT,
+            (int) BH_Everflow_Helper::EVENT_ORDER_FAILED,
+            '12 (WC Order Failed)'
+        );
+    }
+
+    /**
+     * Manual Event 13.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_13( $order ) {
+        $this->manual_send_lifecycle(
+            $order,
+            BH_Everflow_Helper::META_EVENT_13_SENT,
+            (int) BH_Everflow_Helper::EVENT_PAYMENT_FAILED,
+            '13 (WC Payment Failed)'
+        );
+    }
+
+    /**
+     * @param WC_Order $order
+     * @param string   $meta_key
+     * @param int      $adv_event_id
+     * @param string   $label
+     */
+    private function manual_send_lifecycle( $order, $meta_key, $adv_event_id, $label ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+        $order->delete_meta_data( $meta_key );
+        $order->delete_meta_data( $meta_key . '_source' );
+        $order->save_meta_data();
+        $ok = $this->fire_lifecycle_event( $order, $adv_event_id, $meta_key, $label, 'manual_admin' );
+        $order->add_order_note(
+            $ok
+                ? 'Everflow Event ' . $label . ' sent manually.'
+                : 'Everflow Event ' . $label . ' NOT sent — missing eftid or see ah-everflow log.'
+        );
+    }
+
+    /**
+     * Shared S2S for Events 11 / 12 / 13.
+     *
+     * @param WC_Order|mixed $order
+     * @param int            $adv_event_id
+     * @param string         $meta_key
+     * @param string         $label
+     * @param string         $source
+     * @return bool
+     */
+    private function fire_lifecycle_event( $order, $adv_event_id, $meta_key, $label, $source = '' ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        if ( ! $order instanceof WC_Order ) {
+            $logger->warning( 'Event ' . $adv_event_id . ' skip — invalid order', $context );
+            return false;
+        }
+
+        $created_via = (string) $order->get_created_via();
+        if ( strpos( $created_via, 'coupon-preview' ) !== false ) {
+            return false;
+        }
+
+        if ( $order->get_meta( $meta_key ) ) {
+            $logger->info(
+                sprintf(
+                    'Event %d skip order %d — already sent (source attempted: %s)',
+                    $adv_event_id,
+                    $order->get_id(),
+                    $source
+                ),
+                $context
+            );
+            return false;
+        }
+
+        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
+            BH_Everflow_Helper::attach_to_order( $order, '', 'event_' . $adv_event_id . '_' . $source );
+            $order->save();
+        }
+
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( $eftid === '' ) {
+            $logger->warning(
+                'Event ' . $adv_event_id . ' skip order ' . $order->get_id() . ' — no eftid',
+                $context
+            );
+            return false;
+        }
+
+        $logger->info(
+            sprintf(
+                'Fire Event %d (%s) order %d via %s (sync)',
+                $adv_event_id,
+                $label,
+                $order->get_id(),
+                $source
+            ),
+            $context
+        );
+
+        try {
+            $this->send_postback(
+                (int) $order->get_id(),
+                (int) $adv_event_id,
+                (float) $order->get_total()
+            );
+        } catch ( Exception $e ) {
+            $logger->error( 'Event ' . $adv_event_id . ' failed: ' . $e->getMessage(), $context );
+            $order->add_order_note( 'Everflow Event ' . $label . ' FAILED: ' . $e->getMessage() );
+            return false;
+        }
+
+        $order->update_meta_data( $meta_key, time() );
+        $order->update_meta_data( $meta_key . '_source', sanitize_text_field( $source ) );
+        $order->save_meta_data();
+
+        return true;
+    }
+
+    /**
+     * Event 14 — successful subscription renewal payment.
+     * TID: prefer renewal order eftid, else parent order / subscription meta.
+     *
+     * @param WC_Subscription|mixed $subscription
+     * @param WC_Order|mixed        $renewal_order
+     */
+    public function on_renewal_payment_complete( $subscription, $renewal_order ) {
+        $this->fire_event_14( $subscription, $renewal_order, 'renewal_payment_complete' );
+    }
+
+    /**
+     * Manual Event 14 from a renewal order (or parent with latest renewal).
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_14( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+        $order->delete_meta_data( BH_Everflow_Helper::META_EVENT_14_SENT );
+        $order->delete_meta_data( BH_Everflow_Helper::META_EVENT_14_SENT . '_source' );
+        $order->save_meta_data();
+
+        $subscription = null;
+        if ( function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ) {
+            $subs = wcs_get_subscriptions_for_renewal_order( $order );
+            if ( ! empty( $subs ) ) {
+                $subscription = reset( $subs );
+            }
+        }
+        if ( ! $subscription && function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+            $subs = wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] );
+            if ( ! empty( $subs ) ) {
+                $subscription = reset( $subs );
+            }
+        }
+
+        $ok = $this->fire_event_14( $subscription, $order, 'manual_admin' );
+        $order->add_order_note(
+            $ok
+                ? 'Everflow Event 14 (WC Subscription Renewal) sent manually.'
+                : 'Everflow Event 14 NOT sent — missing eftid or see ah-everflow log.'
+        );
+    }
+
+    /**
+     * @param mixed          $subscription
+     * @param WC_Order|mixed $renewal_order
+     * @param string         $source
+     * @return bool
+     */
+    private function fire_event_14( $subscription, $renewal_order, $source = '' ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        if ( ! $renewal_order instanceof WC_Order ) {
+            $logger->warning( 'Event 14 skip — invalid renewal order', $context );
+            return false;
+        }
+
+        if ( $renewal_order->get_meta( BH_Everflow_Helper::META_EVENT_14_SENT ) ) {
+            $logger->info(
+                sprintf(
+                    'Event 14 skip order %d — already sent (source attempted: %s)',
+                    $renewal_order->get_id(),
+                    $source
+                ),
+                $context
+            );
+            return false;
+        }
+
+        // Prefer TID already on renewal; else copy from parent / resolve cookies.
+        if ( ! BH_Everflow_Helper::get_order_eftid( $renewal_order ) ) {
+            $parent = null;
+            if ( class_exists( 'WC_Subscription' ) && is_a( $subscription, 'WC_Subscription' ) ) {
+                $parent = method_exists( $subscription, 'get_parent' ) ? $subscription->get_parent() : null;
+                if ( ! $parent instanceof WC_Order ) {
+                    $pid    = (int) $subscription->get_parent_id();
+                    $parent = $pid > 0 ? wc_get_order( $pid ) : null;
+                }
+            }
+            $from_parent = ( $parent instanceof WC_Order ) ? BH_Everflow_Helper::get_order_eftid( $parent ) : '';
+            BH_Everflow_Helper::attach_to_order( $renewal_order, $from_parent, 'event_14_' . $source );
+            $renewal_order->save();
+        }
+
+        $eftid = BH_Everflow_Helper::get_order_eftid( $renewal_order );
+        if ( $eftid === '' ) {
+            $logger->warning(
+                'Event 14 skip order ' . $renewal_order->get_id() . ' — no eftid',
+                $context
+            );
+            return false;
+        }
+
+        $amount = (float) $renewal_order->get_total();
+        if ( $amount <= 0 && class_exists( 'WC_Subscription' ) && is_a( $subscription, 'WC_Subscription' ) ) {
+            $amount = (float) $subscription->get_total();
+        }
+
+        $logger->info(
+            sprintf(
+                'Fire Event 14 (WC Subscription Renewal) order %d via %s (sync)',
+                $renewal_order->get_id(),
+                $source
+            ),
+            $context
+        );
+
+        try {
+            $this->send_postback(
+                (int) $renewal_order->get_id(),
+                (int) BH_Everflow_Helper::EVENT_SUBSCRIPTION_RENEWAL,
+                $amount
+            );
+        } catch ( Exception $e ) {
+            $logger->error( 'Event 14 failed: ' . $e->getMessage(), $context );
+            $renewal_order->add_order_note( 'Everflow Event 14 (WC Subscription Renewal) FAILED: ' . $e->getMessage() );
+            return false;
+        }
+
+        $renewal_order->update_meta_data( BH_Everflow_Helper::META_EVENT_14_SENT, time() );
+        $renewal_order->update_meta_data( BH_Everflow_Helper::META_EVENT_14_SENT . '_source', sanitize_text_field( $source ) );
+        if ( class_exists( 'WC_Subscription' ) && is_a( $subscription, 'WC_Subscription' ) ) {
+            $renewal_order->update_meta_data( '_ah_everflow_event_14_subscription_id', $subscription->get_id() );
+        }
+        $renewal_order->save_meta_data();
+
+        return true;
+    }
+
+    /**
+     * New subscription at checkout (classic, Blocks, landing bridge that fires this hook).
+     *
+     * @param WC_Subscription $subscription
+     * @param WC_Order        $order
+     * @param mixed           $recurring_cart
+     */
+    public function on_subscription_created( $subscription, $order = null, $recurring_cart = null ) {
+        $this->fire_event_9( $subscription, $order, 'subscription_created' );
+    }
+
+    /**
+     * Manual: fire Event 9 for first subscription on this parent order.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_9( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+        if ( ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+            $order->add_order_note( 'Everflow Event 9: WooCommerce Subscriptions not available.' );
+            return;
+        }
+        $subs = wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'parent' ] );
+        if ( empty( $subs ) ) {
+            $order->add_order_note( 'Everflow Event 9: no parent subscriptions on this order.' );
+            return;
+        }
+        $subscription = reset( $subs );
+        if ( $subscription ) {
+            $subscription->delete_meta_data( BH_Everflow_Helper::META_EVENT_9_SENT );
+            $subscription->save_meta_data();
+        }
+        $ok = $this->fire_event_9( $subscription, $order, 'manual_admin' );
+        $order->add_order_note(
+            $ok
+                ? 'Everflow Event 9 (WC Subscription Created) sent manually.'
+                : 'Everflow Event 9 NOT sent — see ah-everflow log / subscription meta.'
+        );
+    }
+
+    /**
+     * @param WC_Subscription|mixed $subscription
+     * @param WC_Order|null         $order
+     * @param string                $source
+     * @return bool
+     */
+    private function fire_event_9( $subscription, $order = null, $source = '' ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        if ( ! class_exists( 'WC_Subscription' ) || ! is_a( $subscription, 'WC_Subscription' ) ) {
+            $logger->warning( 'Event 9 skip — invalid subscription object', $context );
+            return false;
+        }
+
+        if ( $subscription->get_meta( BH_Everflow_Helper::META_EVENT_9_SENT ) ) {
+            $logger->info(
+                sprintf(
+                    'Event 9 skip subscription %d — already sent (source attempted: %s)',
+                    $subscription->get_id(),
+                    $source
+                ),
+                $context
+            );
+            return false;
+        }
+
+        if ( ! $order instanceof WC_Order ) {
+            $order = method_exists( $subscription, 'get_parent' ) ? $subscription->get_parent() : null;
+        }
+        if ( ! $order instanceof WC_Order ) {
+            $parent_id = (int) $subscription->get_parent_id();
+            $order     = $parent_id > 0 ? wc_get_order( $parent_id ) : null;
+        }
+        if ( ! $order instanceof WC_Order ) {
+            $logger->error(
+                'Event 9 skip subscription ' . $subscription->get_id() . ' — no parent order',
+                $context
+            );
+            return false;
+        }
+
+        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
+            BH_Everflow_Helper::attach_to_order( $order, '', 'event_9_' . $source );
+            $order->save();
+        }
+
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( $eftid === '' ) {
+            $logger->warning(
+                'Event 9 skip order ' . $order->get_id() . ' — no eftid',
+                $context
+            );
+            return false;
+        }
+
+        $amount = (float) $subscription->get_total();
+        if ( $amount <= 0 ) {
+            $amount = (float) $order->get_total();
+        }
+
+        $logger->info(
+            sprintf(
+                'Fire Event 9 (WC Subscription Created) subscription %d order %d via %s (sync)',
+                $subscription->get_id(),
+                $order->get_id(),
+                $source
+            ),
+            $context
+        );
+
+        try {
+            $this->send_postback(
+                (int) $order->get_id(),
+                (int) BH_Everflow_Helper::EVENT_SUBSCRIPTION_CREATED,
+                $amount
+            );
+        } catch ( Exception $e ) {
+            $logger->error( 'Event 9 failed: ' . $e->getMessage(), $context );
+            $order->add_order_note( 'Everflow Event 9 (WC Subscription Created) FAILED: ' . $e->getMessage() );
+            return false;
+        }
+
+        $subscription->update_meta_data( BH_Everflow_Helper::META_EVENT_9_SENT, time() );
+        $subscription->update_meta_data( '_ah_everflow_event_9_source', sanitize_text_field( $source ) );
+        $subscription->save_meta_data();
+
+        $order->update_meta_data( '_ah_everflow_event_9_subscription_id', $subscription->get_id() );
+        $order->save_meta_data();
+
+        return true;
+    }
+
+    public function on_payment_complete( $order_id ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+        $logger->info( 'woocommerce_payment_complete fired for order ' . (int) $order_id, $context );
+
+        $order = wc_get_order( $order_id );
+        if ( $order ) {
+            $order->add_order_note( 'Everflow: payment_complete detected — attempting Event 5 (Charge Succeeded).' );
+        }
+
+        $this->enqueue_event_5( $order_id, 'payment_complete' );
+    }
+
+    /**
+     * Processing after capture — backup path for Event 5 when payment_complete skipped.
+     *
+     * @param int $order_id
+     */
+    public function on_order_processing( $order_id ) {
+        $this->maybe_event_5_after_charge( $order_id, 'status_processing' );
+    }
+
+    /**
+     * After status transition finishes (priority 99) — capture meta usually set by then.
+     *
+     * @param int      $order_id
+     * @param string   $from
+     * @param string   $to
+     * @param WC_Order $order
+     */
+    public function on_status_changed_late( $order_id, $from, $to, $order ) {
+        if ( ! in_array( $to, [ 'processing', 'completed' ], true ) ) {
+            return;
+        }
+        $this->maybe_event_5_after_charge( $order_id, 'status_changed_' . $to );
+    }
+
+    /**
+     * Completed: Event 5 if charged (backup), then legacy Base postback.
+     *
+     * @param int $order_id
+     */
+    public function on_order_completed( $order_id ) {
+        $this->maybe_event_5_after_charge( $order_id, 'status_completed' );
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+
+        if ( $order->get_meta( '_ah_everflow_sent' ) ) {
+            return;
+        }
+
+        // Sync Base — do NOT mark sent before postback (AS/cron often never runs on staging).
+        $this->send_base_conversion( $order );
+    }
+
+    /**
+     * Fire Event 5 only when order is actually charged/captured (not auth-only).
+     *
+     * @param int    $order_id
+     * @param string $source
+     */
+    private function maybe_event_5_after_charge( $order_id, $source ) {
+        $order = wc_get_order( $order_id );
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+
+        if ( ! $this->order_is_charged( $order ) ) {
+            $logger = wc_get_logger();
+            $logger->info(
+                sprintf(
+                    'Event 5 skip order %d via %s — not charged yet (auth/hold only)',
+                    $order_id,
+                    $source
+                ),
+                [ 'source' => 'ah-everflow' ]
+            );
+            return;
+        }
+
+        $this->enqueue_event_5( $order_id, $source );
+    }
+
+    /**
+     * True after Stripe capture / Woo paid — false for auth-only on-hold.
+     *
+     * @param WC_Order $order
+     * @return bool
+     */
+    private function order_is_charged( WC_Order $order ) {
+        if ( $order->get_date_paid( 'edit' ) ) {
+            return true;
+        }
+
+        if ( $order->get_meta( '_stripe_charge_captured' ) === 'yes' ) {
+            return true;
+        }
+
+        if ( $order->is_paid() ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param WC_Order $order
+     */
+    public function manual_send_event_5( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+
+        $order->delete_meta_data( '_ah_everflow_event_5_sent' );
+        $order->delete_meta_data( '_ah_everflow_event_5_source' );
+        $order->save_meta_data();
+
+        $queued = $this->enqueue_event_5( $order->get_id(), 'manual_admin' );
+        $order->add_order_note(
+            $queued
+                ? 'Everflow Event 5 (Charge Succeeded) sent manually (sync).'
+                : 'Everflow Event 5 NOT sent — missing eftid or already sent. Check custom field eftid.'
+        );
+    }
+
+    /**
+     * Manual: latest refund → Event 6; reverse Event 5 if order is fully refunded.
+     *
+     * @param WC_Order $order
+     */
+    public function manual_send_event_6( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+
+        $refunds   = $order->get_refunds();
+        $refund_id = 0;
+        if ( ! empty( $refunds ) ) {
+            $latest    = $refunds[0];
+            $refund_id = $latest instanceof WC_Order_Refund ? (int) $latest->get_id() : 0;
+        }
+
+        if ( $refund_id <= 0 ) {
+            $order->add_order_note( 'Everflow Event 6 (WC Refund): no refund found on this order.' );
+            return;
+        }
+
+        // Allow re-send of this refund id.
+        $sent = $order->get_meta( '_ah_everflow_event_6_refund_ids', true );
+        if ( ! is_array( $sent ) ) {
+            $sent = [];
+        }
+        $sent = array_values( array_diff( array_map( 'intval', $sent ), [ $refund_id ] ) );
+        $order->update_meta_data( '_ah_everflow_event_6_refund_ids', $sent );
+        $order->delete_meta_data( '_ah_everflow_event_5_reversed' );
+        $order->save_meta_data();
+
+        $this->on_order_refunded( $order->get_id(), $refund_id );
+    }
+
+    /**
+     * Woo refund created.
+     *
+     * @param int $order_id
+     * @param int $refund_id
+     */
+    public function on_order_refunded( $order_id, $refund_id ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+        $order   = wc_get_order( $order_id );
+        $refund  = wc_get_order( $refund_id );
+
+        if ( ! $order instanceof WC_Order || ! $refund instanceof WC_Order_Refund ) {
+            $logger->error(
+                sprintf( 'Event 6 skip — invalid order %d or refund %d', $order_id, $refund_id ),
+                $context
+            );
+            return;
+        }
+
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( $eftid === '' ) {
+            $logger->warning( 'Event 6 skip order ' . (int) $order_id . ' — no eftid', $context );
+            return;
+        }
+
+        $sent = $order->get_meta( '_ah_everflow_event_6_refund_ids', true );
+        if ( ! is_array( $sent ) ) {
+            $sent = [];
+        }
+        $sent = array_map( 'intval', $sent );
+        if ( in_array( (int) $refund_id, $sent, true ) ) {
+            $logger->info(
+                sprintf( 'Event 6 skip order %d refund %d — already sent', $order_id, $refund_id ),
+                $context
+            );
+            return;
+        }
+
+        // Refund totals are negative in WC.
+        $refund_amount = abs( (float) $refund->get_amount() );
+        if ( $refund_amount <= 0 ) {
+            $order->add_order_note( 'Everflow Event 6 (WC Refund) skipped — refund amount is 0.' );
+            return;
+        }
+
+        $logger->info(
+            sprintf(
+                'Fire Event 6 (WC Refund) for order %d refund %d amount %s (sync)',
+                $order_id,
+                $refund_id,
+                number_format( $refund_amount, 2, '.', '' )
+            ),
+            $context
+        );
+
+        try {
+            $this->send_postback(
+                (int) $order_id,
+                (int) BH_Everflow_Helper::EVENT_REFUND,
+                $refund_amount
+            );
+            $sent[] = (int) $refund_id;
+            $order->update_meta_data( '_ah_everflow_event_6_refund_ids', $sent );
+            $order->update_meta_data( '_ah_everflow_event_6_last', time() );
+            $order->save_meta_data();
+        } catch ( Exception $e ) {
+            $logger->error( 'Event 6 failed order ' . $order_id . ': ' . $e->getMessage(), $context );
+            $order->add_order_note( 'Everflow Event 6 (WC Refund) FAILED: ' . $e->getMessage() );
+            return;
+        }
+
+        // Fresh order — refund totals / status may have just updated.
+        $order = wc_get_order( $order_id );
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+
+        // Any refund (partial or full) fully reverses Event 5 once — no pro-rata.
+        $scope = $this->order_is_fully_refunded( $order ) ? 'Full' : 'Partial';
+        $order->add_order_note(
+            sprintf(
+                'Everflow Event 6 (WC Refund) sent ($%s). %s refund — starting Event 5 full CLAWBACK (once per order). Refunded $%s of $%s.',
+                number_format( $refund_amount, 2, '.', '' ),
+                $scope,
+                number_format( (float) $order->get_total_refunded(), 2, '.', '' ),
+                number_format( (float) $order->get_total(), 2, '.', '' )
+            )
+        );
+        $this->reverse_event_5( $order );
+    }
+
+    /**
+     * @param WC_Order $order
+     * @return bool
+     */
+    private function order_is_fully_refunded( WC_Order $order ) {
+        // Status refunded = full refund in Woo (partial keeps processing/completed).
+        if ( $order->has_status( 'refunded' ) ) {
+            return true;
+        }
+        $total    = (float) $order->get_total();
+        $refunded = (float) $order->get_total_refunded();
+        if ( $total <= 0 ) {
+            return $refunded > 0;
+        }
+        return $refunded >= ( $total - 0.01 );
+    }
+
+    /**
+     * Reject payable Event 5 via /reversal endpoint (clawback).
+     * Must NOT hit TRACKING_DOMAIN root with adv_event_id=5 — that CREATES a new Event 5.
+     *
+     * @param WC_Order $order
+     */
+    private function reverse_event_5( WC_Order $order ) {
+        $logger   = wc_get_logger();
+        $context  = [ 'source' => 'ah-everflow' ];
+        $order_id = $order->get_id();
+
+        if ( $order->get_meta( '_ah_everflow_event_5_reversed' ) ) {
+            $logger->info( 'Event 5 reverse skip order ' . $order_id . ' — already reversed', $context );
+            $order->add_order_note(
+                'Everflow Event 5 CLAWBACK skipped — already reversed earlier on this order.'
+            );
+            return;
+        }
+
+        if ( ! $order->get_meta( '_ah_everflow_event_5_sent' ) ) {
+            $order->add_order_note(
+                'Everflow Event 5 CLAWBACK skipped — Event 5 (Charge Succeeded) was never sent on this order (no _ah_everflow_event_5_sent).'
+            );
+            return;
+        }
+
+        $transaction_id = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( $transaction_id === '' ) {
+            $logger->warning( 'Event 5 reverse skip order ' . $order_id . ' — no eftid', $context );
+            return;
+        }
+
+        // Prefer conversion_id (safest). Fallback: transaction_id + adv_event_id on /reversal only.
+        $conversion_id = trim( (string) $order->get_meta( '_ah_everflow_event_5_conversion_id' ) );
+        $args          = [
+            'nid' => BH_Everflow_Helper::NID,
+        ];
+        if ( $conversion_id !== '' ) {
+            $args['conversion_id'] = $conversion_id;
+        } else {
+            $args['transaction_id'] = $transaction_id;
+            $args['adv_event_id']   = (int) BH_Everflow_Helper::EVENT_CHARGE_SUCCEEDED;
+            $args['order_id']       = $order_id;
+        }
+
+        $endpoint = add_query_arg( $args, BH_Everflow_Helper::REVERSAL_ENDPOINT );
+
+        $logger->info( "Reversing Event 5 for order {$order_id}: {$endpoint}", $context );
+
+        $response = wp_remote_get(
+            $endpoint,
+            [
+                'timeout'   => 30,
+                'blocking'  => true,
+                'sslverify' => true,
+            ]
+        );
+
+        if ( is_wp_error( $response ) ) {
+            $logger->error(
+                'Event 5 reverse failed order ' . $order_id . ': ' . $response->get_error_message(),
+                $context
+            );
+            $order->add_order_note(
+                'Everflow Event 5 CLAWBACK FAILED: ' . $response->get_error_message()
+            );
+            return;
+        }
+
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+        $order->update_meta_data( '_ah_everflow_event_5_reversed', time() );
+        $order->save_meta_data();
+        $logger->info(
+            sprintf( 'Event 5 reverse response order %d HTTP %d: %s', $order_id, $code, $body ),
+            $context
+        );
+        $order->add_order_note(
+            sprintf(
+                'Everflow Event 5 CLAWBACK SUCCESS (HTTP %d) via /reversal. Charge Succeeded should be Rejected in Everflow. Response: %s',
+                $code,
+                substr( (string) $body, 0, 180 )
+            )
+        );
+    }
+
+    /**
+     * Queue Event 5 once. Requires eftid before locking dedupe meta.
+     *
+     * @param int    $order_id
+     * @param string $source
+     * @return bool
+     */
+    private function enqueue_event_5( $order_id, $source = '' ) {
+
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order instanceof WC_Order ) {
+            return false;
+        }
+
+        if ( $order->get_meta( '_ah_everflow_event_5_sent' ) ) {
+            $logger->info(
+                sprintf( 'Event 5 skip order %d — already sent (source attempted: %s)', $order_id, $source ),
+                $context
+            );
+            return false;
+        }
+
+        // Ensure TID on order (cookies/session) before queue.
+        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
+            BH_Everflow_Helper::attach_to_order( $order, '', $source );
+            $order->save();
+        }
+
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( ! $eftid ) {
+            $logger->warning(
+                sprintf( 'Event 5 skip order %d via %s — no eftid yet', $order_id, $source ),
+                $context
+            );
+            $order->add_order_note(
+                sprintf(
+                    'Everflow Event 5 (Charge Succeeded) skipped via %s — missing eftid on order. Open with Partner 42 link or set custom field eftid.',
+                    sanitize_key( $source )
+                )
+            );
+            return false;
+        }
+
+        // Persist single TID if custom field had pipe-joined duplicates.
+        if ( (string) $order->get_meta( BH_Everflow_Helper::META_EFTID ) !== $eftid ) {
+            $order->update_meta_data( BH_Everflow_Helper::META_EFTID, $eftid );
+            $order->save_meta_data();
+        }
+
+        $order->update_meta_data( '_ah_everflow_event_5_sent', time() );
+        $order->update_meta_data( '_ah_everflow_event_5_source', sanitize_text_field( $source ) );
+        $order->save_meta_data();
+
+        $logger->info(
+            sprintf( 'Fire Event 5 (Charge Succeeded) for order %d via %s (sync)', $order_id, $source ),
+            $context
+        );
+
+        // Send NOW — staging often has DISABLE_WP_CRON so Action Scheduler jobs never run.
+        try {
+            $this->process_async_event( $order->get_id(), BH_Everflow_Helper::EVENT_CHARGE_SUCCEEDED );
+        } catch ( Exception $e ) {
+            $logger->error( 'Event 5 sync failed order ' . $order_id . ': ' . $e->getMessage(), $context );
+            $order->delete_meta_data( '_ah_everflow_event_5_sent' );
+            $order->save_meta_data();
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Manual / legacy: send Base (Event 0) sync.
+     *
+     * @param WC_Order $order
+     */
+    public function enqueue_async_send( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            return;
+        }
+        // Allow manual resend.
+        $order->delete_meta_data( '_ah_everflow_sent' );
+        $order->save_meta_data();
+        $this->send_base_conversion( $order );
+    }
+
+    /**
+     * Base conversion (adv_event_id omitted / 0) — sync, same reliability as Event 5.
+     *
+     * @param WC_Order $order
+     * @return bool
+     */
+    private function send_base_conversion( WC_Order $order ) {
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+        $order_id = (int) $order->get_id();
+
+        if ( $order->get_meta( '_ah_everflow_sent' ) ) {
+            return false;
+        }
+
+        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
+            BH_Everflow_Helper::attach_to_order( $order, '', 'base_completed' );
+            $order->save();
+        }
+
+        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
+            $logger->warning( 'Base skip order ' . $order_id . ' — no eftid', $context );
+            return false;
+        }
+
+        try {
+            $this->send_postback( $order_id, 0 );
+        } catch ( Exception $e ) {
+            $logger->error( 'Base sync failed order ' . $order_id . ': ' . $e->getMessage(), $context );
+            $order->add_order_note( 'Everflow Base (Event 0) FAILED: ' . $e->getMessage() );
+            return false;
+        }
+
+        $order->update_meta_data( '_ah_everflow_sent', time() );
+        $order->save_meta_data();
+        return true;
+    }
+
+    public function process_async_send( $order_id ) {
+        $order = wc_get_order( $order_id );
+        if ( $order instanceof WC_Order ) {
+            $this->send_base_conversion( $order );
+        }
+    }
+
+    public function process_async_event( $order_id, $adv_event_id ) {
+        $this->send_postback( (int) $order_id, (int) $adv_event_id );
+    }
+
+    /**
+     * @param int        $order_id
+     * @param int        $adv_event_id 0 = Base
+     * @param float|null $amount_override Refund amount for Event 6, etc.
+     */
+    private function send_postback( $order_id, $adv_event_id = 0, $amount_override = null ) {
+
+        $logger  = wc_get_logger();
+        $context = [ 'source' => 'ah-everflow' ];
+
+        $logger->info(
+            sprintf( 'order_id received: %d | adv_event_id: %d', $order_id, $adv_event_id ),
+            $context
+        );
+
+        if ( $order_id <= 0 ) {
+            $logger->error( 'Invalid order id', $context );
+            return;
+        }
+
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            $logger->error( "Order not found {$order_id}", $context );
+            return;
+        }
+
+        $transaction_id = BH_Everflow_Helper::get_order_eftid( $order );
+
+        if ( empty( $transaction_id ) ) {
+            $logger->error(
+                "Missing EFTID for order {$order_id} (event {$adv_event_id})",
+                $context
+            );
+            // Allow retry later when eftid appears.
+            if ( $adv_event_id === (int) BH_Everflow_Helper::EVENT_CHARGE_SUCCEEDED ) {
+                $order->delete_meta_data( '_ah_everflow_event_5_sent' );
+                $order->delete_meta_data( '_ah_everflow_event_5_source' );
+                $order->save_meta_data();
+            }
+            return;
+        }
+
+        $items = [];
+        foreach ( $order->get_items() as $item ) {
+            if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) {
+                continue;
+            }
+            $ps  = BH_Everflow_Helper::line_item_product_key( $item );
+            $qty = (int) $item->get_quantity();
+            $unit_price = $qty > 0 ? ( (float) $item->get_total() / $qty ) : 0;
+            $items[]    = [
+                'ps'  => (string) $ps,
+                'p'   => number_format( $unit_price, 2, '.', '' ),
+                'qty' => $qty,
+            ];
+        }
+
+        $amount = null !== $amount_override
+            ? (float) $amount_override
+            : (float) $order->get_total();
+
+        $order_json = [
+            'oid'   => (string) $order_id,
+            'amt'   => number_format( $amount, 2, '.', '' ),
+            'items' => $items,
+        ];
+
+        $logger->info( 'Everflow payload: ' . wp_json_encode( $order_json ), $context );
+
+        $args = [
+            'nid'            => BH_Everflow_Helper::NID,
+            'transaction_id' => $transaction_id,
+            'email'          => $order->get_billing_email(),
+            'order_id'       => $order_id,
+            'amount'         => number_format( $amount, 2, '.', '' ),
+            'order'          => wp_json_encode( $order_json ),
+        ];
+        if ( $adv_event_id > 0 ) {
+            $args['adv_event_id'] = $adv_event_id;
+        }
+
+        $endpoint = add_query_arg( $args, BH_Everflow_Helper::TRACKING_DOMAIN );
+        $logger->info( "Sending Everflow order {$order_id} event {$adv_event_id}: {$endpoint}", $context );
+
+        $response = wp_remote_get(
+            $endpoint,
+            [
+                'timeout'   => 30,
+                'blocking'  => true,
+                'sslverify' => true,
+            ]
+        );
+
+        if ( is_wp_error( $response ) ) {
+            $logger->error(
+                "Everflow failed {$order_id} event {$adv_event_id}: " . $response->get_error_message(),
+                $context
+            );
+            if ( $adv_event_id === (int) BH_Everflow_Helper::EVENT_CHARGE_SUCCEEDED ) {
+                $order->delete_meta_data( '_ah_everflow_event_5_sent' );
+                $order->save_meta_data();
+            }
+            throw new Exception( 'Everflow request failed: ' . $response->get_error_message() );
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $logger->info( "Everflow response {$order_id} event {$adv_event_id}: {$body}", $context );
+
+        if ( $adv_event_id === (int) BH_Everflow_Helper::EVENT_CHARGE_SUCCEEDED ) {
+            $cid = $this->extract_everflow_conversion_id( (string) $body );
+            if ( $cid !== '' ) {
+                $order->update_meta_data( '_ah_everflow_event_5_conversion_id', $cid );
+                $order->save_meta_data();
+            }
+        }
+
+        $labels = [
+            0                                                       => '0 (Base)',
+            (int) BH_Everflow_Helper::EVENT_BEGIN_CHECKOUT          => '8 (WC Begin Checkout)',
+            (int) BH_Everflow_Helper::EVENT_REFUND                  => '6 (WC Refund)',
+            (int) BH_Everflow_Helper::EVENT_SUBSCRIPTION_CREATED    => '9 (WC Subscription Created)',
+            (int) BH_Everflow_Helper::EVENT_ORDER_CREATED           => '10 (WC Order Created)',
+            (int) BH_Everflow_Helper::EVENT_ORDER_CANCELLED         => '11 (WC Order Cancelled)',
+            (int) BH_Everflow_Helper::EVENT_ORDER_FAILED            => '12 (WC Order Failed)',
+            (int) BH_Everflow_Helper::EVENT_PAYMENT_FAILED          => '13 (WC Payment Failed)',
+            (int) BH_Everflow_Helper::EVENT_SUBSCRIPTION_RENEWAL    => '14 (WC Subscription Renewal)',
+            (int) BH_Everflow_Helper::EVENT_CHARGE_SUCCEEDED        => '5 (Charge Succeeded)',
+        ];
+        $label = isset( $labels[ (int) $adv_event_id ] )
+            ? $labels[ (int) $adv_event_id ]
+            : (string) $adv_event_id;
+        $order->add_order_note(
+            'Everflow Event ' . $label . ' postback SUCCESS. Response: ' . substr( (string) $body, 0, 200 )
+        );
+    }
+
+    /**
+     * Pull conversion_id from Everflow S2S body when present (JSON or query-ish).
+     *
+     * @param string $body
+     * @return string
+     */
+    private function extract_everflow_conversion_id( $body ) {
+        $body = trim( (string) $body );
+        if ( $body === '' ) {
+            return '';
+        }
+        $json = json_decode( $body, true );
+        if ( is_array( $json ) ) {
+            foreach ( [ 'conversion_id', 'conversionId', 'id' ] as $key ) {
+                if ( ! empty( $json[ $key ] ) && is_scalar( $json[ $key ] ) ) {
+                    return sanitize_text_field( (string) $json[ $key ] );
+                }
+            }
+        }
+        if ( preg_match( '/conversion_id["\']?\s*[:=]\s*["\']?([A-Za-z0-9_-]+)/i', $body, $m ) ) {
+            return sanitize_text_field( $m[1] );
+        }
+        return '';
+    }
+}
+
+new AH_Everflow_Async_Sender();
