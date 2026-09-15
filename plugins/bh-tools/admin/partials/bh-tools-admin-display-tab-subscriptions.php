@@ -28,11 +28,9 @@
             echo '<select name="subscription_status[]" id="subscription_status"  multiple="multiple" class="wc-enhanced-select">';
             echo '<option value="">' . esc_html__( 'All statuses', 'text-domain' ) . '</option>';
             foreach ( $statuses as $status_key => $status_label ) {
-                $clean_key = $status_key;
                 printf(
-                    '<option value="%1$s" %2$s>%3$s</option>',
-                    esc_attr( $clean_key ),
-                    selected( $selected, $clean_key, false ),
+                    '<option value="%1$s">%2$s</option>',
+                    esc_attr( $status_key ),
                     esc_html( $status_label )
                 );
             }

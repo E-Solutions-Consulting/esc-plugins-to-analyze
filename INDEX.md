@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-08-28 11:27
+# Generated : 2026-09-15 13:52
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -75,42 +75,6 @@ esc-plugins-to-analyze/
 ### metorik-helper
 - PHP files : 17
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-metorik-helper.md
-
-### __-part1
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part1.md
-
-### __-part2
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part2.md
-
-### __-part3
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part3.md
-
-### __-part4
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part4.md
-
-### __-part5
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part5.md
-
-### __-part6
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part6.md
-
-### __-part7
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part7.md
-
-### __-part8
-- PHP files : 200
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part8.md
-
-### __-part9
-- PHP files : 85
-- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-__-part9.md
 
 ### sg-cachepress
 - PHP files : 126

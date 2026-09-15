@@ -711,6 +711,10 @@ class Bh_Tools_Admin {
 				if ($form_data['filter_date'] !== 'date_next_payment')
 					$headers[]	=	'Type';
 				//, 'Is Renewal', 'Renewal IDs'
+				$headers[] = 'Renewal Count';
+				$headers[] = 'First Renewal Date';
+				$headers[] = 'Last Renewal Date';
+				$headers[] = 'Renewal Order IDs';
 				$file = fopen($file_path, 'w');
 				fputcsv($file, $headers);
 				fclose($file);
@@ -730,8 +734,15 @@ class Bh_Tools_Admin {
 				"LEFT JOIN {$wpdb->prefix}postmeta pm ON pm.post_id = o.id AND pm.meta_key = '_billing_phone'",
 
 				// RENEWAL CACHE (IMPORTANT)
-				"LEFT JOIN {$wpdb->prefix}wc_orders_meta om_renew ON om_renew.order_id = o.id 
-					AND om_renew.meta_key = '_subscription_renewal_order_ids_cache'"
+				"LEFT JOIN {$wpdb->prefix}wc_orders_meta om_renew ON om_renew.order_id = o.id
+					AND om_renew.meta_key = '_subscription_renewal_order_ids_cache'",
+
+				// RENEWAL ORDERS DETAIL — reverse index: each renewal order stores
+				// '_subscription_renewal' = its parent subscription ID. Only 'wc-completed'
+				// renewals count (actual paid cycles, not failed attempts) — what a
+				// retention/renewal-count analysis needs.
+				"LEFT JOIN {$wpdb->prefix}wc_orders_meta rm_renewal ON rm_renewal.meta_key = '_subscription_renewal' AND rm_renewal.meta_value = o.id",
+				"LEFT JOIN {$wpdb->prefix}wc_orders ro ON ro.id = rm_renewal.order_id AND ro.type = 'shop_order' AND ro.status = 'wc-completed'"
 			];
 
 			/* ==========================================================
@@ -840,12 +851,20 @@ class Bh_Tools_Admin {
 				'a.state',
 				'a.city',
 				'a.postcode',
-				'om_renew.meta_value AS renewal_ids_cache'
+				'om_renew.meta_value AS renewal_ids_cache',
+				"COUNT(DISTINCT ro.id) AS completed_renewal_count",
+				"MIN(ro.date_created_gmt) AS first_renewal_date",
+				"MAX(ro.date_created_gmt) AS last_renewal_date",
+				"GROUP_CONCAT(DISTINCT ro.id ORDER BY ro.date_created_gmt SEPARATOR '|') AS renewal_order_ids"
 			];
 
 			/* ==========================================================
 			* FINAL QUERY
 			* ========================================================== */
+			// GROUP_CONCAT defaults to a 1024-byte cap; raise it so long-lived subscriptions'
+			// renewal order id lists aren't truncated.
+			$wpdb->query('SET SESSION group_concat_max_len = 8192');
+
 			$sql = $wpdb->prepare(
 				"SELECT " . implode(', ', $select) . "
 				FROM {$wpdb->prefix}wc_orders o
@@ -948,6 +967,11 @@ class Bh_Tools_Admin {
 
 				if ($form_data['filter_date'] !== 'date_next_payment')
 					$row[]	=	$type;
+
+				$row[] = intval($sub->completed_renewal_count);
+				$row[] = $sub->first_renewal_date;
+				$row[] = $sub->last_renewal_date;
+				$row[] = $sub->renewal_order_ids;
 
 				fputcsv($file, $row);
 
