@@ -33,6 +33,14 @@
  * position can be derived from the actual renewal orders on demand, rather than
  * from a running counter that could drift out of sync.
  *
+ * The "1 charged delivery" baseline only exists because checkout always charges
+ * the parent order. If a subscription's product is changed onto a free-renewal
+ * plan directly (no checkout/switch charge — e.g. an admin edits the subscription
+ * item), that baseline charge never happened. has_charged_delivery_for_product()
+ * guards against this: the cycle can't start counting free deliveries for a
+ * product until it finds a real charge behind it, so the first renewal after such
+ * a change is always charged instead of being mistaken for the first free one.
+ *
  * This module is additive and only intervenes for free-renewal plans, leaving
  * normal subscriptions untouched.
  *
@@ -156,15 +164,21 @@ class AH_Free_Renewals {
 	 * the plan hasn't charged a renewal yet). Cancelled/failed/refunded renewals
 	 * are skipped so they neither consume the cycle nor block a legitimate retry.
 	 *
+	 * The walk also stops at the first renewal that doesn't contain the CURRENT
+	 * plan product — a product switch is always a hard cycle boundary, otherwise
+	 * a customer bouncing between two different free-renewal variations could
+	 * inherit the free-delivery count built up under the other one.
+	 *
 	 * Related orders aren't guaranteed to come back in any particular order across
 	 * WC Subscriptions' different data store implementations, so this sorts by
 	 * order ID (monotonically increasing) rather than assuming an order.
 	 *
 	 * @param WC_Subscription $subscription
+	 * @param int             $product_id Current plan product/variation id.
 	 * @param int             $exclude_id Renewal order id to skip (e.g. the one being created).
 	 * @return int
 	 */
-	private static function count_free_deliveries_in_cycle( WC_Subscription $subscription, int $exclude_id = 0 ): int {
+	private static function count_free_deliveries_in_cycle( WC_Subscription $subscription, int $product_id, int $exclude_id = 0 ): int {
 		$deliveries = [];
 
 		foreach ( $subscription->get_related_orders( 'ids', 'renewal' ) as $id ) {
@@ -188,6 +202,10 @@ class AH_Free_Renewals {
 		$count = 0;
 
 		foreach ( $deliveries as $renewal ) {
+			if ( ! self::order_contains_product( $renewal, $product_id ) ) {
+				break; // Different plan product — the current cycle can't extend past a switch.
+			}
+
 			if ( ! self::is_free_delivery( $renewal ) ) {
 				break; // Hit the last charged renewal — the current cycle starts right after it.
 			}
@@ -196,6 +214,95 @@ class AH_Free_Renewals {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * Whether an order's line items include the given product/variation.
+	 *
+	 * @param WC_Order $order
+	 * @param int      $product_id
+	 * @return bool
+	 */
+	private static function order_contains_product( WC_Order $order, int $product_id ): bool {
+		foreach ( $order->get_items() as $item ) {
+			if ( (int) ( $item->get_variation_id() ?: $item->get_product_id() ) === $product_id ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether the subscription's CURRENT plan product already has a charged (total
+	 * > 0) order behind it — the parent order, a past non-free renewal, or a paid
+	 * switch order. False means this product was just put on the subscription (e.g.
+	 * a product change made directly on the subscription, with no checkout/switch
+	 * charge) and has never actually been paid for on it. In that case the cycle's
+	 * one charged delivery hasn't happened yet, so the next renewal must be a normal
+	 * charge — treating it as the first free delivery would charge $0 for a plan
+	 * that was never paid for.
+	 *
+	 * Walks the renewal history most-recent-first and stops at the first renewal
+	 * for a DIFFERENT product — same boundary rule as count_free_deliveries_in_cycle().
+	 * Without it, switching away and back to this product would find the old,
+	 * stale charge from before the switch and treat it as still valid, letting the
+	 * first delivery after returning start a new free cycle it never re-paid for.
+	 *
+	 * @param WC_Subscription $subscription
+	 * @param WC_Product      $product
+	 * @param int             $exclude_id Renewal order id to skip (e.g. the one being created).
+	 * @return bool
+	 */
+	private static function has_charged_delivery_for_product( WC_Subscription $subscription, WC_Product $product, int $exclude_id = 0 ): bool {
+		$product_id = $product->get_id();
+		$renewals   = [];
+
+		foreach ( $subscription->get_related_orders( 'ids', 'renewal' ) as $id ) {
+			$id = (int) $id;
+
+			if ( $exclude_id && $id === $exclude_id ) {
+				continue;
+			}
+
+			$renewal = wc_get_order( $id );
+
+			if ( ! $renewal || in_array( $renewal->get_status(), self::NON_DELIVERY_STATUSES, true ) ) {
+				continue;
+			}
+
+			$renewals[ $id ] = $renewal;
+		}
+
+		krsort( $renewals );
+
+		foreach ( $renewals as $renewal ) {
+			if ( ! self::order_contains_product( $renewal, $product_id ) ) {
+				return false; // Different product most recently — anything before this is stale.
+			}
+
+			if ( ! self::is_free_delivery( $renewal ) && $renewal->get_total() > 0 ) {
+				return true;
+			}
+		}
+
+		// No renewal history for this product yet (fresh subscription, or it has never
+		// been switched away from) — fall back to the switch order and parent order.
+		foreach ( $subscription->get_related_orders( 'ids', 'switch' ) as $id ) {
+			$switch_order = wc_get_order( (int) $id );
+
+			if ( $switch_order && $switch_order->is_paid() && $switch_order->get_total() > 0 && self::order_contains_product( $switch_order, $product_id ) ) {
+				return true;
+			}
+		}
+
+		$parent = $subscription->get_parent();
+
+		if ( $parent && $parent->get_total() > 0 && self::order_contains_product( $parent, $product_id ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -257,14 +364,52 @@ class AH_Free_Renewals {
 				return $renewal_order;
 			}
 
+			if ( $renewal_order->has_status( [ 'cancelled', 'trash' ] ) ) {
+				// Already cancelled by AH_Renewal_Duplicate_Guard (or anything else) —
+				// nothing to zero or count here.
+				return $renewal_order;
+			}
+
 			$product = self::get_plan_product_from_subscription( $subscription );
 
 			if ( ! $product || ! self::is_free_renewal_plan( $product ) ) {
 				return $renewal_order;
 			}
 
+			if ( ! self::has_charged_delivery_for_product( $subscription, $product, $renewal_order->get_id() ) ) {
+				if ( $renewal_order->get_total() <= 0 ) {
+					// No prior charge for this product AND this delivery is already $0
+					// (e.g. a recurring coupon). Tag it as free rather than pretending a
+					// charge baseline was established — the real first charge still has
+					// to happen on a later renewal for the cycle to mean anything.
+					$this->zero_order( $renewal_order );
+
+					$this->logger->info( sprintf(
+						'[handle_renewal_order_created] subscription_id=%d renewal_order_id=%d — no prior charge and already $0 (coupon or manual edit), tagged as free delivery',
+						$subscription->get_id(),
+						$renewal_order->get_id()
+					), $this->log_context );
+
+					return $renewal_order;
+				}
+
+				$renewal_order->add_order_note(
+					__( 'Free-renewal: no prior charge found for this plan on this subscription (e.g. a product change with no checkout/switch charge) — charged normally instead of starting as a free delivery.', 'bh-features' )
+				);
+				$renewal_order->save();
+
+				$this->logger->info( sprintf(
+					'[handle_renewal_order_created] subscription_id=%d renewal_order_id=%d — charged (no prior charge for product_id=%d on this subscription)',
+					$subscription->get_id(),
+					$renewal_order->get_id(),
+					$product->get_id()
+				), $this->log_context );
+
+				return $renewal_order;
+			}
+
 			$max         = self::get_free_renewals( $product );
-			$free_so_far = self::count_free_deliveries_in_cycle( $subscription, $renewal_order->get_id() );
+			$free_so_far = self::count_free_deliveries_in_cycle( $subscription, $product->get_id(), $renewal_order->get_id() );
 
 			if ( $free_so_far < $max ) {
 				$this->zero_order( $renewal_order );
@@ -275,6 +420,22 @@ class AH_Free_Renewals {
 					$renewal_order->get_id(),
 					$free_so_far + 1,
 					$max
+				), $this->log_context );
+
+				return $renewal_order;
+			}
+
+			if ( $renewal_order->get_total() <= 0 ) {
+				// Something outside this module (a 100%-off recurring coupon, a manual
+				// edit) already zeroed this order. Leaving it untagged would make the
+				// next cycle think a real charge happened here and reset around it —
+				// tag it as free so the count stays honest about what was actually paid.
+				$this->zero_order( $renewal_order );
+
+				$this->logger->info( sprintf(
+					'[handle_renewal_order_created] subscription_id=%d renewal_order_id=%d — externally zeroed (coupon or manual edit), tagged as free delivery instead of a charge',
+					$subscription->get_id(),
+					$renewal_order->get_id()
 				), $this->log_context );
 
 				return $renewal_order;

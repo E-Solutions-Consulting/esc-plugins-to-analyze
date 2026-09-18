@@ -42,6 +42,10 @@ class FriendBuy_Webhook_Handler {
         /* ------------------ Deduct balance upon order completion ------------------ */
         add_action('woocommerce_checkout_order_processed', [$this, 'woocommerce_checkout_order_processed_fn']);
 
+        /* ---- Give the balance back if the order that consumed it never completes ---- */
+        add_action('woocommerce_order_status_cancelled', [$this, 'revert_rewards_on_order_status_change']);
+        add_action('woocommerce_order_status_failed', [$this, 'revert_rewards_on_order_status_change']);
+        add_action('woocommerce_order_status_refunded', [$this, 'revert_rewards_on_order_status_change']);
 
         add_action('woocommerce_checkout_update_order_review', [$this, 'sync_referral_usage_from_checkout'], 10, 1);
 
@@ -85,9 +89,14 @@ class FriendBuy_Webhook_Handler {
             return new WP_REST_Response(['error' => 'Invalid webhook type'], 400);
         }
 
+        if (empty($payload['data']) || !is_array($payload['data'])) {
+            $logger->error('Webhook payload missing data array', $context);
+            return new WP_REST_Response(['error' => 'Invalid payload: missing data'], 400);
+        }
+
         $data = $payload['data'][0];
         $email = sanitize_email($data['emailAddress'] ?? '');
-        //$customer_id = isset($data['customerId']) ? intval($data['customerId']) : 0;
+        $customer_id = isset($data['customerId']) ? sanitize_text_field($data['customerId']) : '';
         $reward_amount = 25; // Fixed $25 per referral
 
         // Debug log
@@ -119,6 +128,27 @@ class FriendBuy_Webhook_Handler {
         }
 
         $user_id = $user->ID;
+
+        // Idempotency: webhook providers routinely redeliver the same event
+        // (timeouts, 5xx retries, at-least-once delivery semantics). Without
+        // this check a redelivered rewardId would double-credit the same
+        // referral every time it's retried.
+        $reward_ext_id = sanitize_text_field($data['rewardId'] ?? '');
+        if (!empty($reward_ext_id)) {
+            $existing_reward_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}referral_rewards WHERE reward_id = %s LIMIT 1",
+                $reward_ext_id
+            ));
+            if ($existing_reward_id) {
+                $logger->info("Duplicate webhook delivery ignored for rewardId {$reward_ext_id} (already recorded as reward #{$existing_reward_id})", $context);
+                return new WP_REST_Response([
+                    'success'   => true,
+                    'duplicate' => true,
+                    'balance'   => $this->calculate_referral_balance($user_id),
+                    'user_id'   => $user_id,
+                ], 200);
+            }
+        }
 
         // 1. Check 10-referral limit
         $referral_count = $wpdb->get_var($wpdb->prepare(
@@ -165,7 +195,7 @@ class FriendBuy_Webhook_Handler {
         // Insert the reward
         $wpdb->insert("{$wpdb->prefix}referral_rewards", [
             'user_id'        => $user_id,
-            'reward_id'      => sanitize_text_field($data['rewardId'] ?? ''),
+            'reward_id'      => $reward_ext_id,
             'amount'         => $reward_amount,
             'created_on'     => current_time('mysql'),
             'source'         => 'friendbuy',
@@ -276,10 +306,23 @@ class FriendBuy_Webhook_Handler {
         $balance = $this->calculate_referral_balance($user_id);
         if ($balance <= 0) return;
 
-        $discount = min($balance, $cart->get_subtotal());
+        // Amount still owed after other discounts (e.g. a 100%-off coupon).
+        // get_subtotal() is the pre-coupon list price, so capping the
+        // referral discount against it (instead of what's actually left to
+        // pay) burns the customer's balance even when the coupon alone
+        // already covers the whole order.
+        $remaining_due = max(0, $cart->get_subtotal() - $cart->get_discount_total());
+        if ($remaining_due <= 0) {
+            WC()->session->__unset('referral_discount_amount');
+            return;
+        }
+
+        $discount = min($balance, $remaining_due);
         if ($discount > 0) {
             $cart->add_fee(__('Referral Discount', 'friendbuy'), -$discount);
             WC()->session->set('referral_discount_amount', $discount);
+        } else {
+            WC()->session->__unset('referral_discount_amount');
         }
     }
     
@@ -307,7 +350,114 @@ class FriendBuy_Webhook_Handler {
         
         return max(0, floatval($balance));
     }
-    
+
+    /**
+     * Revert a reward back to active (unused), undoing whatever order
+     * consumed it.
+     *
+     * This is a deliberate, admin-triggered correction tool for fixing
+     * rewards that were consumed in error (e.g. by a bug that has since
+     * been fixed, or a support decision) -- it is NOT wired to any
+     * automatic order-status hook. It never silently rewrites history: it
+     * logs the action and leaves a note on the order that was affected
+     * (if any), the same way the original consumption was recorded.
+     *
+     * @param int    $reward_id
+     * @param string $reason Optional context recorded in the log/order note.
+     * @return true|WP_Error
+     */
+    public static function revert_reward_usage($reward_id, $reason = '') {
+        global $wpdb;
+        $table = $wpdb->prefix . 'referral_rewards';
+
+        $reward = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $reward_id));
+
+        if (!$reward) {
+            return new WP_Error('reward_not_found', "Reward #{$reward_id} not found.");
+        }
+
+        if (!$reward->used && $reward->status !== 'partially_used') {
+            return new WP_Error('reward_not_used', "Reward #{$reward_id} is not currently used -- nothing to revert.");
+        }
+
+        $is_expired  = $reward->expires_at && strtotime($reward->expires_at) < time();
+        $prior_order = $reward->order_id;
+        $prior_used  = $reward->used_amount;
+
+        $wpdb->update(
+            $table,
+            [
+                'used'        => 0,
+                'used_amount' => 0,
+                'status'      => $is_expired ? 'expired' : 'active',
+                'order_id'    => null,
+            ],
+            ['id' => $reward_id]
+        );
+
+        $admin = wp_get_current_user();
+        $who   = ($admin && $admin->ID) ? $admin->user_login : 'system';
+
+        $message = sprintf(
+            'Referral reward #%d ($%.2f) reverted to %s by %s -- previously had $%.2f consumed against order #%s.%s',
+            $reward_id,
+            (float) $reward->amount,
+            $is_expired ? 'expired' : 'active',
+            $who,
+            (float) $prior_used,
+            $prior_order ?: 'n/a',
+            $reason ? ' Reason: ' . $reason : ''
+        );
+
+        wc_get_logger()->info($message, ['source' => 'ah-friendbuy-reward-revert']);
+
+        if ($prior_order) {
+            $order = wc_get_order($prior_order);
+            if ($order) {
+                $order->add_order_note($message);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Auto-revert whatever referral reward(s) an order consumed once that
+     * order ends up cancelled, failed, or fully refunded -- it never
+     * completed, so the reward it "paid for" shouldn't stay burned.
+     *
+     * Hooked to woocommerce_order_status_cancelled/_failed/_refunded.
+     * Reuses revert_reward_usage() per affected reward row, so the
+     * log entry and order note are identical to a manual admin revert
+     * (just with a reason that says this happened automatically).
+     * Safe to fire more than once for the same order: revert_reward_usage()
+     * is a no-op (returns a WP_Error) on a reward that's already active.
+     *
+     * @param int $order_id
+     */
+    public function revert_rewards_on_order_status_change($order_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'referral_rewards';
+
+        $order  = wc_get_order($order_id);
+        $status = $order ? $order->get_status() : 'unknown';
+
+        $reward_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $table WHERE order_id = %d AND (used = 1 OR status = 'partially_used')",
+            $order_id
+        ));
+
+        foreach ($reward_ids as $reward_id) {
+            $result = self::revert_reward_usage($reward_id, "Auto-reverted: order #{$order_id} transitioned to '{$status}'");
+            if (is_wp_error($result)) {
+                wc_get_logger()->warning(
+                    "Auto-revert skipped for reward #{$reward_id} on order #{$order_id}: " . $result->get_error_message(),
+                    ['source' => 'ah-friendbuy-reward-revert']
+                );
+            }
+        }
+    }
+
     function woocommerce_checkout_order_processed_fn($order_id) {
         $order = wc_get_order($order_id);
         $user_id = $order->get_user_id();
@@ -316,10 +466,17 @@ class FriendBuy_Webhook_Handler {
         $use_balance = WC()->session->get('use_referral_balance');
         $discount_amount = floatval(WC()->session->get('referral_discount_amount', 0));
 
+        // Defensive clamp: never consume more referral balance than this
+        // order actually still owed after its own coupons. Protects against
+        // a stale session value (e.g. the fee was calculated before a
+        // 100%-off coupon was applied) burning rewards for nothing.
+        $order_remaining_due = max(0, (float) $order->get_subtotal() - (float) $order->get_total_discount());
+        $discount_amount = min($discount_amount, $order_remaining_due);
+
         if ($use_balance && $discount_amount > 0) {
             global $wpdb;
             $table_name = $wpdb->prefix . 'referral_rewards';
-            
+
             // Get all unused, unexpired referrals ordered by oldest first
             $referrals = $wpdb->get_results($wpdb->prepare(
                 "SELECT id, amount 

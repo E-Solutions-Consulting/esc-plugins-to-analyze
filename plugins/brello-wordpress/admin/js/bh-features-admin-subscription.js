@@ -145,24 +145,32 @@
 				$("#original_dates").html(info);
 			}
 		}
-		info(months_paused);		
+		info(months_paused);
 
-		function restrictSubscriptionFields() {
-	        const $periodField = $('#_billing_period');
-	        if ($periodField.length) {
-	            $periodField.find('option').not('[value="month"]').remove();
-	            if ($periodField.val() !== 'month') {
-	                $periodField.val('month').trigger('change');
-	            }
-	        }
-	        const $intervalField = $('#_billing_interval');
-	        if ($intervalField.length) {
-	            $intervalField.find('option').not('[value="1"], [value="3"]').remove();
-	            if (!['1', '3'].includes($intervalField.val())) {
-	                $intervalField.val('1').trigger('change');
-	            }
-	        }
-	    }
+	    function restrictSubscriptionFields() {
+		    const allowedIntervals = ['1', '3', '6'];
+
+		    const $periodField = $('#_billing_period');
+		    if ($periodField.length) {
+		        $periodField.find('option').not('[value="month"]').remove();
+
+		        if ($periodField.val() !== 'month') {
+		            $periodField.val('month').trigger('change');
+		        }
+		    }
+
+		    const $intervalField = $('#_billing_interval');
+		    if ($intervalField.length) {
+		        const selector = allowedIntervals.map(value => `[value="${value}"]`).join(', ');
+
+		        $intervalField.find('option').not(selector).remove();
+
+		        if (!allowedIntervals.includes($intervalField.val())) {
+		            $intervalField.val('1').trigger('change');
+		        }
+		    }
+		}
+
 	    restrictSubscriptionFields();
 
 	});

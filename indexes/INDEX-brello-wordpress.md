@@ -1,5 +1,5 @@
 # INDEX -- brello-wordpress
-# Generated  : 2026-08-28 11:27
+# Generated  : 2026-09-18 11:04
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/brello-wordpress
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress
 #
@@ -28,6 +28,9 @@
 - `includes/modules/common/db-ext.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/db-ext.php
 - `includes/modules/common/helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/helpers.php
 - `includes/modules/common/order-meta.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/order-meta.php
+- `includes/modules/integrations/affiliate-pixels/class-bh-affiliate-pixels.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/affiliate-pixels/class-bh-affiliate-pixels.php
+- `includes/modules/integrations/affiliate-pixels/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/affiliate-pixels/loader.php
+- `includes/modules/integrations/affiliate-pixels/registry.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/affiliate-pixels/registry.php
 - `includes/modules/integrations/attentive/admin-retry.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/admin-retry.php
 - `includes/modules/integrations/attentive/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/api-client.php
 - `includes/modules/integrations/attentive/catalog-feed.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/catalog-feed.php
@@ -121,6 +124,7 @@
 - `includes/modules/wc/coupons/coupon-batch-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/coupon-batch-generator.php
 - `includes/modules/wc/coupons/coupons.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/coupons.php
 - `includes/modules/wc/coupons/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/loader.php
+- `includes/modules/wc/myaccount/terms-consent.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/myaccount/terms-consent.php
 - `includes/modules/wc/orders/columns/orders-columns.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/orders/columns/orders-columns.php
 - `includes/modules/wc/orders/orders-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/orders/orders-admin.php
 - `includes/modules/wc/orders/orders.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/orders/orders.php
@@ -140,6 +144,7 @@
 - `includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals-admin.php
 - `includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals.php
 - `includes/modules/wc/subscriptions/free-renewals/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/free-renewals/loader.php
+- `includes/modules/wc/subscriptions/renewal-duplicate-guard.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-duplicate-guard.php
 - `includes/modules/wc/subscriptions/state-reactivation/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/loader.php
 - `includes/modules/wc/subscriptions/state-reactivation/subscription-state-email.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/subscription-state-email.php
 - `includes/modules/wc/subscriptions/state-reactivation/subscription-state-query.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/subscription-state-query.php
@@ -163,8 +168,8 @@
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-brello-wordpress.md
-# Total PHP files indexed : 154
-# Total lines in this file: 162
-# Generated               : 2026-08-28 11:27
+# Total PHP files indexed : 159
+# Total lines in this file: 167
+# Generated               : 2026-09-18 11:04
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

@@ -181,8 +181,8 @@ class Bh_Features_Public {
 				body.login {display:flex;}
 				body.login:before{height:50px;}
 				div#custom-login-wrapper {max-width: 900px;margin: 0 auto;width: 100%;padding: 0;display: grid;position:relative;align-content: center;}
-				div#custom-login-wrapper:after {content:"";position:absolute;right:0;width: 50%;height:100%;background-size: 475px !important;background:url(https://www.brellohealth.com/wp-content/uploads/2025/07/account-login-700x606.webp) no-repeat center center transparent;}
-				.login-form-container {width: 50%;display: flex;justify-content: flex-start;flex-direction: row;flex-wrap: wrap;}
+				div#custom-login-wrapper:after {content:"";position:absolute;right:0;width: 50%;height:100%;background-size: 475px !important;background:url(https://www.brellohealth.com/wp-content/uploads/2025/07/account-login-700x606.webp) no-repeat center center transparent;pointer-events:none;z-index:0;}
+				.login-form-container {width: 50%;display: flex;justify-content: flex-start;flex-direction: row;flex-wrap: wrap;position:relative;z-index:1;}
 			}
 		</style>
 		<?php
@@ -1168,9 +1168,28 @@ class Bh_Features_Public {
 			'attribute_pa_subscription', $parts[1],
 			home_url('/product/' . $parts[0])
 		);
+
+		// Preserve Everflow first-touch TID across quiz → product redirect.
+		$eftid = '';
+		if ( class_exists( 'BH_Everflow_Helper' ) ) {
+			$eftid = BH_Everflow_Helper::resolve_eftid();
+		} elseif ( ! empty( $_COOKIE['ef_entry_tid'] ) ) {
+			$eftid = sanitize_text_field( wp_unslash( (string) $_COOKIE['ef_entry_tid'] ) );
+		} elseif ( ! empty( $_COOKIE['eftid'] ) ) {
+			$eftid = sanitize_text_field( wp_unslash( (string) $_COOKIE['eftid'] ) );
+		}
+		if ( $eftid !== '' ) {
+			$url = add_query_arg( '_ef_transaction_id', $eftid, $url );
+		}
+		if ( ! empty( $_COOKIE['ef_entry_oid'] ) ) {
+			$url = add_query_arg( 'oid', sanitize_text_field( wp_unslash( (string) $_COOKIE['ef_entry_oid'] ) ), $url );
+		}
+		if ( ! empty( $_COOKIE['ef_entry_affid'] ) ) {
+			$url = add_query_arg( 'affid', sanitize_text_field( wp_unslash( (string) $_COOKIE['ef_entry_affid'] ) ), $url );
+		}
 		?>
 		<script>
-			var hb_custom_redirect	=	"<?php echo $url ?>";
+			var hb_custom_redirect	=	<?php echo wp_json_encode( $url ); ?>;
 			console.log('hb_custom_redirect');
 		</script>
 		<?php
@@ -2051,7 +2070,7 @@ class Bh_Features_Public {
 			console.log('redirecting...');
 			setTimeout(function() {
 				window.location.href = <?php echo wp_json_encode( $tracking_data['redirect_url'] ); ?>;
-			}, 500);
+			}, 1500);
 		</script>
 		<?php
 	}
@@ -2381,6 +2400,7 @@ class Bh_Features_Public {
 					setTimeout(checkFbTrackingLoaded, 100);
 				}
 			}
+			checkFbTrackingLoaded();
 		</script>
 		<?php
 	}

@@ -35,6 +35,9 @@ $this->safe_require( $integrations_base . 'friendbuy/loader.php' );
 // Everflow
 $this->safe_require( $integrations_base . 'everflow/loader.php' );
 
+// Affiliate-gated partner pixels (affid match only — see registry.php)
+$this->safe_require( $integrations_base . 'affiliate-pixels/loader.php' );
+
 // Lumen
 $this->safe_require( $integrations_base . 'lumen/loader.php' );
 

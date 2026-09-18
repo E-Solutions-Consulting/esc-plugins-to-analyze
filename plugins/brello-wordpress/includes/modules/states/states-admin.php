@@ -9,6 +9,7 @@ class AH_States_Admin_Page {
     public static function init() {
         add_action( 'admin_menu', [ __CLASS__, 'register_menu' ], 5 );
         add_action( 'admin_post_ah_save_states', [ __CLASS__, 'handle_save' ] );
+        add_action( 'admin_post_ah_regenerate_mapdata', [ __CLASS__, 'handle_regenerate_mapdata' ] );
     }
 
     /**
@@ -47,6 +48,24 @@ class AH_States_Admin_Page {
             <?php if ( isset( $_GET['updated'] ) ): ?>
                 <div class="notice notice-success"><p>Settings saved.</p></div>
             <?php endif; ?>
+
+            <?php if ( isset( $_GET['regenerated'] ) ): ?>
+                <div class="notice notice-success"><p>mapdata.js regenerated from the current configuration.</p></div>
+            <?php endif; ?>
+
+            <div class="card" style="max-width:none;margin:1rem 0;">
+                <h2 style="margin-top:0;">Map Data File</h2>
+                <p>
+                    Saving the settings below already regenerates <code>mapdata.js</code> automatically.
+                    Use this if the file was edited by hand and you want to rebuild it from the saved configuration
+                    without resubmitting the whole form.
+                </p>
+                <form action="<?php echo admin_url( 'admin-post.php' ); ?>" method="POST">
+                    <?php wp_nonce_field( 'ah_regenerate_mapdata' ); ?>
+                    <input type="hidden" name="action" value="ah_regenerate_mapdata">
+                    <button type="submit" class="button button-secondary">Regenerate mapdata.js</button>
+                </form>
+            </div>
 
             <form action="<?php echo admin_url( 'admin-post.php' ); ?>" method="POST">
                 <?php wp_nonce_field( 'ah_save_states' ); ?>
@@ -180,6 +199,26 @@ class AH_States_Admin_Page {
         $saved = AH_Licensed_States_Manager::save_config( $incoming );
 
         $redirect = admin_url( 'admin.php?page=' . PARENT_MENU_SLUG . '--licensed-states&updated=1' );
+        wp_redirect( $redirect );
+        exit;
+    }
+
+    /**
+     * Regenerate mapdata.js from the currently saved configuration,
+     * without touching or resubmitting the configuration itself.
+     */
+    public static function handle_regenerate_mapdata() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Unauthorized' );
+        }
+
+        check_admin_referer( 'ah_regenerate_mapdata' );
+
+        if ( class_exists( 'AH_MapData_Generator' ) ) {
+            AH_MapData_Generator::generate();
+        }
+
+        $redirect = admin_url( 'admin.php?page=' . PARENT_MENU_SLUG . '--licensed-states&regenerated=1' );
         wp_redirect( $redirect );
         exit;
     }

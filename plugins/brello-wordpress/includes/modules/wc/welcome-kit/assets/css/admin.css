@@ -12,3 +12,20 @@ body.wp-admin ul.subsubsub li.wc-kit_ready_to_send a {
     color: #1f025a;
     border: 1px solid #4fe73e;
 }
+
+/* Welcome Kit — Products & Gift Assignment table (settings screen).
+ * Unconfigured rows are muted so a long catalog is easy to scan; a row
+ * becomes dark + highlighted the moment it's actually checked in the map. */
+table.welcome-kit .ah-wk-name {color: #8c8f94;}
+table.welcome-kit .ah-wk-row--active .ah-wk-name {color: #1d2327;}
+table.welcome-kit .ah-wk-row--active {background-color: #eef7ee;}
+table.welcome-kit .ah-wk-id {background: none;}
+table.welcome-kit .ah-wk-row--active .ah-wk-id {color: #646970;}
+/* Variation rows read as a sub-list under their parent product. */
+table.welcome-kit .ah-wk-indent {padding-left: 2em !important;}
+table.welcome-kit thead > tr > th:not(:first-child) {width: 45%;}
+table.welcome-kit tr > td{color:#777;}
+table.welcome-kit tr > td:first-child {padding-left: 25px;}
+table.welcome-kit thead > tr > th:first-child{padding-left:10px !important;}
+table.welcome-kit tbody > tr > td.ah-wk-indent:first-child {padding-right:0;text-align: right;}
+table.welcome-kit tr.ah-wk-row.ah-wk-row--active > td.ah-wk-name {color: #000;font-weight: 500;}

@@ -173,6 +173,7 @@ class BH_Modules_Loader {
          */
         $this->safe_require( $base . 'wc/subscriptions/bh-renewal-endpoint.php' );
         $this->safe_require( $base . 'wc/subscriptions/early-renewal-handler.php' );
+        $this->safe_require( $base . 'wc/subscriptions/renewal-duplicate-guard.php' );
 
         $this->safe_require( $base . 'wc/subscriptions/state-reactivation/loader.php' );
         
@@ -195,6 +196,13 @@ class BH_Modules_Loader {
          */
         //$this->safe_require( $base . 'wc/upsells/bh-upsells.php' );
 
+
+        /**
+         * --------------------------------
+         * MY ACCOUNT
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'wc/myaccount/terms-consent.php' );
 
         /**
          * --------------------------------

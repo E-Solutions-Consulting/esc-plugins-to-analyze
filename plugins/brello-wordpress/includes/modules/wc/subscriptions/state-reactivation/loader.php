@@ -141,7 +141,9 @@ function ah_handle_state_becoming_available( $state, $old_status, $new_status ) 
     );  
     $message .= "```";
 
-    bh_send_slack_notification($message, BH_SLACK_CHANNEL_STATES_LIVE_UPDATE);
+    if ( defined( 'BH_SLACK_CHANNEL_STATES_LIVE_UPDATE' ) && ! empty( BH_SLACK_CHANNEL_STATES_LIVE_UPDATE ) ) {
+        bh_send_slack_notification( $message, BH_SLACK_CHANNEL_STATES_LIVE_UPDATE );
+    }
 
     /**
      * IMPORTANT:

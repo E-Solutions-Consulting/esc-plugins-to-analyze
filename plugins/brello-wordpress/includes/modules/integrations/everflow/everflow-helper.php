@@ -50,8 +50,9 @@ class BH_Everflow_Helper {
     const META_STATUS = 'everflow_eftid_status';
     const SESSION_KEY = 'eftid';
 
-    /** Cookies checked (first match wins). Prefer our `eftid` (console “eftid saved”) over SDK cookie. */
+    /** Cookies checked (first match wins). Prefer first-touch entry TID, then `eftid`. */
     const TID_COOKIES = [
+        'ef_entry_tid',
         'eftid',
         'ef_tid_c_a_2',
         'brello_landing_eftid',
@@ -186,6 +187,12 @@ class BH_Everflow_Helper {
         if ( $eftid !== '' ) {
             $order->update_meta_data( self::META_EFTID, $eftid );
             $order->update_meta_data( self::META_STATUS, 'saved' );
+            if ( ! empty( $_COOKIE['ef_entry_affid'] ) ) {
+                $order->update_meta_data( '_ah_everflow_entry_affid', sanitize_text_field( wp_unslash( (string) $_COOKIE['ef_entry_affid'] ) ) );
+            }
+            if ( ! empty( $_COOKIE['ef_entry_oid'] ) ) {
+                $order->update_meta_data( '_ah_everflow_entry_oid', sanitize_text_field( wp_unslash( (string) $_COOKIE['ef_entry_oid'] ) ) );
+            }
             $order->add_order_note(
                 sprintf(
                     'Everflow: eftid saved (%s) via %s.',

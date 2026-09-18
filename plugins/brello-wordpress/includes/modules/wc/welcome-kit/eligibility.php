@@ -26,28 +26,69 @@ class AH_Welcome_Kit_Eligibility {
     }
 
     /**
-     * Returns true if the order contains at least one item matching
-     * an allowed category OR an allowed trigger product (OR logic).
+     * An order matches if at least one of its items resolves to a gift
+     * product (see resolve_gift_product_ids()).
      */
     private function matches_trigger(): bool {
-        $allowed_categories  = get_option( 'ah_welcome_kit_allowed_categories', [] );
-        $trigger_product_ids = get_option( 'ah_welcome_kit_trigger_product_ids', [] );
+        return ! empty( $this->resolve_gift_product_ids() );
+    }
+
+    /**
+     * Resolves which gift product(s) to include in the kit for this order.
+     *
+     * Each order item is matched against the product map: a variation-level
+     * entry (a specific override) takes priority over its parent product's
+     * entry (checking the parent means "all its variations").
+     *
+     * @return int[] Deduplicated gift product IDs.
+     */
+    public function resolve_gift_product_ids(): array {
+        $product_map = self::get_product_map();
+        if ( empty( $product_map ) ) return [];
+
+        $gift_ids = [];
 
         foreach ( $this->order->get_items() as $item ) {
-            $product_id = $item->get_product_id();
+            $product_id   = $item->get_product_id();
+            $variation_id = $item->get_variation_id();
 
-            if ( ! empty( $trigger_product_ids ) && in_array( $product_id, array_map( 'intval', $trigger_product_ids ), true ) ) {
-                return true;
+            $gift_id = 0;
+            if ( $variation_id && isset( $product_map[ $variation_id ] ) ) {
+                $gift_id = $product_map[ $variation_id ];
+            } elseif ( isset( $product_map[ $product_id ] ) ) {
+                $gift_id = $product_map[ $product_id ];
             }
 
-            if ( ! empty( $allowed_categories ) ) {
-                $terms = wp_get_post_terms( $product_id, 'product_cat', [ 'fields' => 'slugs' ] );
-                if ( array_intersect( $allowed_categories, $terms ) ) {
-                    return true;
-                }
+            if ( $gift_id ) {
+                $gift_ids[ $gift_id ] = true;
             }
         }
 
-        return false;
+        return array_keys( $gift_ids );
+    }
+
+    /**
+     * The trigger-product => gift-product map, keyed by whichever ID was
+     * checked in settings: a parent (variable) product ID means "all its
+     * variations", a variation ID is a specific per-variation override.
+     *
+     * No automatic migration from the old single-gift-product settings --
+     * the old data (a parent product ID meaning "all variations") can't
+     * reliably be translated into the new per-variation model without
+     * knowing the admin's actual intent, so sites upgrading from that
+     * version must reconfigure this screen explicitly instead of trusting
+     * an auto-migrated guess.
+     *
+     * @return array<int,int>
+     */
+    public static function get_product_map(): array {
+        $raw = get_option( 'ah_welcome_kit_product_map', [] );
+        if ( ! is_array( $raw ) ) return [];
+
+        $map = [];
+        foreach ( $raw as $trigger_id => $gift_id ) {
+            $map[ (int) $trigger_id ] = (int) $gift_id;
+        }
+        return $map;
     }
 }

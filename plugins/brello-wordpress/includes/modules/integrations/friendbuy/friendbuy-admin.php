@@ -50,45 +50,75 @@ class FriendBuy_Admin {
         $table_name = $wpdb->prefix . 'referral_rewards';
         
         // Handle bulk delete
-        if (isset($_POST['action']) && $_POST['action'] === 'bulk_delete' && 
-            isset($_POST['bulk_delete_nonce']) && 
+        if (isset($_POST['action']) && $_POST['action'] === 'bulk_delete' &&
+            isset($_POST['bulk_delete_nonce']) &&
             wp_verify_nonce($_POST['bulk_delete_nonce'], 'bulk_delete_rewards') &&
-            !empty($_POST['bulk_delete']) && 
+            !empty($_POST['bulk_delete']) &&
             is_array($_POST['bulk_delete'])) {
-            
+
             $ids = array_map('intval', $_POST['bulk_delete']);
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-            
+
             $wpdb->query($wpdb->prepare(
                 "DELETE FROM $table_name WHERE id IN($placeholders)",
                 $ids
             ));
-            
-            echo '<div class="notice notice-success"><p>' . 
-                 sprintf(_n('%d reward deleted.', '%d rewards deleted.', count($ids), 'friendbuy'), 
+
+            echo '<div class="notice notice-success"><p>' .
+                 sprintf(_n('%d reward deleted.', '%d rewards deleted.', count($ids), 'friendbuy'),
                  count($ids)) . '</p></div>';
         }
-        
+
+        // Handle bulk revert (undo an erroneous consumption -- puts the
+        // reward back to active/unused and notes the affected order, if
+        // any; see FriendBuy_Webhook_Handler::revert_reward_usage()).
+        if (isset($_POST['action']) && $_POST['action'] === 'bulk_revert' &&
+            isset($_POST['bulk_delete_nonce']) &&
+            wp_verify_nonce($_POST['bulk_delete_nonce'], 'bulk_delete_rewards') &&
+            !empty($_POST['bulk_delete']) &&
+            is_array($_POST['bulk_delete']) &&
+            current_user_can('manage_options')) {
+
+            $ids = array_map('intval', $_POST['bulk_delete']);
+            $reverted = 0;
+            $skipped  = 0;
+
+            foreach ($ids as $id) {
+                $result = FriendBuy_Webhook_Handler::revert_reward_usage($id, 'Manual bulk revert from Referral Rewards admin');
+                if (is_wp_error($result)) {
+                    $skipped++;
+                } else {
+                    $reverted++;
+                }
+            }
+
+            echo '<div class="notice notice-success"><p>' .
+                 sprintf(_n('%d reward reverted to active.', '%d rewards reverted to active.', $reverted, 'friendbuy'), $reverted) .
+                 ($skipped ? ' ' . sprintf(_n('%d skipped (not currently used).', '%d skipped (not currently used).', $skipped, 'friendbuy'), $skipped) : '') .
+                 '</p></div>';
+        }
+
         // Handle actions
         if (isset($_GET['action']) && isset($_GET['reward_id']) && current_user_can('manage_options')) {
             $reward_id = intval($_GET['reward_id']);
-            
+
             // Handle mark as used
-            if ($_GET['action'] === 'mark_used') {
+            if ($_GET['action'] === 'mark_used' && isset($_GET['_wpnonce']) &&
+                wp_verify_nonce($_GET['_wpnonce'], 'mark_used_reward_' . $reward_id)) {
                 $wpdb->update(
                     $table_name,
                     [
-                        'used' => 1, 
-                        'status' => 'used', 
+                        'used' => 1,
+                        'status' => 'used',
                         'used_amount' => $wpdb->get_var("SELECT amount FROM $table_name WHERE id = $reward_id")
                     ],
                     ['id' => $reward_id]
                 );
                 echo '<div class="notice notice-success"><p>Reward marked as used.</p></div>';
             }
-            
+
             // Handle delete
-            if ($_GET['action'] === 'delete' && isset($_GET['_wpnonce']) && 
+            if ($_GET['action'] === 'delete' && isset($_GET['_wpnonce']) &&
                 wp_verify_nonce($_GET['_wpnonce'], 'delete_reward_' . $reward_id)) {
                 $wpdb->delete(
                     $table_name,
@@ -96,6 +126,17 @@ class FriendBuy_Admin {
                     ['%d']
                 );
                 echo '<div class="notice notice-success"><p>Reward deleted successfully.</p></div>';
+            }
+
+            // Handle single revert
+            if ($_GET['action'] === 'revert' && isset($_GET['_wpnonce']) &&
+                wp_verify_nonce($_GET['_wpnonce'], 'revert_reward_' . $reward_id)) {
+                $result = FriendBuy_Webhook_Handler::revert_reward_usage($reward_id, 'Manual revert from Referral Rewards admin');
+                if (is_wp_error($result)) {
+                    echo '<div class="notice notice-error"><p>' . esc_html($result->get_error_message()) . '</p></div>';
+                } else {
+                    echo '<div class="notice notice-success"><p>Reward reverted to active.</p></div>';
+                }
             }
         }
 
@@ -141,9 +182,10 @@ class FriendBuy_Admin {
                     <div class="alignleft actions bulkactions">
                         <select name="action" id="bulk-action-selector-top">
                             <option value="-1">Bulk Actions</option>
+                            <option value="bulk_revert">Revert to Active (undo consumption)</option>
                             <option value="bulk_delete">Delete</option>
                         </select>
-                        <input type="submit" id="doaction" class="button action" value="Apply">
+                        <input type="submit" id="doaction" class="button action" value="Apply" onclick="return friendbuyConfirmBulkAction(this.form);">
                     </div>
                     <br class="clear">
                 </div>
@@ -159,16 +201,18 @@ class FriendBuy_Admin {
                             <th>Amount</th>
                             <th>Status</th>
                             <th>Friend Email</th>
+                            <th>Order</th>
                             <th>Created On</th>
                             <th>Expires</th>
-                            <?php /* <th>Actions</th> */ ?>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($referrals as $referral): 
+                        <?php foreach ($referrals as $referral):
                             $is_expired = $referral->expires_at && strtotime($referral->expires_at) < current_time('timestamp');
                             $status_class = $referral->used ? 'used' : ($is_expired ? 'expired' : 'active');
-                            $delete_nonce = wp_create_nonce('delete_reward_' . $referral->id);
+                            $revert_nonce = wp_create_nonce('revert_reward_' . $referral->id);
+                            $was_consumed = $referral->used || $referral->status === 'partially_used';
                         ?>
                         <?php
                             // First calculate the status
@@ -220,7 +264,16 @@ class FriendBuy_Admin {
                                 ?>
                             </td>
                             <td><?php echo esc_html($referral->friend_email); ?></td>
-                            <td class="editable-date" 
+                            <td>
+                                <?php if (!empty($referral->order_id)): ?>
+                                    <a href="<?php echo esc_url(admin_url('post.php?post=' . intval($referral->order_id) . '&action=edit')); ?>" target="_blank">
+                                        #<?php echo intval($referral->order_id); ?>
+                                    </a>
+                                <?php else: ?>
+                                    &mdash;
+                                <?php endif; ?>
+                            </td>
+                            <td class="editable-date"
                                 data-reward-id="<?php echo $referral->id; ?>"
                                 data-original-date="<?php echo esc_attr($referral->created_on); ?>">
                                 <?php echo date('M j, Y', strtotime($referral->created_on)); ?>
@@ -237,36 +290,25 @@ class FriendBuy_Admin {
                                 }
                                 ?>
                             </td>
-                            <?php /*
                             <td>
                                 <div class="row-actions">
-                                    <?php if (!$referral->used): ?>
-                                        <span class="edit">
-                                            <a href="#" class="edit-date" 
-                                               data-id="<?php echo $referral->id; ?>"
-                                               data-date="<?php echo esc_attr($referral->created_on); ?>">
-                                                Edit Date
-                                            </a> |
+                                    <?php if ($was_consumed): ?>
+                                        <span class="revert">
+                                            <a href="<?php echo esc_url(add_query_arg([
+                                                    'action' => 'revert',
+                                                    'reward_id' => $referral->id,
+                                                    '_wpnonce' => $revert_nonce,
+                                                ])); ?>"
+                                               class="revert-reward"
+                                               onclick="return confirm('Revert this reward to active? This undoes its consumption and, if it was applied to an order, adds a note to that order.');">
+                                                Revert to Active
+                                            </a>
                                         </span>
-                                        <?php if (!$referral->used && $referral->status !== 'partially_used'): ?>
-                                            <span class="mark-used">
-                                                <a href="?page=referral-rewards&action=mark_used&reward_id=<?php echo $referral->id; ?>" 
-                                                onclick="return confirm('Mark this reward as used?')">
-                                                    Mark Used
-                                                </a> |
-                                            </span>
-                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="description">&mdash;</span>
                                     <?php endif; ?>
-                                    <span class="delete">
-                                        <a href="?page=referral-rewards&action=delete&reward_id=<?php echo $referral->id; ?>&_wpnonce=<?php echo $delete_nonce; ?>" 
-                                           class="delete-reward" 
-                                           onclick="return confirm('Are you sure you want to delete this reward? This action cannot be undone.')">
-                                            Delete
-                                        </a>
-                                    </span>
                                 </div>
                             </td>
-                            */ ?>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -326,6 +368,9 @@ class FriendBuy_Admin {
                 }
                 .row-actions .mark-used a {
                     color: #00a32a;
+                }
+                .row-actions .revert a {
+                    color: #2271b1;
                 }
                 tr:hover .row-actions {
                     visibility: visible;
@@ -393,6 +438,27 @@ class FriendBuy_Admin {
             </style>
 
             <script>
+            function friendbuyConfirmBulkAction(form) {
+                var action = form.querySelector('select[name="action"]').value;
+                var checked = form.querySelectorAll('input[name="bulk_delete[]"]:checked').length;
+
+                if (action === '-1') {
+                    alert('Please choose a bulk action.');
+                    return false;
+                }
+                if (checked === 0) {
+                    alert('Please select at least one reward.');
+                    return false;
+                }
+                if (action === 'bulk_revert') {
+                    return confirm('Revert ' + checked + ' reward(s) to active? This undoes their consumption and adds a note to any order they were applied to.');
+                }
+                if (action === 'bulk_delete') {
+                    return confirm('Delete ' + checked + ' reward(s)? This action cannot be undone.');
+                }
+                return true;
+            }
+
             jQuery(document).ready(function($) {
                 var modal = $('#editRewardModal').dialog({
                     autoOpen: false,
