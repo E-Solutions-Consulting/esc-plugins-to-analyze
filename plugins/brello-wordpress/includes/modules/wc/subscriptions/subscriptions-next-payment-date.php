@@ -7,10 +7,14 @@ if ( ! class_exists( 'AH_Subscription_Next_Payment_Date' ) ) {
 
 class AH_Subscription_Next_Payment_Date {
 
+	/** @var AH_Subscription_Next_Payment_Date|null Lets other modules re-apply the rule (e.g. AH_Renewal_Intake_Review). */
+	public static $instance = null;
+
 	private $logger;
 	private $log_context = [ 'source' => 'ah-subscription-next-payment-date' ];
 
 	public function __construct() {
+		self::$instance = $this;
 		$this->logger = wc_get_logger();
 		add_action( 'woocommerce_order_status_completed', [ $this, 'update_on_order_completed' ], 10, 1 );
 		add_action( 'woocommerce_checkout_subscription_created', [ $this, 'set_on_checkout' ], 10, 3 );

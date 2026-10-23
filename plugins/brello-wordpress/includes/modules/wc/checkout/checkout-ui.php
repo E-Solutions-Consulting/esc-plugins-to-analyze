@@ -1039,31 +1039,94 @@ class BH_Checkout_UI {
 			return;
 		}
 
+		// The loader is provisional. It is printed here, in the head, when the order can be
+		// redirected at all (valid key and a Telegra visit link), so the order details never
+		// flash before the redirect. Whether the redirect really happens is only known in the
+		// footer: redirect_tracking_script_footer() removes the loader when it prints no
+		// redirect (WooCommerce can still withhold the thank-you page, e.g. when it asks the
+		// customer to log in) and 10 seconds after a redirect that did not leave the page.
+		global $wp;
+		$order_id = isset( $wp->query_vars['order-received'] ) ? absint( $wp->query_vars['order-received'] ) : 0;
+		$order    = $order_id ? wc_get_order( $order_id ) : false;
+		// The key must be a string: ?key[]=x reaches here as an array.
+		$key      = ( isset( $_GET['key'] ) && is_string( $_GET['key'] ) ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : '';
+
+		if ( ! $order || '' === $key || ! hash_equals( (string) $order->get_order_key(), $key ) || empty( $order->get_meta( 'telemdnow_visit_link', true ) ) ) {
+			return;
+		}
+
 		?>
-		<style>
+		<style id="bh-order-received-loader">
 			body.woocommerce-order-received .page-header .entry-title{display:none;}
 			body.woocommerce-order-received .woocommerce-order{display:none}
-			body.woocommerce-order-received .page-content{min-height:50vh;}
-			body.woocommerce-order-received .page-content{position:relative;display:flex;gap: 1rem;flex-direction:column;align-items: center;justify-content: center;text-align:center;}
-			body.woocommerce-order-received.logged-in .page-content:before {
-				content:"Preparing your order. Please don't close this window...";
+			body.woocommerce-checkout.woocommerce-order-received .woocommerce {
+				position: relative;
+				min-height: 400px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				opacity: 0.8;
+				pointer-events: none;
 			}
-			body.woocommerce-order-received.logged-in .page-content:after {
-				content:"";
-				width: 40px;
-				height: 40px;
-				border: 4px solid #ddd;
-				border-top-color: #333;
-				border-radius: 50%;	
-				animation: telemdnow-spin 1s linear infinite;
+
+			body.woocommerce-checkout.woocommerce-order-received .woocommerce::before {
+				content: "";
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				width: 42px;
+				height: 42px;
+				margin-left: -21px;
+				margin-top: -56px;
+				border: 4px solid #e5e7eb;
+				border-top-color: #29007a;
+				border-radius: 50%;
+				animation: bh-loading-spin 0.8s linear infinite;
+				z-index: 3;
 			}
-			@keyframes telemdnow-spin {
+
+			body.woocommerce-checkout.woocommerce-order-received .woocommerce::after {
+				content: "Please wait, we're preparing everything before redirecting you...";
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50%, 18px);
+				width: min(90%, 420px);
+				text-align: center;
+				font-size: 14px;
+				line-height: 1.5;
+				color: #111827;
+				font-weight: 600;
+				background: rgba(255, 255, 255, 0.9);
+				border: 1px solid rgba(17, 24, 39, 0.08);
+				border-radius: 12px;
+				padding: 12px 16px;
+				box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+				z-index: 4;
+			}
+
+			@keyframes bh-loading-spin {
 				to {
 					transform: rotate(360deg);
 				}
 			}
 
+			@media (min-width: 768px) {
+				body.woocommerce-checkout.woocommerce-order-received .woocommerce {
+					min-height: 600px;
+				}
+			}
 		</style>
+		<?php // The redirect and the removal of the loader both need JavaScript: without it, show the page as it is. ?>
+		<noscript>
+			<style>
+				body.woocommerce-order-received .page-header .entry-title,
+				body.woocommerce-order-received .woocommerce-order{display:block}
+				body.woocommerce-checkout.woocommerce-order-received .woocommerce{display:block;min-height:0;opacity:1;pointer-events:auto}
+				body.woocommerce-checkout.woocommerce-order-received .woocommerce::before,
+				body.woocommerce-checkout.woocommerce-order-received .woocommerce::after{content:none}
+			</style>
+		</noscript>
 		<?php
 
 	}

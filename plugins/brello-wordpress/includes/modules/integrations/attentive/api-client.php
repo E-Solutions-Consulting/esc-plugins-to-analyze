@@ -20,9 +20,17 @@ class BH_Attentive_API_Client {
     private $base_url;
     private $max_retries = 3;
 
-    public function __construct() {
+    /**
+     * @param string|null $api_key_override Use this Bearer token instead of
+     *                                       the general one from Settings —
+     *                                       some endpoints (Product Catalog)
+     *                                       need a separately-scoped key.
+     */
+    public function __construct( $api_key_override = null ) {
         $settings = BH_Attentive_Config::get_settings();
-        $this->api_key = $settings['api_key'];
+        $this->api_key = $api_key_override !== null && $api_key_override !== ''
+            ? $api_key_override
+            : $settings['api_key'];
         $this->base_url = rtrim( $settings['api_base_url'], '/' );
     }
 
@@ -153,8 +161,45 @@ class BH_Attentive_API_Client {
     public function get_subscription_status( $phone ) {
         // Phone must be URL encoded with + as %2B
         $encoded_phone = rawurlencode( $phone );
-        
+
         return $this->make_get_request( '/subscriptions?phone=' . $encoded_phone );
+    }
+
+    /**
+     * Create a product catalog upload session (POST /product-catalog/uploads).
+     * Returns uploadId + a presigned S3 uploadUrl the ndjson file gets PUT to.
+     */
+    public function create_catalog_upload( $validate_only = true ) {
+        return $this->make_post_request( '/product-catalog/uploads', array(
+            'validateOnly' => (bool) $validate_only,
+        ) );
+    }
+
+    /**
+     * Poll a catalog upload's processing result (GET /product-catalog/uploads/{id}).
+     */
+    public function get_catalog_upload( $upload_id ) {
+        return $this->make_get_request( '/product-catalog/uploads/' . rawurlencode( $upload_id ) );
+    }
+
+    /**
+     * PUT the ndjson file to the presigned S3 URL from create_catalog_upload().
+     * Not an Attentive API call — no Bearer auth here. The presigned URL only
+     * signs the `host` header (X-Amz-SignedHeaders=host), so adding
+     * Authorization wouldn't break the signature, but it also isn't S3's
+     * credential — the query string is.
+     */
+    public function upload_catalog_file( $upload_url, $file_contents ) {
+        $args = array(
+            'method'  => 'PUT',
+            'timeout' => 30,
+            'headers' => array(
+                'Content-Type' => 'application/json',
+            ),
+            'body'    => $file_contents,
+        );
+
+        return $this->execute_request( $upload_url, $args );
     }
 
     /**

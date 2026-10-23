@@ -1,5 +1,5 @@
 # INDEX -- brello-wordpress
-# Generated  : 2026-09-18 11:04
+# Generated  : 2026-10-23 15:16
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/brello-wordpress
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress
 #
@@ -11,6 +11,8 @@
 - `admin/partials/bh-features-admin-display.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/admin/partials/bh-features-admin-display.php
 - `admin/partials/template-email-notification.php` -- Template | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/admin/partials/template-email-notification.php
 - `bh-features.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/bh-features.php
+- `compare copy.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/compare copy.php
+- `compare.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/compare.php
 - `includes/class-bh-features-activator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/class-bh-features-activator.php
 - `includes/class-bh-features-common.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/class-bh-features-common.php
 - `includes/class-bh-features-deactivator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/class-bh-features-deactivator.php
@@ -24,16 +26,23 @@
 - `includes/modules/admin/brello-menu-restriction.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/admin/brello-menu-restriction.php
 - `includes/modules/admin/roles-and-permissions.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/admin/roles-and-permissions.php
 - `includes/modules/api/rest-api.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/api/rest-api.php
+- `includes/modules/common/checkout-helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/checkout-helpers.php
 - `includes/modules/common/constants.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/constants.php
 - `includes/modules/common/db-ext.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/db-ext.php
 - `includes/modules/common/helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/helpers.php
 - `includes/modules/common/order-meta.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/order-meta.php
+- `includes/modules/common/settings.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/settings.php
+- `includes/modules/common/state-product-replacement-helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/state-product-replacement-helpers.php
+- `includes/modules/common/telegra-helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/telegra-helpers.php
+- `includes/modules/elementor/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/elementor/loader.php
+- `includes/modules/elementor/specific-product-condition.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/elementor/specific-product-condition.php
 - `includes/modules/integrations/affiliate-pixels/class-bh-affiliate-pixels.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/affiliate-pixels/class-bh-affiliate-pixels.php
 - `includes/modules/integrations/affiliate-pixels/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/affiliate-pixels/loader.php
 - `includes/modules/integrations/affiliate-pixels/registry.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/affiliate-pixels/registry.php
 - `includes/modules/integrations/attentive/admin-retry.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/admin-retry.php
 - `includes/modules/integrations/attentive/api-client.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/api-client.php
 - `includes/modules/integrations/attentive/catalog-feed.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/catalog-feed.php
+- `includes/modules/integrations/attentive/catalog-sync.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/catalog-sync.php
 - `includes/modules/integrations/attentive/config.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/config.php
 - `includes/modules/integrations/attentive/events-log.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/events-log.php
 - `includes/modules/integrations/attentive/field-mapper.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/field-mapper.php
@@ -42,8 +51,10 @@
 - `includes/modules/integrations/attentive/landing-page-form.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/landing-page-form.php
 - `includes/modules/integrations/attentive/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/loader.php
 - `includes/modules/integrations/attentive/logger.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/logger.php
+- `includes/modules/integrations/attentive/purchase-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/purchase-events.php
 - `includes/modules/integrations/attentive/questionnaire-status.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/questionnaire-status.php
 - `includes/modules/integrations/attentive/stripe-events.php` -- Stripe integration | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/stripe-events.php
+- `includes/modules/integrations/attentive/subscription-status-sync.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/subscription-status-sync.php
 - `includes/modules/integrations/attentive/unified-events.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/unified-events.php
 - `includes/modules/integrations/attentive/webhook-handler.php` -- Webhook handler | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/attentive/webhook-handler.php
 - `includes/modules/integrations/everflow/everflow-async-sender.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/integrations/everflow/everflow-async-sender.php
@@ -109,6 +120,8 @@
 - `includes/modules/performance/comments-disabler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/performance/comments-disabler.php
 - `includes/modules/performance/elementor-editor-optimizer.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/performance/elementor-editor-optimizer.php
 - `includes/modules/performance/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/performance/loader.php
+- `includes/modules/shortcodes/delivery-time.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/shortcodes/delivery-time.php
+- `includes/modules/shortcodes/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/shortcodes/loader.php
 - `includes/modules/states/licensed-states/licensed-states-manager.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/licensed-states/licensed-states-manager.php
 - `includes/modules/states/licensed-states/mapdata-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/licensed-states/mapdata-generator.php
 - `includes/modules/states/states-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/states-admin.php
@@ -121,6 +134,8 @@
 - `includes/modules/wc/checkout/bh-phone-standardization.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/bh-phone-standardization.php
 - `includes/modules/wc/checkout/checkout-ui.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/checkout-ui.php
 - `includes/modules/wc/checkout/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/loader.php
+- `includes/modules/wc/checkout/state-product-replacement.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/state-product-replacement.php
+- `includes/modules/wc/checkout/store-api-checkout-validations.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/store-api-checkout-validations.php
 - `includes/modules/wc/coupons/coupon-batch-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/coupon-batch-generator.php
 - `includes/modules/wc/coupons/coupons.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/coupons.php
 - `includes/modules/wc/coupons/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/loader.php
@@ -139,18 +154,31 @@
 - `includes/modules/wc/products/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/loader.php
 - `includes/modules/wc/products/product-export-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/product-export-admin.php
 - `includes/modules/wc/products/products-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/products-admin.php
+- `includes/modules/wc/products/state-replacement-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/state-replacement-admin.php
+- `includes/modules/wc/products/telegra-mapping-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/telegra-mapping-admin.php
+- `includes/modules/wc/subscriptions/admin-product-rules.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/admin-product-rules.php
 - `includes/modules/wc/subscriptions/bh-renewal-endpoint.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/bh-renewal-endpoint.php
 - `includes/modules/wc/subscriptions/early-renewal-handler.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/early-renewal-handler.php
 - `includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals-admin.php
 - `includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/free-renewals/class-ah-free-renewals.php
 - `includes/modules/wc/subscriptions/free-renewals/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/free-renewals/loader.php
 - `includes/modules/wc/subscriptions/renewal-duplicate-guard.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-duplicate-guard.php
+- `includes/modules/wc/subscriptions/renewal-failed-email/class-ah-email-renewal-payment-failed.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-failed-email/class-ah-email-renewal-payment-failed.php
+- `includes/modules/wc/subscriptions/renewal-failed-email/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-failed-email/loader.php
+- `includes/modules/wc/subscriptions/renewal-intake-review.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-intake-review.php
+- `includes/modules/wc/subscriptions/renewal-items-change-flag-backfill.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-items-change-flag-backfill.php
+- `includes/modules/wc/subscriptions/renewal-items-change-flag.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/renewal-items-change-flag.php
+- `includes/modules/wc/subscriptions/review-emails/class-ah-email-renewal-review.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/review-emails/class-ah-email-renewal-review.php
+- `includes/modules/wc/subscriptions/review-emails/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/review-emails/loader.php
+- `includes/modules/wc/subscriptions/review-emails/templates/renewal-review-notice.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/review-emails/templates/renewal-review-notice.php
 - `includes/modules/wc/subscriptions/state-reactivation/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/loader.php
 - `includes/modules/wc/subscriptions/state-reactivation/subscription-state-email.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/subscription-state-email.php
 - `includes/modules/wc/subscriptions/state-reactivation/subscription-state-query.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/subscription-state-query.php
 - `includes/modules/wc/subscriptions/state-reactivation/subscription-state-reactivator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/subscription-state-reactivator.php
 - `includes/modules/wc/subscriptions/state-reactivation/templates/emails/subscription-state-reactivated.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/state-reactivation/templates/emails/subscription-state-reactivated.php
 - `includes/modules/wc/subscriptions/subscriptions-next-payment-date.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/subscriptions-next-payment-date.php
+- `includes/modules/wc/subscriptions/subscription-zero-total-guard.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/subscription-zero-total-guard.php
+- `includes/modules/wc/subscriptions/subscription-zero-total-review.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/subscription-zero-total-review.php
 - `includes/modules/wc/welcome-kit/eligibility.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/welcome-kit/eligibility.php
 - `includes/modules/wc/welcome-kit/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/welcome-kit/loader.php
 - `includes/modules/wc/welcome-kit/order-factory.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/welcome-kit/order-factory.php
@@ -168,8 +196,8 @@
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-brello-wordpress.md
-# Total PHP files indexed : 159
-# Total lines in this file: 167
-# Generated               : 2026-09-18 11:04
+# Total PHP files indexed : 187
+# Total lines in this file: 195
+# Generated               : 2026-10-23 15:16
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

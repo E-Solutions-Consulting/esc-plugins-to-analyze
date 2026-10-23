@@ -31,7 +31,99 @@ class AH_Orders_Telegra_Workflow{
      */
     public function __construct() {
         add_action( 'woocommerce_order_status_changed', [$this, 'update_on_hold_stripe_auth_order_to_telemdnow_status'], 5, 4);
+        // Must run after the Telegra plugin's own sender (priority 10).
+        add_action( 'woocommerce_order_status_changed', [$this, 'flag_order_not_sent_to_telegra'], 20, 4 );
         // add_filter('telegra_should_process_status_update', [$this, 'handle_telegra_status_update'], 10, 2);
+    }
+
+    /**
+     * Move the order to NOT_SENT_TO_TELEGRA when the Telegra plugin tried to
+     * send it and failed.
+     *
+     * The plugin sends synchronously from its own woocommerce_order_status_changed
+     * callback (priority 10) and, on failure, only flags the order with
+     * wp_update_post( 'wc-telemdnow-review' ) — which under HPOS updates the
+     * placeholder post, not the order. So the order stayed in SEND_TO_TELEGRA,
+     * indistinguishable from orders waiting on the patient's intake, until the
+     * Stripe authorization expired 7 days later.
+     *
+     * Failure is detected by `telemdnow_entity_id`, the only meta a created
+     * Telegra order always leaves (on failure the plugin still stores a
+     * fallback `telemdnow_visit_link`, so that one cannot be trusted). The
+     * plugin's own skip conditions are mirrored so orders it never tried to
+     * send are not flagged. The landing async worker (BH_Telegra_Async) is not
+     * changed here: it only runs when bh_is_async_telegra_landing_enabled()
+     * is true, which needs the BH_ASYNC_TELEGRA_LANDING constant or the
+     * bh_async_telegra_landing_enabled filter (both off by default).
+     *
+     * @param int      $order_id
+     * @param string   $old_status
+     * @param string   $new_status
+     * @param WC_Order $order
+     */
+    public function flag_order_not_sent_to_telegra( $order_id, $old_status, $new_status, $order ) {
+
+        if ( ! function_exists( 'send_order_to_telegra' ) ) {
+            return;
+        }
+
+        $trigger_status = get_option( 'telemdnow_trigger_action' );
+        if ( empty( $trigger_status ) || $new_status !== $trigger_status ) {
+            return;
+        }
+
+        // Fresh instance: the plugin saved its meta on its own order object.
+        $order = wc_get_order( $order_id );
+        if ( ! $order || is_a( $order, 'WC_Subscription' ) ) {
+            return;
+        }
+
+        // Something else already moved it on.
+        if ( ! $order->has_status( $trigger_status ) ) {
+            return;
+        }
+
+        // Pre-checkout Telegra orders are skipped by the plugin.
+        if ( get_post_meta( $order_id, 'telemdnow_order_id', true ) || $order->get_meta( 'telemdnow_order_id' ) ) {
+            return;
+        }
+
+        // Sent successfully (now or on an earlier attempt).
+        if ( $order->get_meta( 'telemdnow_entity_id' ) || get_post_meta( $order_id, 'telemdnow_entity_id', true ) ) {
+            return;
+        }
+
+        // The plugin returns early, without error, when no item maps to a Telegra product.
+        if ( ! $this->order_has_telegra_items( $order ) ) {
+            return;
+        }
+
+        $order->update_status(
+            NOT_SENT_TO_TELEGRA,
+            'Telegra did not create this order (see the error note above). Fix the order data and use the "Resend order to Telegra" action.'
+        );
+
+        wc_get_logger()->warning(
+            sprintf( 'Order #%d was not created on Telegra; moved to %s.', $order_id, NOT_SENT_TO_TELEGRA ),
+            [ 'source' => 'ah-telegra-send' ]
+        );
+    }
+
+    /**
+     * Same item filter as send_order_to_telegra(): an item is sent unless its
+     * product/variation is explicitly marked 'no_telemdnow_processing'.
+     *
+     * @param WC_Order $order
+     * @return bool
+     */
+    private function order_has_telegra_items( $order ) {
+        foreach ( $order->get_items() as $item ) {
+            $product_id = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
+            if ( get_post_meta( $product_id, 'telemdnow_product_variation_id', true ) !== 'no_telemdnow_processing' ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

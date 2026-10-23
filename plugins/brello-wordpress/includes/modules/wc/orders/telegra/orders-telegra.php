@@ -70,6 +70,22 @@ if ( ! class_exists( 'AH_Orders_Telegra' ) ) {
                 ]
             );
 
+            // Not Sent to Telegra (the send failed).
+            register_post_status(
+                'wc-' . NOT_SENT_TO_TELEGRA,
+                [
+                    'label'                     => _x( 'Not Sent to Telegra', 'Order status', 'woocommerce' ),
+                    'public'                    => true,
+                    'exclude_from_search'       => false,
+                    'show_in_admin_all_list'    => true,
+                    'show_in_admin_status_list' => true,
+                    'label_count'               => _n_noop(
+                        'Not Sent to Telegra (%s)',
+                        'Not Sent to Telegra (%s)'
+                    ),
+                ]
+            );
+
             // Cancelled – Customer Request.
             register_post_status(
                 'wc-' . CANCEL_CUSTOMER_REQUEST,
@@ -122,7 +138,7 @@ if ( ! class_exists( 'AH_Orders_Telegra' ) ) {
         /**
          * Add custom statuses to WooCommerce status list.
          *
-         * - Insert "Send to Telegra" after "processing".
+         * - Insert "Send to Telegra" and "Not Sent to Telegra" after "processing".
          * - Insert cancelled variants after "cancelled".
          *
          * @param array $order_statuses
@@ -141,6 +157,12 @@ if ( ! class_exists( 'AH_Orders_Telegra' ) ) {
                 if ( 'wc-processing' === $key ) {
                     $new_statuses[ 'wc-' . SEND_TO_TELEGRA ] = _x(
                         'Send to Telegra',
+                        'Order status',
+                        'woocommerce'
+                    );
+
+                    $new_statuses[ 'wc-' . NOT_SENT_TO_TELEGRA ] = _x(
+                        'Not Sent to Telegra',
                         'Order status',
                         'woocommerce'
                     );

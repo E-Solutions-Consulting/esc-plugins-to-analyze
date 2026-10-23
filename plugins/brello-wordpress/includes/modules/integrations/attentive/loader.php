@@ -60,6 +60,7 @@ class BH_Attentive_Loader {
         require_once $base_path . 'events-log.php';
         require_once $base_path . 'questionnaire-status.php';
         require_once $base_path . 'catalog-feed.php';
+        require_once $base_path . 'catalog-sync.php';
         
         // Frontend components
         require_once $base_path . 'frontend-trigger.php';
@@ -75,6 +76,12 @@ class BH_Attentive_Loader {
         
         // Landing page form handler - Elementor form → Attentive
         require_once $base_path . 'landing-page-form.php';
+
+        // Keeps the subscription_status attribute in sync (segment source of truth)
+        require_once $base_path . 'subscription-status-sync.php';
+
+        // Standard ecommerce purchase event — populates "Made a Purchase"
+        require_once $base_path . 'purchase-events.php';
         
         // OLD event trackers - DISABLED (unified-events.php handles everything)
         // require_once $base_path . 'subscription-events.php';
@@ -118,6 +125,18 @@ class BH_Attentive_Loader {
 
         if ( class_exists( 'BH_Attentive_Questionnaire_Status' ) ) {
             new BH_Attentive_Questionnaire_Status();
+        }
+
+        // Keep subscription_status in sync so segments can use the attribute
+        // instead of a rolling SubscriptionStatus_Activated event window.
+        if ( class_exists( 'BH_Attentive_Subscription_Status_Sync' ) ) {
+            new BH_Attentive_Subscription_Status_Sync();
+        }
+
+        // Send the standard purchase event on completed orders (initial + renewals)
+        // so Attentive's "Made a Purchase" activity is populated.
+        if ( class_exists( 'BH_Attentive_Purchase_Events' ) ) {
+            new BH_Attentive_Purchase_Events();
         }
         
         // Initialize Landing Page Form handler (Elementor → Attentive)

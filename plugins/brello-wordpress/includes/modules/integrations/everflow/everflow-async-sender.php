@@ -715,76 +715,20 @@ class AH_Everflow_Async_Sender {
             return false;
         }
 
-        if ( $renewal_order->get_meta( BH_Everflow_Helper::META_EVENT_14_SENT ) ) {
-            $logger->info(
-                sprintf(
-                    'Event 14 skip order %d — already sent (source attempted: %s)',
-                    $renewal_order->get_id(),
-                    $source
-                ),
-                $context
-            );
-            return false;
-        }
-
-        // Prefer TID already on renewal; else copy from parent / resolve cookies.
-        if ( ! BH_Everflow_Helper::get_order_eftid( $renewal_order ) ) {
-            $parent = null;
-            if ( class_exists( 'WC_Subscription' ) && is_a( $subscription, 'WC_Subscription' ) ) {
-                $parent = method_exists( $subscription, 'get_parent' ) ? $subscription->get_parent() : null;
-                if ( ! $parent instanceof WC_Order ) {
-                    $pid    = (int) $subscription->get_parent_id();
-                    $parent = $pid > 0 ? wc_get_order( $pid ) : null;
-                }
-            }
-            $from_parent = ( $parent instanceof WC_Order ) ? BH_Everflow_Helper::get_order_eftid( $parent ) : '';
-            BH_Everflow_Helper::attach_to_order( $renewal_order, $from_parent, 'event_14_' . $source );
-            $renewal_order->save();
-        }
-
-        $eftid = BH_Everflow_Helper::get_order_eftid( $renewal_order );
-        if ( $eftid === '' ) {
-            $logger->warning(
-                'Event 14 skip order ' . $renewal_order->get_id() . ' — no eftid',
-                $context
-            );
-            return false;
-        }
-
-        $amount = (float) $renewal_order->get_total();
-        if ( $amount <= 0 && class_exists( 'WC_Subscription' ) && is_a( $subscription, 'WC_Subscription' ) ) {
-            $amount = (float) $subscription->get_total();
-        }
-
+        // Do not fire renewal conversions until it is confirmed that rebills should pay.
+        // Also avoids cookie/parent TID fallback stamping a stuck test eftid on renewals.
         $logger->info(
             sprintf(
-                'Fire Event 14 (WC Subscription Renewal) order %d via %s (sync)',
+                'Event 14 skip order %d via %s — subscription renewal conversions disabled',
                 $renewal_order->get_id(),
                 $source
             ),
             $context
         );
-
-        try {
-            $this->send_postback(
-                (int) $renewal_order->get_id(),
-                (int) BH_Everflow_Helper::EVENT_SUBSCRIPTION_RENEWAL,
-                $amount
-            );
-        } catch ( Exception $e ) {
-            $logger->error( 'Event 14 failed: ' . $e->getMessage(), $context );
-            $renewal_order->add_order_note( 'Everflow Event 14 (WC Subscription Renewal) FAILED: ' . $e->getMessage() );
-            return false;
-        }
-
-        $renewal_order->update_meta_data( BH_Everflow_Helper::META_EVENT_14_SENT, time() );
-        $renewal_order->update_meta_data( BH_Everflow_Helper::META_EVENT_14_SENT . '_source', sanitize_text_field( $source ) );
-        if ( class_exists( 'WC_Subscription' ) && is_a( $subscription, 'WC_Subscription' ) ) {
-            $renewal_order->update_meta_data( '_ah_everflow_event_14_subscription_id', $subscription->get_id() );
-        }
-        $renewal_order->save_meta_data();
-
-        return true;
+        $renewal_order->add_order_note(
+            'Everflow Event 14 (WC Subscription Renewal) skipped — renewal conversions disabled.'
+        );
+        return false;
     }
 
     /**
@@ -1305,21 +1249,32 @@ class AH_Everflow_Async_Sender {
             return false;
         }
 
-        // Ensure TID on order (cookies/session) before queue.
-        if ( ! BH_Everflow_Helper::get_order_eftid( $order ) ) {
-            BH_Everflow_Helper::attach_to_order( $order, '', $source );
-            $order->save();
-        }
-
-        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
-        if ( ! $eftid ) {
-            $logger->warning(
-                sprintf( 'Event 5 skip order %d via %s — no eftid yet', $order_id, $source ),
+        // Renewals must not fire payable Charge Succeeded (stuck test TID / CPA payouts).
+        if ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order ) ) {
+            $logger->info(
+                sprintf( 'Event 5 skip order %d via %s — subscription renewal', $order_id, $source ),
                 $context
             );
             $order->add_order_note(
                 sprintf(
-                    'Everflow Event 5 (Charge Succeeded) skipped via %s — missing eftid on order. Open with Partner 42 link or set custom field eftid.',
+                    'Everflow Event 5 (Charge Succeeded) skipped via %s — subscription renewal.',
+                    sanitize_key( $source )
+                )
+            );
+            return false;
+        }
+
+        // Only use eftid already on the order. Never fill from cookies/session
+        // (that stamped the Atmospherik test TID onto unrelated renewals/charges).
+        $eftid = BH_Everflow_Helper::get_order_eftid( $order );
+        if ( ! $eftid ) {
+            $logger->warning(
+                sprintf( 'Event 5 skip order %d via %s — no eftid on order meta', $order_id, $source ),
+                $context
+            );
+            $order->add_order_note(
+                sprintf(
+                    'Everflow Event 5 (Charge Succeeded) skipped via %s — missing eftid on order.',
                     sanitize_key( $source )
                 )
             );

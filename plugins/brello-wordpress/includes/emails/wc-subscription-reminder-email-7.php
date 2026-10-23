@@ -18,7 +18,9 @@ class WC_Subscription_Reminder_Email_7 extends WC_Email {
         //$this->template_plain   =   'woocommerce/emails/plain/customer-subscription-reminder.php';
 
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'emails/vendor/autoload.php';
-        $this->resend = Resend::client(RESEND_APIKEY);
+        if ( defined( 'RESEND_APIKEY' ) && RESEND_APIKEY ) {
+            $this->resend = Resend::client(RESEND_APIKEY);
+        }
 
 
         add_filter('woocommerce_subscriptions_email_previewable', '__return_true');
@@ -38,6 +40,8 @@ class WC_Subscription_Reminder_Email_7 extends WC_Email {
         }
 
         if (!$this->object) return false;
+
+        if (!$this->resend) return false;
 
         if($this->object->get_meta('_reminder_email_sent_7')) {
             return false; // Ya se envió este recordatorio

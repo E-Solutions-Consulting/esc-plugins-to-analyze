@@ -44,6 +44,7 @@ class AH_Orders_Admin {
 			'all' => 'All',
 			'pending' => 'Pending payment',
 			'processing' => 'Processing',
+			'not_sent_telegra' => 'Not Sent to Telegra',
 			'send_to_telegra' => 'Send to Telegra',
 			'waiting_room' => 'Waiting Room',
 			'prerequisites' => 'Require Prerequisites',

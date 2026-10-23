@@ -77,6 +77,10 @@ class BH_Attentive_Config {
             ),
             // Catalog Feed — product IDs checked for export to attentive-catalog.ndjson
             'catalog_products'         => array(),
+            // Product Catalog uploads often need a separate, dedicated Bearer
+            // token from Attentive (different scope than the general API
+            // Key above) — falls back to the general key when left empty.
+            'catalog_api_key'          => '',
         );
 
         $saved = get_option( self::OPTION_KEY, array() );
@@ -190,6 +194,7 @@ class BH_Attentive_Config {
         if ( isset( $input['catalog_products'] ) && is_array( $input['catalog_products'] ) ) {
             $sanitized['catalog_products'] = array_values( array_unique( array_filter( array_map( 'absint', $input['catalog_products'] ) ) ) );
         }
+        $sanitized['catalog_api_key'] = sanitize_text_field( $input['catalog_api_key'] ?? '' );
 
         return $sanitized;
     }
@@ -793,6 +798,25 @@ class BH_Attentive_Config {
                         to build the file.
                     </p>
 
+                    <table class="form-table" role="presentation" style="margin-bottom:10px;max-width:640px;">
+                        <tr>
+                            <th scope="row">Catalog API Key</th>
+                            <td>
+                                <input type="password"
+                                       name="<?php echo self::OPTION_KEY; ?>[catalog_api_key]"
+                                       value="<?php echo esc_attr( $settings['catalog_api_key'] ); ?>"
+                                       class="regular-text"
+                                       autocomplete="new-password">
+                                <p class="description">
+                                    Optional — Product Catalog uploads often need a separate Bearer
+                                    token from Attentive (different scope than the general
+                                    <strong>API Key</strong> in the General tab). Leave blank to reuse
+                                    the general key.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+
                     <input type="text" id="bh-catalog-filter" class="regular-text"
                            placeholder="Filter by name, SKU or ID..." style="margin-bottom:10px;max-width:320px;">
 
@@ -984,6 +1008,24 @@ class BH_Attentive_Config {
                             <td><?php echo esc_html( count( $settings['catalog_products'] ) ); ?></td>
                         </tr>
                     </table>
+                </div>
+
+                <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:20px;">
+                    <h3 style="margin-top:0;">Sync to Attentive</h3>
+                    <p class="description">
+                        Uploads <code>attentive-catalog.ndjson</code> to Attentive's Product Catalog
+                        API. <strong>Validate</strong> checks the file for errors without changing
+                        anything live — safe to run as many times as needed.
+                        <strong>Send to Attentive</strong> runs the same check and, if Attentive
+                        accepts it, replaces the live catalog. Always validate first.
+                    </p>
+                    <button type="button" id="bh-catalog-validate" class="button button-secondary">
+                        Validate
+                    </button>
+                    <button type="button" id="bh-catalog-send" class="button button-primary" style="margin-left:8px;">
+                        Send to Attentive
+                    </button>
+                    <div id="bh-catalog-sync-result"></div>
                 </div>
 
             <?php endif; ?>

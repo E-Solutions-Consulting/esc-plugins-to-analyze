@@ -166,7 +166,7 @@ class Bh_Checkout_Validations {
                  JOIN {$wpdb->prefix}wc_order_addresses a ON o.id = a.order_id
                  JOIN {$wpdb->prefix}wc_order_product_lookup opl ON o.id = opl.order_id
                  WHERE 
-                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-send_to_telegra')
+                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-send_to_telegra', 'wc-not_sent_telegra')
                     AND EXISTS (
                         SELECT 1 
                         FROM {$wpdb->prefix}term_relationships tr
@@ -332,7 +332,7 @@ class Bh_Checkout_Validations {
                  JOIN {$wpdb->prefix}wc_order_addresses a ON o.id = a.order_id
                  JOIN {$wpdb->prefix}wc_order_product_lookup opl ON o.id = opl.order_id
                  WHERE 
-                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-send_to_telegra')
+                    o.status IN ('wc-completed', 'wc-processing', 'wc-on-hold', 'wc-send_to_telegra', 'wc-not_sent_telegra')
                     AND EXISTS (
                         SELECT 1 
                         FROM {$wpdb->prefix}term_relationships tr

@@ -59,6 +59,26 @@ class AH_Free_Renewals {
 	const META_PLAN_DURATION = '_bh_plan_duration_days';
 	const META_FREE_DELIVERY = '_bh_free_renewal_delivery';
 
+	/**
+	 * Subscription meta: snapshot of _bh_free_renewals in effect for the
+	 * CURRENT cycle, so deliveries within it count against the cap that was
+	 * live when the cycle started — not whatever the product's config
+	 * happens to be by the time each renewal fires. Written at checkout and
+	 * refreshed every time a new cycle starts. Without this, raising Free
+	 * Renewals on the variation mid-cycle retroactively extends the free
+	 * streak for subscribers already partway through theirs, who never
+	 * opted into the new count. See get_cycle_max() / snapshot_cycle_max().
+	 */
+	const META_CYCLE_MAX_SNAPSHOT = '_bh_free_renewals_cycle_max';
+
+	/**
+	 * Subscription meta: the plan product/variation id META_CYCLE_MAX_SNAPSHOT
+	 * was taken from. A snapshot only applies while the subscription is still
+	 * on that same product — after a product change (switch, admin edit) it's
+	 * stale and the new product's config is snapshotted instead.
+	 */
+	const META_CYCLE_MAX_PRODUCT = '_bh_free_renewals_cycle_product';
+
 	const NON_DELIVERY_STATUSES = [ 'cancelled', 'failed', 'refunded', 'pending-cancel' ];
 
 	private $logger;
@@ -141,7 +161,9 @@ class AH_Free_Renewals {
 			return null;
 		}
 
-		$days = bh_get_renewal_days_for_product( $product ) * ( self::get_free_renewals( $product ) + 1 );
+		// Read-only: this runs while rendering emails, so it must never write the snapshot.
+		$max  = self::get_valid_cycle_max_snapshot( $subscription, $product ) ?? self::get_free_renewals( $product );
+		$days = bh_get_renewal_days_for_product( $product ) * ( $max + 1 );
 
 		return (int) round( $days / 7 );
 	}
@@ -179,29 +201,31 @@ class AH_Free_Renewals {
 	 * @return int
 	 */
 	private static function count_free_deliveries_in_cycle( WC_Subscription $subscription, int $product_id, int $exclude_id = 0 ): int {
-		$deliveries = [];
+		$ids = array_map( 'intval', $subscription->get_related_orders( 'ids', 'renewal' ) );
 
-		foreach ( $subscription->get_related_orders( 'ids', 'renewal' ) as $id ) {
-			$id = (int) $id;
-
-			if ( $exclude_id && $id === $exclude_id ) {
-				continue;
-			}
-
-			$renewal = wc_get_order( $id );
-
-			if ( ! $renewal || in_array( $renewal->get_status(), self::NON_DELIVERY_STATUSES, true ) ) {
-				continue;
-			}
-
-			$deliveries[ $id ] = $renewal;
+		if ( $exclude_id ) {
+			$ids = array_diff( $ids, [ $exclude_id ] );
 		}
 
-		krsort( $deliveries );
+		rsort( $ids ); // Most recent (highest id) first — related orders aren't guaranteed to come back sorted.
 
 		$count = 0;
 
-		foreach ( $deliveries as $renewal ) {
+		foreach ( $ids as $id ) {
+			$renewal = wc_get_order( $id );
+
+			if ( ! $renewal ) {
+				// Orphaned relation — the order behind it was hard-deleted.
+				// Anything further back than this gap can't be trusted to
+				// belong to an unbroken cycle, so stop here instead of
+				// silently walking past a possible boundary.
+				break;
+			}
+
+			if ( in_array( $renewal->get_status(), self::NON_DELIVERY_STATUSES, true ) ) {
+				continue; // Doesn't consume or advance the cycle, but the order still exists — safe to skip.
+			}
+
 			if ( ! self::order_contains_product( $renewal, $product_id ) ) {
 				break; // Different plan product — the current cycle can't extend past a switch.
 			}
@@ -214,6 +238,94 @@ class AH_Free_Renewals {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * The free-renewal cap in effect for the CURRENT cycle, snapshotted on
+	 * the SUBSCRIPTION (not the product) at checkout and refreshed every
+	 * time a new cycle starts — not whatever the product's live config
+	 * happens to be by the time each renewal fires. Without this, an admin
+	 * raising Free Renewals on the variation mid-cycle would retroactively
+	 * extend the free streak for subscribers already partway through their
+	 * cycle, who never opted into the new count.
+	 *
+	 * When there's no usable snapshot — subscriptions created before this
+	 * snapshot existed, checkouts where set_plan_end_on_checkout() never ran
+	 * (e.g. the landing checkout endpoint, whose hook call aborts early), a
+	 * product change, or a corrupted value — the live product config is
+	 * snapshotted right now, so later config changes can't move the cap for
+	 * the rest of this cycle either.
+	 *
+	 * @param WC_Subscription $subscription
+	 * @param WC_Product      $product
+	 * @return int
+	 */
+	private static function get_cycle_max( WC_Subscription $subscription, WC_Product $product ): int {
+		$snapshot = self::get_valid_cycle_max_snapshot( $subscription, $product );
+
+		if ( null !== $snapshot ) {
+			return $snapshot;
+		}
+
+		self::snapshot_cycle_max( $subscription, $product );
+
+		return self::get_free_renewals( $product );
+	}
+
+	/**
+	 * The snapshotted cap, or null when there isn't a usable one: missing,
+	 * not a positive integer, or taken from a different product than the
+	 * subscription's current plan.
+	 *
+	 * @param WC_Subscription $subscription
+	 * @param WC_Product      $product
+	 * @return int|null
+	 */
+	private static function get_valid_cycle_max_snapshot( WC_Subscription $subscription, WC_Product $product ): ?int {
+		$snapshot     = $subscription->get_meta( self::META_CYCLE_MAX_SNAPSHOT );
+		$snap_product = (int) $subscription->get_meta( self::META_CYCLE_MAX_PRODUCT );
+
+		if ( ! is_numeric( $snapshot ) || (int) $snapshot < 1 || $snap_product !== $product->get_id() ) {
+			return null;
+		}
+
+		return (int) $snapshot;
+	}
+
+	/**
+	 * Snapshot the product's current Free Renewals config onto the
+	 * SUBSCRIPTION as the cap for the cycle that's starting now. Called at
+	 * checkout (cycle 1) and every time handle_renewal_order_created()
+	 * decides a renewal is charged, i.e. a new cycle begins.
+	 *
+	 * Persists only the meta: a full save() would also rewrite every date
+	 * from this object, reverting changes other code saved through a
+	 * different instance of the same subscription in the meantime.
+	 *
+	 * @param WC_Subscription $subscription
+	 * @param WC_Product      $product
+	 */
+	private static function snapshot_cycle_max( WC_Subscription $subscription, WC_Product $product ): void {
+		$subscription->update_meta_data( self::META_CYCLE_MAX_SNAPSHOT, self::get_free_renewals( $product ) );
+		$subscription->update_meta_data( self::META_CYCLE_MAX_PRODUCT, $product->get_id() );
+		$subscription->save_meta_data();
+	}
+
+	/**
+	 * Drop the snapshot once the plan has left the free-renewal family, so
+	 * re-enabling it later starts from the config live at that point instead
+	 * of a stale cap.
+	 *
+	 * @param WC_Subscription $subscription
+	 */
+	private static function clear_cycle_max( WC_Subscription $subscription ): void {
+		if ( '' === $subscription->get_meta( self::META_CYCLE_MAX_SNAPSHOT ) ) {
+			return;
+		}
+
+		$subscription->delete_meta_data( self::META_CYCLE_MAX_SNAPSHOT );
+		$subscription->delete_meta_data( self::META_CYCLE_MAX_PRODUCT );
+		$subscription->save_meta_data();
 	}
 
 	/**
@@ -256,27 +368,27 @@ class AH_Free_Renewals {
 	 */
 	private static function has_charged_delivery_for_product( WC_Subscription $subscription, WC_Product $product, int $exclude_id = 0 ): bool {
 		$product_id = $product->get_id();
-		$renewals   = [];
+		$ids        = array_map( 'intval', $subscription->get_related_orders( 'ids', 'renewal' ) );
 
-		foreach ( $subscription->get_related_orders( 'ids', 'renewal' ) as $id ) {
-			$id = (int) $id;
-
-			if ( $exclude_id && $id === $exclude_id ) {
-				continue;
-			}
-
-			$renewal = wc_get_order( $id );
-
-			if ( ! $renewal || in_array( $renewal->get_status(), self::NON_DELIVERY_STATUSES, true ) ) {
-				continue;
-			}
-
-			$renewals[ $id ] = $renewal;
+		if ( $exclude_id ) {
+			$ids = array_diff( $ids, [ $exclude_id ] );
 		}
 
-		krsort( $renewals );
+		rsort( $ids );
 
-		foreach ( $renewals as $renewal ) {
+		foreach ( $ids as $id ) {
+			$renewal = wc_get_order( $id );
+
+			if ( ! $renewal ) {
+				// Orphaned relation — same reasoning as count_free_deliveries_in_cycle():
+				// don't trust anything further back than a hard-deleted order.
+				return false;
+			}
+
+			if ( in_array( $renewal->get_status(), self::NON_DELIVERY_STATUSES, true ) ) {
+				continue;
+			}
+
 			if ( ! self::order_contains_product( $renewal, $product_id ) ) {
 				return false; // Different product most recently — anything before this is stale.
 			}
@@ -373,6 +485,7 @@ class AH_Free_Renewals {
 			$product = self::get_plan_product_from_subscription( $subscription );
 
 			if ( ! $product || ! self::is_free_renewal_plan( $product ) ) {
+				self::clear_cycle_max( $subscription );
 				return $renewal_order;
 			}
 
@@ -393,6 +506,7 @@ class AH_Free_Renewals {
 					return $renewal_order;
 				}
 
+				self::snapshot_cycle_max( $subscription, $product );
 				$renewal_order->add_order_note(
 					__( 'Free-renewal: no prior charge found for this plan on this subscription (e.g. a product change with no checkout/switch charge) — charged normally instead of starting as a free delivery.', 'bh-features' )
 				);
@@ -408,7 +522,7 @@ class AH_Free_Renewals {
 				return $renewal_order;
 			}
 
-			$max         = self::get_free_renewals( $product );
+			$max         = self::get_cycle_max( $subscription, $product );
 			$free_so_far = self::count_free_deliveries_in_cycle( $subscription, $product->get_id(), $renewal_order->get_id() );
 
 			if ( $free_so_far < $max ) {
@@ -430,6 +544,7 @@ class AH_Free_Renewals {
 				// edit) already zeroed this order. Leaving it untagged would make the
 				// next cycle think a real charge happened here and reset around it —
 				// tag it as free so the count stays honest about what was actually paid.
+				// Nothing was charged, so no new cycle starts and the snapshot stays.
 				$this->zero_order( $renewal_order );
 
 				$this->logger->info( sprintf(
@@ -441,6 +556,7 @@ class AH_Free_Renewals {
 				return $renewal_order;
 			}
 
+			self::snapshot_cycle_max( $subscription, $product );
 			$renewal_order->add_order_note(
 				__( 'Free-renewal cycle complete: this delivery is charged normally, and a new free-renewal cycle starts after it.', 'bh-features' )
 			);
@@ -487,6 +603,11 @@ class AH_Free_Renewals {
 			if ( ! $product || ! self::is_free_renewal_plan( $product ) ) {
 				return;
 			}
+
+			// Establishes cycle 1's cap right at checkout, so a mid-cycle
+			// admin change to Free Renewals can't affect it before its
+			// first renewal (a charged renewal) writes its own snapshot.
+			self::snapshot_cycle_max( $subscription, $product );
 
 			$duration = self::get_plan_duration_days( $product );
 

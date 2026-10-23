@@ -95,6 +95,38 @@ class AH_Orders_Telegra_Admin {
         send_order_to_telegra( $order_id );
 
         $logger->info( "send_order_to_telegra() completed for order #{$order_id}.", $context );
+
+        $this->sync_not_sent_status( $order_id );
+    }
+
+    /**
+     * The resend bypasses status changes, so AH_Orders_Telegra_Workflow never
+     * sees its result: move the order in or out of NOT_SENT_TO_TELEGRA here.
+     *
+     * @param int $order_id
+     */
+    private function sync_not_sent_status( $order_id ) {
+        $trigger = get_option( 'telemdnow_trigger_action' );
+        if ( ! defined( 'NOT_SENT_TO_TELEGRA' ) || empty( $trigger ) ) {
+            return;
+        }
+
+        // Fresh instance: the plugin saved its meta on its own order object.
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            return;
+        }
+
+        $sent = $order->get_meta( 'telemdnow_entity_id' ) || get_post_meta( $order_id, 'telemdnow_entity_id', true );
+
+        if ( $sent && $order->has_status( NOT_SENT_TO_TELEGRA ) ) {
+            $order->update_status( $trigger, 'Resent to Telegra successfully.' );
+        } elseif ( ! $sent && $order->has_status( $trigger ) ) {
+            $order->update_status(
+                NOT_SENT_TO_TELEGRA,
+                'Telegra did not create this order (see the error note above). Fix the order data and use the "Resend order to Telegra" action.'
+            );
+        }
     }
 }
 

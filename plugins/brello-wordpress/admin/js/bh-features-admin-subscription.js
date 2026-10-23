@@ -147,31 +147,8 @@
 		}
 		info(months_paused);
 
-	    function restrictSubscriptionFields() {
-		    const allowedIntervals = ['1', '3', '6'];
-
-		    const $periodField = $('#_billing_period');
-		    if ($periodField.length) {
-		        $periodField.find('option').not('[value="month"]').remove();
-
-		        if ($periodField.val() !== 'month') {
-		            $periodField.val('month').trigger('change');
-		        }
-		    }
-
-		    const $intervalField = $('#_billing_interval');
-		    if ($intervalField.length) {
-		        const selector = allowedIntervals.map(value => `[value="${value}"]`).join(', ');
-
-		        $intervalField.find('option').not(selector).remove();
-
-		        if (!allowedIntervals.includes($intervalField.val())) {
-		            $intervalField.val('1').trigger('change');
-		        }
-		    }
-		}
-
-	    restrictSubscriptionFields();
+		// Billing period/interval restriction lives in
+		// bh-features-admin-subscription-billing.js (loaded on every subscription screen).
 
 	});
 

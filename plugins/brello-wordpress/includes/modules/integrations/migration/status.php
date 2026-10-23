@@ -184,6 +184,13 @@ class AH_Migration_Status {
 
         $now = current_time( 'mysql', true );
 
+        // A new cycle: the previous attempt's dates and error stay only in the migration log.
+        if ( self::AVAILABLE === $new_status || self::NOT_AVAILABLE === $new_status ) {
+            delete_user_meta( $user_id, self::META_STARTED_AT );
+            delete_user_meta( $user_id, self::META_COMPLETED_AT );
+            delete_user_meta( $user_id, self::META_ERROR );
+        }
+
         if ( self::MIGRATING === $new_status ) {
             update_user_meta( $user_id, self::META_STARTED_AT, $now );
             delete_user_meta( $user_id, self::META_COMPLETED_AT );

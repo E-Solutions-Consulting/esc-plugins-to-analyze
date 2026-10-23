@@ -1,5 +1,5 @@
 # INDEX -- esc-plugins-to-analyze (Global)
-# Generated : 2026-09-18 11:04
+# Generated : 2026-10-23 15:16
 # Repo      : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze
 #
 # Entry point for Claude.
@@ -45,8 +45,16 @@ esc-plugins-to-analyze/
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-bh-tools.md
 
 ### brello-wordpress
-- PHP files : 159
+- PHP files : 187
 - URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-brello-wordpress.md
+
+### brello-wordpress-part1
+- PHP files : 200
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-brello-wordpress-part1.md
+
+### brello-wordpress-part2
+- PHP files : 4
+- URL       : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/indexes/INDEX-brello-wordpress-part2.md
 
 ### checkout-for-woocommerce-part1
 - PHP files : 200

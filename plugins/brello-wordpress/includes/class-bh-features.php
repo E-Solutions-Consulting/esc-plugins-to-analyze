@@ -309,7 +309,6 @@ class Bh_Features {
 
 		// add_filter('woocommerce_checkout_fields', [ $plugin_public, 'bh_woocommerce_checkout_fields_kl_newsletter_checkbox'], 99999);
 
-		$this->loader->add_action( 'woocommerce_subscription_renewal_payment_failed', $plugin_public, 'woocommerce_subscription_renewal_payment_failed', 10, 2 );
 		
 		add_filter('wcs_renewal_order_created', [$plugin_public, 'validate_previous_order_status_before_renewal'], 10, 2);
 
@@ -386,9 +385,9 @@ class Bh_Features {
 		$this->loader->add_action('wp_footer', $plugin_public, 'wp_footer_print_tracking_thankyou', 100);
 
 		/**
-		 *	Add tracking code fbq to Thankyou Page
+		 *	Meta Pixel removed. Dataset stays in Events Manager.
+		 *	Do not re-enable insert_fbq_tracking_script_footer.
 		 */
-		$this->loader->add_action('wp_footer', $plugin_public, 'insert_fbq_tracking_script_footer', 100);
 		/**
 		 *	Add tracking code vibeq to Thankyou Page
 		 */

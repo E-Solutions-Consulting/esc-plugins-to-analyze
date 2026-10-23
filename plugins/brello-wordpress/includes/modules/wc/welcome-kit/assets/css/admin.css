@@ -14,18 +14,63 @@ body.wp-admin ul.subsubsub li.wc-kit_ready_to_send a {
 }
 
 /* Welcome Kit — Products & Gift Assignment table (settings screen).
- * Unconfigured rows are muted so a long catalog is easy to scan; a row
- * becomes dark + highlighted the moment it's actually checked in the map. */
-table.welcome-kit .ah-wk-name {color: #8c8f94;}
-table.welcome-kit .ah-wk-row--active .ah-wk-name {color: #1d2327;}
-table.welcome-kit .ah-wk-row--active {background-color: #eef7ee;}
-table.welcome-kit .ah-wk-id {background: none;}
+ * Full-width, neutral palette; unconfigured rows are muted so a long catalog
+ * is easy to scan, and a checked row gets a blue accent on its left edge. */
+.ah-wk-section {margin-top: 24px; padding-top: 20px; border-top: 1px solid #dcdcde;}
+.ah-wk-section__header {display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px;}
+.ah-wk-section__title {margin: 0; padding: 0 !important; font-size: 15px; font-weight: 600; color: #1d2327;}
+.ah-wk-section__count {padding: 2px 8px; border-radius: 10px; background: #f0f6fc; color: #2271b1; font-size: 12px; font-weight: 500;}
+.ah-wk-section > .description {max-width: 900px; margin: 4px 0 14px; color: #646970;}
+
+table.welcome-kit {width: 100%; table-layout: auto; border: 1px solid #dcdcde; border-radius: 4px; border-collapse: separate; border-spacing: 0; box-shadow: none; overflow: hidden;}
+table.welcome-kit thead th {padding: 10px 12px; background: #f6f7f7; border-bottom: 1px solid #dcdcde; color: #50575e; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;}
+table.welcome-kit tbody td {padding: 8px 12px; border-bottom: 1px solid #f0f0f1; vertical-align: middle; color: #8c8f94;}
+table.welcome-kit tbody tr:last-child td {border-bottom: 0;}
+table.welcome-kit tbody tr:hover td {background: #f9f9f9;}
+
+/* Column sizing: the product name takes the free space, gift is capped so the headers stay on one line. */
+table.welcome-kit .ah-wk-check {width: 72px; text-align: center;}
+table.welcome-kit .ah-wk-gift {width: 26%;}
+table.welcome-kit .ah-wk-status,
+table.welcome-kit .ah-wk-delay {width: 15%;}
+table.welcome-kit select {width: 100%; max-width: 100%;}
+table.welcome-kit td.ah-wk-check input[type="checkbox"] {margin: 0;}
+
+/* Product / variation names. */
+table.welcome-kit .ah-wk-id {display: inline-block; min-width: 56px; margin-right: 8px; color: #a7aaad; font-family: Menlo, Consolas, monospace; font-size: 12px;}
+table.welcome-kit .ah-wk-tag {margin-left: 6px; padding: 1px 6px; border: 1px solid #dcdcde; border-radius: 3px; color: #646970; font-size: 11px;}
+table.welcome-kit .ah-wk-row--parent td,
+table.welcome-kit .ah-wk-row--simple td {border-top: 1px solid #e0e0e0;}
+table.welcome-kit .ah-wk-row--parent .ah-wk-name,
+table.welcome-kit .ah-wk-row--simple .ah-wk-name {color: #50575e; font-weight: 500;}
+table.welcome-kit .ah-wk-indent {padding-left: 28px;}
+table.welcome-kit .ah-wk-branch {margin-right: 6px; color: #c3c4c7;}
+
+/* Configured (checked) rows. */
+table.welcome-kit .ah-wk-row--active td {background: #f6fafd;}
+table.welcome-kit .ah-wk-row--active td:first-child {box-shadow: inset 3px 0 0 #2271b1;}
+table.welcome-kit .ah-wk-row--active .ah-wk-name {color: #1d2327; font-weight: 600;}
 table.welcome-kit .ah-wk-row--active .ah-wk-id {color: #646970;}
-/* Variation rows read as a sub-list under their parent product. */
-table.welcome-kit .ah-wk-indent {padding-left: 2em !important;}
-table.welcome-kit thead > tr > th:not(:first-child) {width: 45%;}
-table.welcome-kit tr > td{color:#777;}
-table.welcome-kit tr > td:first-child {padding-left: 25px;}
-table.welcome-kit thead > tr > th:first-child{padding-left:10px !important;}
-table.welcome-kit tbody > tr > td.ah-wk-indent:first-child {padding-right:0;text-align: right;}
-table.welcome-kit tr.ah-wk-row.ah-wk-row--active > td.ah-wk-name {color: #000;font-weight: 500;}
+
+/* Welcome Kit order notes (parent order, subscription and kit order): brand
+ * purple accent + gift icon, so kit activity stands out in the notes box.
+ * The id + extra classes out-rank the generic system-note background set in
+ * wc/orders/assets/css/admin.css. */
+#woocommerce-order-notes ul.order_notes li.note.ah-wk-note:not(.customer-note) .note_content {
+    position: relative;
+    padding-left: 25px;
+    background-color: #f6f7f7;
+    border-color: #ddd3ee;
+}
+#woocommerce-order-notes ul.order_notes li.note.ah-wk-note .note_content:before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 8px;
+    width: 20px;
+    height: 20px;
+    background-color: #1f025a;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='8' width='18' height='4' rx='1'/%3E%3Cpath d='M12 8v13'/%3E%3Cpath d='M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7'/%3E%3Cpath d='M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='8' width='18' height='4' rx='1'/%3E%3Cpath d='M12 8v13'/%3E%3Cpath d='M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7'/%3E%3Cpath d='M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#woocommerce-order-notes ul.order_notes li.note.ah-wk-note .note_content a {color: inherit;font-weight: 500;}

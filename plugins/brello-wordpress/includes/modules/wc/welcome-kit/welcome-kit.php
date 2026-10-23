@@ -5,8 +5,30 @@ class AH_Welcome_Kit {
 
     public function __construct() {
         add_action( 'woocommerce_order_status_completed', [ $this, 'handle_completed_order' ], 10, 1 );
-        add_action( 'ah_welcome_kit_process_scheduled', [ $this, 'create_kit_order' ], 10, 1 );
+        add_action( 'ah_welcome_kit_process_scheduled', [ $this, 'create_kit_order' ], 10, 2 );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_styles' ] );
+        add_filter( 'woocommerce_order_note_class', [ $this, 'add_note_class' ], 10, 2 );
+    }
+
+    /**
+     * Tags Welcome Kit notes (parent order, subscription and kit order) so
+     * they get their own style + gift icon in the order notes box. Matched by
+     * content because every note this module writes starts with "Welcome Kit".
+     *
+     * @param string[] $classes
+     * @param object   $note    As returned by wc_get_order_notes().
+     */
+    public function add_note_class( $classes, $note ) {
+        $content = isset( $note->content ) ? trim( (string) $note->content ) : '';
+
+        if (
+            $content !== ''
+            && stripos( $content, 'Welcome Kit' ) === 0
+            && ! preg_match( '/^Welcome Kit order .* scheduled to be created on /i', $content )
+        ) {
+            $classes[] = 'ah-wk-note';
+        }
+        return $classes;
     }
 
     /**
@@ -14,10 +36,15 @@ class AH_Welcome_Kit {
      *
      * A lock guards against duplicate processing, since
      * woocommerce_order_status_completed can fire more than once for the same
-     * order. The persistent _welcome_kit_created flag is the definitive
-     * safety net for late re-fires. If a delay is configured, the kit order
-     * is not created here — a WP-Cron event is scheduled instead, and
-     * create_kit_order() does the actual work when it fires.
+     * order. The persistent kit plan / _welcome_kit_created flag are the
+     * definitive safety net for late re-fires.
+     *
+     * The matched gifts are split into groups by their effective status and
+     * delay (each gift row can override both), and each group becomes its own
+     * kit order: created right away when its delay is zero, or scheduled via
+     * Action Scheduler otherwise. The plan is frozen on the order at this
+     * point, so a delayed kit ships what was configured when the order
+     * completed, even if the settings change in the meantime.
      */
     public function handle_completed_order( int $order_id ): void {
         $order = wc_get_order( $order_id );
@@ -31,17 +58,40 @@ class AH_Welcome_Kit {
             $eligibility = new AH_Welcome_Kit_Eligibility( $order );
             if ( ! $eligibility->passes() ) return;
 
-            $delay = $this->get_schedule_delay();
+            $plan = $this->build_plan( $eligibility );
+            if ( empty( $plan ) ) return;
 
-            if ( $delay > 0 ) {
-                $this->schedule_kit_order( $order, $delay );
-                return;
+            $order->update_meta_data( '_welcome_kit_plan', $plan );
+            $order->save();
+
+            // Same $order instance throughout, so each step reads the plan
+            // as the previous step left it (a fresh wc_get_order() copy
+            // could save a stale plan over it).
+            foreach ( $plan as $group_key => $group ) {
+                if ( $group['delay'] > 0 ) {
+                    $this->schedule_kit_order( $order, (string) $group_key, $group['delay'] );
+                } else {
+                    $this->create_group_kit_order( $order, (string) $group_key );
+                }
             }
-
-            $this->create_kit_order( $order_id );
         } finally {
             delete_transient( $lock_key );
         }
+    }
+
+    /**
+     * Kit plan for an order: one entry per kit order to create, keyed by
+     * group key, with the kit order ID filled in once it's created.
+     *
+     * @return array<string,array{status:string,delay:int,gifts:int[],kit_order_id:int}>
+     */
+    private function build_plan( AH_Welcome_Kit_Eligibility $eligibility ): array {
+        $plan = [];
+        foreach ( $eligibility->resolve_kit_groups() as $group_key => $group ) {
+            $group['kit_order_id'] = 0;
+            $plan[ $group_key ]    = $group;
+        }
+        return $plan;
     }
 
     /**
@@ -72,23 +122,25 @@ class AH_Welcome_Kit {
      * Uses Action Scheduler (not WP-Cron) so the scheduled action is written to
      * its own row, avoiding the serialized `cron` option that failed to persist
      * on the order-completion request in production. Guards against scheduling
-     * the same order twice, and only writes the note/meta if scheduling actually
-     * succeeded, so the order note can no longer report a schedule that was lost.
+     * the same order/group twice, and only writes the note/plan if scheduling
+     * actually succeeded, so the order note can no longer report a schedule
+     * that was lost.
      */
-    private function schedule_kit_order( WC_Order $order, int $delay ): void {
+    private function schedule_kit_order( WC_Order $order, string $group_key, int $delay ): void {
         $order_id = $order->get_id();
         $logger   = wc_get_logger();
+        $args     = [ $order_id, $group_key ];
 
-        // Idempotency guard: bail if a pending action already exists for this order.
+        // Idempotency guard: bail if a pending action already exists for this order/group.
         $existing = as_get_scheduled_actions( [
             'hook'   => 'ah_welcome_kit_process_scheduled',
-            'args'   => [ $order_id ],
+            'args'   => $args,
             'status' => \ActionScheduler_Store::STATUS_PENDING,
         ], 'ids' );
 
         if ( ! empty( $existing ) ) {
             $logger->info(
-                sprintf( 'Schedule skipped for order %d — pending action already exists (action_id %d).', $order_id, (int) reset( $existing ) ),
+                sprintf( 'Schedule skipped for order %d, group %s — pending action already exists (action_id %d).', $order_id, $group_key, (int) reset( $existing ) ),
                 [ 'source' => 'welcome-kit' ]
             );
             return;
@@ -99,25 +151,33 @@ class AH_Welcome_Kit {
         $action_id = as_schedule_single_action(
             $timestamp,
             'ah_welcome_kit_process_scheduled',
-            [ $order_id ],
+            $args,
             'welcome-kit'
         );
 
         // as_schedule_single_action() returns the action ID (int > 0) on success,
-        // or 0 on failure. Do not write the note/meta unless scheduling succeeded,
+        // or 0 on failure. Do not write the note/plan unless scheduling succeeded,
         // otherwise the order note would claim a schedule that does not exist.
         if ( ! $action_id ) {
             $logger->error(
-                sprintf( 'Failed to schedule kit order for order %d.', $order_id ),
+                sprintf( 'Failed to schedule kit order for order %d, group %s.', $order_id, $group_key ),
                 [ 'source' => 'welcome-kit' ]
             );
             return;
         }
 
+        $plan = (array) $order->get_meta( '_welcome_kit_plan' );
+        $plan[ $group_key ]['scheduled_for'] = $timestamp;
+        $plan[ $group_key ]['action_id']     = $action_id;
+        $order->update_meta_data( '_welcome_kit_plan', $plan );
         $order->update_meta_data( '_welcome_kit_scheduled_for', $timestamp );
-        $order->update_meta_data( '_welcome_kit_scheduled_action_id', $action_id );
         $order->add_order_note(
-            sprintf( 'Welcome Kit order scheduled to be created on %s.', date_i18n( 'Y-m-d H:i', $timestamp ) ),
+            sprintf(
+                'Welcome Kit order (%s) scheduled to be created on %s with status "%s".',
+                self::gift_names( $plan[ $group_key ]['gifts'] ?? [] ),
+                date_i18n( 'Y-m-d H:i', $timestamp ),
+                self::status_label( $plan[ $group_key ]['status'] ?? '' )
+            ),
             false,
             false
         );
@@ -125,8 +185,9 @@ class AH_Welcome_Kit {
 
         $logger->info(
             sprintf(
-                'Kit order scheduled for order %d — action_id %d, runs at %s GMT (delay %ds).',
+                'Kit order scheduled for order %d, group %s — action_id %d, runs at %s GMT (delay %ds).',
                 $order_id,
+                $group_key,
                 $action_id,
                 gmdate( 'Y-m-d H:i:s', $timestamp ),
                 $delay
@@ -183,16 +244,19 @@ class AH_Welcome_Kit {
     }
 
     /**
-     * Creates the welcome kit order for a given order ID.
+     * Creates one welcome kit order (one group of the order's kit plan).
      *
-     * Called either immediately (no delay configured) or as the Action Scheduler
-     * callback for a previously scheduled order.
+     * Called either immediately (group with no delay) or as the Action
+     * Scheduler callback for a previously scheduled group. An empty group key
+     * comes from an action scheduled by the previous version (args were just
+     * [ order_id ]): in that case every pending group is created now, since
+     * that action already waited out its delay.
      */
-    public function create_kit_order( int $order_id ): void {
+    public function create_kit_order( int $order_id, string $group_key = '' ): void {
         $logger = wc_get_logger();
 
         $logger->info(
-            sprintf( 'Processing kit order creation for order %d.', $order_id ),
+            sprintf( 'Processing kit order creation for order %d%s.', $order_id, $group_key !== '' ? ", group {$group_key}" : '' ),
             [ 'source' => 'welcome-kit' ]
         );
 
@@ -224,28 +288,96 @@ class AH_Welcome_Kit {
             return;
         }
 
-        $gift_products = $this->resolve_gift_products( $order );
-        if ( empty( $gift_products ) ) {
+        $plan = $order->get_meta( '_welcome_kit_plan' );
+        if ( ! is_array( $plan ) || empty( $plan ) ) {
+            $plan = $this->build_plan( new AH_Welcome_Kit_Eligibility( $order ) );
+            if ( empty( $plan ) ) {
+                $logger->error(
+                    sprintf( 'Processing aborted for order %d — no gift product resolved.', $order_id ),
+                    [ 'source' => 'welcome-kit' ]
+                );
+                return;
+            }
+            $order->update_meta_data( '_welcome_kit_plan', $plan );
+            $order->save();
+        }
+
+        if ( $group_key === '' ) {
+            foreach ( array_keys( $plan ) as $key ) {
+                $this->create_group_kit_order( $order, (string) $key );
+            }
+            return;
+        }
+
+        if ( ! isset( $plan[ $group_key ] ) ) {
             $logger->error(
-                sprintf( 'Processing aborted for order %d — no gift product resolved.', $order_id ),
+                sprintf( 'Processing aborted for order %d — group %s not found in kit plan.', $order_id, $group_key ),
                 [ 'source' => 'welcome-kit' ]
             );
             return;
         }
 
-        $factory   = new AH_Welcome_Kit_Order_Factory( $order, $gift_products );
+        $this->create_group_kit_order( $order, $group_key );
+    }
+
+    /**
+     * Creates the kit order for one plan group, records it on the plan, and
+     * sets the _welcome_kit_created flag once every group has its kit order.
+     */
+    private function create_group_kit_order( WC_Order $order, string $group_key ): void {
+        $logger   = wc_get_logger();
+        $order_id = $order->get_id();
+
+        $plan  = (array) $order->get_meta( '_welcome_kit_plan' );
+        $group = $plan[ $group_key ] ?? null;
+        if ( ! $group ) return;
+
+        if ( ! empty( $group['kit_order_id'] ) ) {
+            $logger->info(
+                sprintf( 'Processing skipped for order %d, group %s — kit already created (kit order %d).', $order_id, $group_key, $group['kit_order_id'] ),
+                [ 'source' => 'welcome-kit' ]
+            );
+            return;
+        }
+
+        $gift_products = [];
+        foreach ( (array) ( $group['gifts'] ?? [] ) as $gift_id ) {
+            $product = wc_get_product( $gift_id );
+            if ( $product ) {
+                $gift_products[] = $product;
+            }
+        }
+
+        if ( empty( $gift_products ) ) {
+            $logger->error(
+                sprintf( 'Processing aborted for order %d, group %s — no gift product resolved.', $order_id, $group_key ),
+                [ 'source' => 'welcome-kit' ]
+            );
+            return;
+        }
+
+        $factory   = new AH_Welcome_Kit_Order_Factory( $order, $gift_products, (string) ( $group['status'] ?? '' ) );
         $kit_order = $factory->create();
 
         if ( is_wp_error( $kit_order ) ) {
             $logger->error(
-                sprintf( 'Failed to create kit order for order %d: %s', $order_id, $kit_order->get_error_message() ),
+                sprintf( 'Failed to create kit order for order %d, group %s: %s', $order_id, $group_key, $kit_order->get_error_message() ),
                 [ 'source' => 'welcome-kit' ]
             );
             return;
         }
 
-        $order->update_meta_data( '_welcome_kit_created', true );
-        $order->update_meta_data( '_welcome_kit_order_id', $kit_order->get_id() );
+        $plan[ $group_key ]['kit_order_id'] = $kit_order->get_id();
+        $order->update_meta_data( '_welcome_kit_plan', $plan );
+
+        $kit_order_ids = array_filter( array_map( 'intval', array_column( $plan, 'kit_order_id' ) ) );
+        if ( ! $order->get_meta( '_welcome_kit_order_id' ) ) {
+            $order->update_meta_data( '_welcome_kit_order_id', $kit_order->get_id() );
+        }
+        if ( count( $kit_order_ids ) === count( $plan ) ) {
+            $order->update_meta_data( '_welcome_kit_created', true );
+        }
+
         $order->add_order_note(
             sprintf( 'Welcome Kit order %s created automatically.', self::order_link( $kit_order->get_id(), $kit_order ) ),
             false,
@@ -268,8 +400,9 @@ class AH_Welcome_Kit {
 
         $logger->info(
             sprintf(
-                'Kit order created for order %d — kit order #%d, %d parent subscription(s) noted.',
+                'Kit order created for order %d, group %s — kit order #%d, %d parent subscription(s) noted.',
                 $order_id,
+                $group_key,
                 $kit_order->get_id(),
                 count( $subscriptions )
             ),
@@ -280,41 +413,73 @@ class AH_Welcome_Kit {
     }
 
     /**
-     * Resolves the gift product(s) to put in the kit order, based on which
-     * of the parent order's items matched a trigger product/variation (see
-     * AH_Welcome_Kit_Eligibility::resolve_gift_product_ids()).
+     * Statuses a kit order can be created with.
      *
-     * @return WC_Product[]
+     * @return array<string,string> slug => label
      */
-    private function resolve_gift_products( WC_Order $order ): array {
-        $eligibility = new AH_Welcome_Kit_Eligibility( $order );
-
-        $gift_products = [];
-        foreach ( $eligibility->resolve_gift_product_ids() as $gift_id ) {
-            $product = wc_get_product( $gift_id );
-            if ( $product ) {
-                $gift_products[] = $product;
-            }
-        }
-
-        return $gift_products;
+    public static function status_options(): array {
+        return [
+            KIT_READY_TO_SEND => 'Kit Ready to Send',
+            'processing'      => 'Processing',
+            'completed'       => 'Completed',
+        ];
     }
 
     /**
-     * Delay in seconds before the kit order is created, based on the
-     * configured schedule option. Zero means immediate (current behavior).
+     * Send schedules, relative to the parent order reaching "completed".
+     *
+     * @return array<string,array{label:string,delay:int}> slug => label + delay in seconds
      */
-    private function get_schedule_delay(): int {
-        $schedule = get_option( 'ah_welcome_kit_schedule', 'immediate' );
-
-        $map = [
-            '1_day'  => DAY_IN_SECONDS,
-            '2_day'  => 2 * DAY_IN_SECONDS,
-            '1_week' => WEEK_IN_SECONDS,
-            '2_week' => 2 * WEEK_IN_SECONDS,
+    public static function schedule_options(): array {
+        return [
+            'immediate' => [ 'label' => 'Immediately', 'delay' => 0 ],
+            '1_day'     => [ 'label' => '1 day after', 'delay' => DAY_IN_SECONDS ],
+            '2_day'     => [ 'label' => '2 days after', 'delay' => 2 * DAY_IN_SECONDS ],
+            '1_week'    => [ 'label' => '1 week after', 'delay' => WEEK_IN_SECONDS ],
+            '2_week'    => [ 'label' => '2 weeks after', 'delay' => 2 * WEEK_IN_SECONDS ],
         ];
+    }
 
-        return $map[ $schedule ] ?? 0;
+    public static function get_default_status(): string {
+        $status = (string) get_option( 'ah_welcome_kit_default_status', KIT_READY_TO_SEND );
+        return isset( self::status_options()[ $status ] ) ? $status : KIT_READY_TO_SEND;
+    }
+
+    public static function get_default_schedule(): string {
+        $schedule = (string) get_option( 'ah_welcome_kit_schedule', 'immediate' );
+        return isset( self::schedule_options()[ $schedule ] ) ? $schedule : 'immediate';
+    }
+
+    /**
+     * Delay in seconds for a schedule slug. Zero means immediate.
+     */
+    public static function schedule_to_delay( string $schedule ): int {
+        return self::schedule_options()[ $schedule ]['delay'] ?? 0;
+    }
+
+    /**
+     * Identifies a kit order group (same status + same delay) within an order.
+     */
+    public static function group_key( string $status, int $delay ): string {
+        return $status . '|' . $delay;
+    }
+
+    private static function status_label( string $status ): string {
+        return self::status_options()[ $status ] ?? $status;
+    }
+
+    /**
+     * Comma-separated gift product names, for order notes.
+     *
+     * @param int[] $gift_ids
+     */
+    private static function gift_names( array $gift_ids ): string {
+        $names = [];
+        foreach ( $gift_ids as $gift_id ) {
+            $product = wc_get_product( $gift_id );
+            $names[] = $product ? $product->get_name() : "#{$gift_id}";
+        }
+        return implode( ', ', $names );
     }
 
     /**

@@ -20,7 +20,7 @@
  *   admin_review, provider_review, collect_payment,
  *   fulfillment, completed                          → completed
  *   cancelled, failed, refunded, trash, cancel_*   → cancelled
- *   on-hold, pending                                → ignored
+ *   on-hold, pending, not_sent_telegra              → ignored
  *
  * @package    BH_Features
  * @subpackage Integrations/Attentive
@@ -99,6 +99,7 @@ class BH_Attentive_Questionnaire_Status {
     const IGNORE_STATUSES = [
         'on-hold',
         'pending',
+        NOT_SENT_TO_TELEGRA,
     ];
 
     // =========================================================================

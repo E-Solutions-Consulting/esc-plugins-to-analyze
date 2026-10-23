@@ -1226,7 +1226,7 @@ class Bh_Features_Public {
 			}
 			echo $output;
 			echo '</script>';
-			wp_enqueue_script( 'bh-features-admin-subscription-script', plugin_dir_url( __DIR__ ) . 'admin/js/bh-features-admin-subscription.js', array( 'jquery' ), $this->version, true );
+			wp_enqueue_script( 'bh-features-admin-subscription-script', plugin_dir_url( __DIR__ ) . 'admin/js/bh-features-admin-subscription.js', array( 'jquery' ), (string) filemtime( plugin_dir_path( __DIR__ ) . 'admin/js/bh-features-admin-subscription.js' ), true );
 		}
 	}
 
@@ -1366,47 +1366,6 @@ class Bh_Features_Public {
 		return $fields;
 	}
 
-	function woocommerce_subscription_renewal_payment_failed($subscription, $renewal_order){
-		global $email_sent_to_order;
-		if($email_sent_to_order==$renewal_order->get_id())
-			return ;
-
-		if($renewal_order instanceof WC_Order){
-			if(wcs_order_contains_renewal($renewal_order)){
-				$customer_email	=	$renewal_order->get_billing_email();
-				$subject		=	'Action Required: Update Your Payment Your Renewal Failed';
-				$my_account_url	=	get_permalink( get_option('woocommerce_myaccount_page_id') );
-				$name			=	$renewal_order->get_billing_first_name();
-				$message		=	<<<EOD
-				<p>Hi {$name},</p>
-				<p>We weren’t able to process your renewal order payment. To ensure uninterrupted access to your subscription, please update your payment details.</p>
-				<p>👉 <a href="{$my_account_url}">[Log in to your account]</a></p>
-
-				<p><strong>How to update your payment method:</strong></p>
-				<ol>
-					<li>Go to <strong>Payment Methods</strong> in the left menu and add your new payment details.</li>
-					<li>Navigate to <strong>My Subscription</strong>.</li>
-					<li>Under <strong>Actions</strong>, select <strong>Change Payment</strong> to confirm your update.</li>
-				</ol>
-				<p>If you need help at any point, our support team is here for you—just reply to this email. 😊</p>
-				<p>Once your payment information is updated, let us know so we can help process your order.</p>
-				<p>Thank you for being part of the Brello community!</p>
-				EOD;
-
-				if(function_exists('the_custom_logo')){
-					$message	=	'<div style=\'line-height: 150%; text-align: left; font-size: 14px; font-family: "Helvetica Neue",Helvetica,Roboto,Arial,sans-serif; color: #737373;\'>' .	get_custom_logo() . $message . '</div>';
-				}
-
-				$headers	=	['Content-Type: text/html; charset=UTF-8'];
-				wp_mail($customer_email, $subject, $message, $headers);
-				$email_sent_to_order	=	$renewal_order->get_id();
-			}
-			
-
-		}
-
-	}
-
 	function validate_previous_order_status_before_renewal($renewal_order, $subscription) {
 		if(isset($_REQUEST['wc_order_action']) && $_REQUEST['wc_order_action']=='wcs_process_renewal'){
 			return $renewal_order;
@@ -1415,10 +1374,21 @@ class Bh_Features_Public {
 		if (!is_a($renewal_order, 'WC_Order') || !is_a($subscription, 'WC_Subscription')) {
 			return $renewal_order;
 		}
-		$orders = $subscription->get_related_orders('all', 'renewal');
-		if (empty($orders)) {
+
+		if ($renewal_order->has_status(['cancelled', 'trash'])) {
+			// Already cancelled by AH_Renewal_Duplicate_Guard (priority 5,
+			// ahead of this) or anything else. Its relation to the
+			// subscription is also already deleted at this point, so
+			// get_related_orders() below would no longer contain it —
+			// the "find the order right before this one" loop then never
+			// matches $last_order_id and silently misattributes some
+			// unrelated order as "the previous one", which can cascade
+			// into cancelling the wrong order/subscription. Nothing left
+			// to validate for an order that's already cancelled.
 			return $renewal_order;
 		}
+
+		$orders = $subscription->get_related_orders('all', 'renewal');
 		usort($orders, function($a, $b) {
 			$order_a = wc_get_order($a);
 			$order_b = wc_get_order($b);
@@ -1432,15 +1402,59 @@ class Bh_Features_Public {
 			if ($order_id == $last_order_id) {
 				break;
 			}
+			if ( class_exists( 'AH_Renewal_Intake_Review' ) && AH_Renewal_Intake_Review::is_parked_renewal( $order ) ) {
+				// Cancelled only because the subscription was sent to review —
+				// never a delivery. The order the review was about stays the
+				// "previous" one, so a reactivated subscription can renew.
+				continue;
+			}
 			$previous_order = wc_get_order($order_id);
 		}
 
 		if (!$previous_order || !is_a($previous_order, 'WC_Order')) {
-			return $renewal_order;
+			// First renewal: fall back to the parent order, but ONLY when it
+			// never left the intake/fulfilment pipeline (the patient never
+			// received anything) — that case goes to review below. A parent
+			// that is cancelled/refunded/failed says nothing reliable about
+			// this subscription (re-created subscriptions whose parent is an
+			// old renewal, refunds issued after delivery, blackout
+			// cancellations...), so the first renewal proceeds as before.
+			$parent = $subscription->get_parent();
+			$not_pipeline = [
+				'completed', 'pending', 'failed', 'cancelled', 'refunded', 'checkout-draft', 'trash',
+				CANCEL_CUSTOMER_REQUEST, CANCEL_AUTHORIZATION_EXPIRED, CANCEL_PATIENT_REJECTED,
+			];
+
+			if ( ! $parent instanceof WC_Order || $parent->has_status( $not_pipeline ) ) {
+				return $renewal_order;
+			}
+
+			$previous_order = $parent;
 		}
 
 		$previous_order_status = $previous_order->get_status();
-		if ($previous_order_status !== 'completed') {
+
+		// Lets other modules waive this check for a single renewal — e.g.
+		// AH_Renewal_Items_Change_Flag, when CS changed the subscription's
+		// products after the previous order was created.
+		if ( apply_filters( 'ah_skip_previous_order_validation', false, $previous_order, $renewal_order, $subscription ) ) {
+			return $renewal_order;
+		}
+
+		// Genuine failures: the previous order was never going to be
+		// fulfilled no matter how long it sat there. Cancel outright, same
+		// as always.
+		$blocking_statuses = [
+			'pending',
+			'failed',
+			'cancelled',
+			'refunded',
+			CANCEL_CUSTOMER_REQUEST,
+			CANCEL_AUTHORIZATION_EXPIRED,
+			CANCEL_PATIENT_REJECTED,
+		];
+
+		if ( in_array( $previous_order_status, $blocking_statuses, true ) ) {
 			$message	=	sprintf(
 				'Renewal Order Cancelled: the previous order (ID: %d) has status "%s".',
 				$previous_order->get_id(),
@@ -1448,7 +1462,41 @@ class Bh_Features_Public {
 			);
 			$renewal_order->update_status('wc-cancelled', $message);
 			$subscription->update_status('wc-cancelled');
+			return $renewal_order;
 		}
+
+		if ( $previous_order_status === 'completed' ) {
+			return $renewal_order;
+		}
+
+		// Anything else (SEND_TO_TELEGRA, waiting_room, provider_review,
+		// collect_payment, on-hold, processing...): the previous order was
+		// paid and is somewhere in the intake/fulfillment pipeline, but
+		// never reached "completed" — most likely the customer never
+		// finished their intake questionnaire. Business decision: don't
+		// keep billing for a subscription nobody is using, but don't
+		// cancel it invisibly either — park it for CS review instead, with
+		// an automatic grace-period cancellation if nobody resolves it.
+		// See AH_Renewal_Intake_Review.
+		if ( class_exists( 'AH_Renewal_Intake_Review' ) ) {
+			AH_Renewal_Intake_Review::mark_parked_renewal( $renewal_order );
+		}
+		$renewal_order->update_status(
+			'wc-cancelled',
+			sprintf(
+				'Renewal Order Cancelled: previous order (ID: %d) has not reached "completed" yet (status: "%s") — subscription moved to review instead of being cancelled outright.',
+				$previous_order->get_id(),
+				$previous_order_status
+			)
+		);
+
+		if ( class_exists( 'AH_Renewal_Intake_Review' ) ) {
+			AH_Renewal_Intake_Review::flag_for_review( $subscription, $previous_order );
+		} else {
+			// Fallback to the old behavior if the review module didn't load.
+			$subscription->update_status('wc-cancelled');
+		}
+
 		return $renewal_order;
 	}
 
@@ -1996,12 +2044,35 @@ class Bh_Features_Public {
 	}
 
 
+	/**
+	 * Removes the provisional loader printed in the head by
+	 * BH_Checkout_UI::add_custom_style_on_order_received().
+	 *
+	 * @param int $delay_ms Wait before removing it (0 = now).
+	 */
+	private function print_order_received_loader_removal( $delay_ms = 0 ) {
+		?>
+		<script>
+		setTimeout(function () {
+			var loader = document.getElementById('bh-order-received-loader');
+			if (loader && loader.parentNode) {
+				loader.parentNode.removeChild(loader);
+			}
+		}, <?php echo (int) $delay_ms; ?>);
+		</script>
+		<?php
+	}
+
 	function redirect_tracking_script_footer() {
 		if (!is_order_received_page()) return;
 
 		global $tracking_data;
-		if(!$tracking_data)
+		if(!$tracking_data) {
+			// woocommerce_thankyou did not run (WooCommerce asked the customer to log in or
+			// to verify their email): no redirect follows.
+			$this->print_order_received_loader_removal();
 			return ;
+		}
 
 		$async = ! empty( $tracking_data['async_telegra'] );
 		$has_redirect = ! empty( $tracking_data['redirect_url'] );
@@ -2060,11 +2131,14 @@ class Bh_Features_Public {
 			})();
 			</script>
 			<?php
+			$this->print_order_received_loader_removal();
 			return;
 		}
 
-		if(empty($tracking_data['redirect_url']))
+		if(empty($tracking_data['redirect_url'])) {
+			$this->print_order_received_loader_removal();
 			return ;
+		}
 		?>
 		<script>
 			console.log('redirecting...');
@@ -2073,6 +2147,8 @@ class Bh_Features_Public {
 			}, 1500);
 		</script>
 		<?php
+		// Still here after 10 seconds: the redirect did not leave the page, show the order.
+		$this->print_order_received_loader_removal( 10000 );
 	}
 
 	/*
@@ -2393,7 +2469,11 @@ class Bh_Features_Public {
 				if (typeof fbq !== 'undefined') {
 					fbq('track', 'Purchase', {
 					    value: <?php echo esc_js($tracking_data['sale_amount']); ?>,
-					    currency: 'USD'
+					    currency: 'USD',
+					    order_id: '<?php echo esc_js( (string) $tracking_data['order_id'] ); ?>',
+					    content_type: 'product'
+					  }, {
+					    eventID: '<?php echo esc_js( (string) $tracking_data['order_id'] ); ?>'
 					  });
 					
 				} else {

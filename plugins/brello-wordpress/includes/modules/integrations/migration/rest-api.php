@@ -8,14 +8,20 @@
  *        A lightweight GET endpoint is also provided.
  *
  * Write: PUT /wp-json/bh/migration/status/{customer_id}
- *        Body: { "status": "migrated" | "error", "error_message": "..." }
- *        Only in_progress-style forward transitions are accepted:
- *        migrating (from available/migration_error), migrated and
- *        migration_error (from migrating).
+ *        Body: { "status": "available" | "migrating" | "migrated" | "migration_error", "error_message": "..." }
+ *        The transition map in AH_Migration_Status decides what is accepted:
+ *        available (from not_available/migration_error), migrating (from
+ *        available/migration_error), migrated and migration_error (from
+ *        migrating).
  *
- * Auth:  WooCommerce REST consumer key/secret. The bh/migration namespace
- *        is registered as a WC API request so the same credentials the
- *        external system uses to read customers/orders also authenticate here.
+ * Auth:  Any authenticated user that can manage WooCommerce. External
+ *        systems use a WooCommerce REST consumer key/secret: the bh/migration
+ *        namespace is registered as a WC API request, so the same credentials
+ *        they use to read customers/orders also authenticate here, and
+ *        WooCommerce applies the key's read/write permission. A user
+ *        authenticated by WordPress another way (admin session, application
+ *        password) is accepted with the same capability; no key permission
+ *        applies to them.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,14 +34,16 @@ class AH_Migration_Rest {
     const REST_ROUTE     = '/migration/status/(?P<customer_id>\d+)';
 
     /**
-     * Statuses the backend (PP-815) is allowed to write via the API.
+     * Statuses that can be written via the API.
      * The transition map in AH_Migration_Status enforces the flow:
-     * migrating only from available/migration_error; migrated and
-     * migration_error only from migrating.
+     * available only from not_available/migration_error (the same step the
+     * admin bulk tool takes); migrating only from available/migration_error;
+     * migrated and migration_error only from migrating.
      *
      * @var array
      */
     private static $api_writable_statuses = array(
+        AH_Migration_Status::AVAILABLE,
         AH_Migration_Status::MIGRATING,
         AH_Migration_Status::MIGRATED,
         AH_Migration_Status::ERROR,
@@ -114,18 +122,22 @@ class AH_Migration_Rest {
     }
 
     /**
-     * Permission check: WC consumer key with write access resolves to a
-     * user that can manage WooCommerce.
+     * Permission check: the request must be authenticated as a user that
+     * can manage WooCommerce, whatever the authentication method (a WC
+     * consumer key/secret for external systems).
      *
      * @return bool|WP_Error
      */
     public static function check_permission() {
-        return true;
         if ( current_user_can( 'manage_woocommerce' ) ) {
             return true;
         }
 
-        return new WP_Error( 'rest_forbidden', 'Invalid or insufficient credentials.', array( 'status' => 401 ) );
+        return new WP_Error(
+            'rest_forbidden',
+            'Invalid or insufficient credentials.',
+            array( 'status' => is_user_logged_in() ? 403 : 401 )
+        );
     }
 
     /**
@@ -146,7 +158,8 @@ class AH_Migration_Rest {
     }
 
     /**
-     * PUT handler: the external system reports the migration result.
+     * PUT handler: the external system makes a customer available for
+     * migration or reports the migration progress and result.
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response|WP_Error
@@ -159,7 +172,7 @@ class AH_Migration_Rest {
         if ( ! in_array( $new_status, self::$api_writable_statuses, true ) ) {
             return new WP_Error(
                 'status_not_writable',
-                'Only "migrating", "migrated" or "migration_error" can be set through this endpoint.',
+                'Only "available", "migrating", "migrated" or "migration_error" can be set through this endpoint.',
                 array( 'status' => 400 )
             );
         }

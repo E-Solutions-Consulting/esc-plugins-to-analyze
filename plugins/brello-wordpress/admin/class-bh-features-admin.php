@@ -111,6 +111,49 @@ class Bh_Features_Admin {
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/bh-features-admin.js', array( 'jquery' ), $this->version, false );
 
+		$this->enqueue_subscription_billing_restriction();
+	}
+
+	/**
+	 * Restrict the billing period/interval on the subscription edit screen —
+	 * new ("Add subscription") and existing subscriptions, any status. Screen
+	 * detected like WooCommerce Subscriptions does, HPOS-aware.
+	 */
+	private function enqueue_subscription_billing_restriction() {
+		if ( ! defined( 'BH_ALLOWED_BILLING_PERIODS' ) || ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+
+		$screen     = get_current_screen();
+		$screen_ids = array_unique( array_filter( array(
+			'shop_subscription',
+			function_exists( 'wc_get_page_screen_id' ) ? wc_get_page_screen_id( 'shop_subscription' ) : null,
+		) ) );
+
+		if ( ! $screen || ! in_array( $screen->id, $screen_ids, true ) ) {
+			return;
+		}
+
+		global $pagenow;
+
+		// A never-saved subscription can't be told apart from the markup alone
+		// (interval 1 is always marked selected), so it's detected from the page.
+		$is_new = ( isset( $_GET['action'] ) && 'new' === $_GET['action'] ) || 'post-new.php' === $pagenow;
+
+		$handle = $this->plugin_name . '-subscription-billing';
+		$file   = 'js/bh-features-admin-subscription-billing.js';
+
+		wp_enqueue_script( $handle, plugin_dir_url( __FILE__ ) . $file, array( 'jquery' ), (string) filemtime( plugin_dir_path( __FILE__ ) . $file ), true );
+		wp_localize_script( $handle, 'bhSubscriptionBilling', array(
+			'allowedPeriods'    => array_values( BH_ALLOWED_BILLING_PERIODS ),
+			'allowedIntervals'  => array_values( BH_ALLOWED_BILLING_INTERVALS ),
+			'defaultPeriod'     => BH_DEFAULT_BILLING_PERIOD,
+			'defaultInterval'   => BH_DEFAULT_BILLING_INTERVAL,
+			'isNewSubscription' => $is_new,
+			// The Schedule box is filled from the product CS adds, asked to the server at that moment.
+			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+			'scheduleNonce'     => wp_create_nonce( 'bh-subscription-product-schedule' ),
+		) );
 	}
 
 	/*
@@ -959,12 +1002,6 @@ class Bh_Features_Admin {
 				.order-limits-grid > .postbox {padding:2rem}
 				.order-limits-day-selector {margin: 10px 0;}
 				.order-limits-day-selector .select2-container {width: 100% !important;}
-				.switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-				.switch input { opacity: 0; width: 0; height: 0; }
-				.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-				.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-				input:checked + .slider { background-color: #2271b1; }
-				input:checked + .slider:before { transform: translateX(26px); }
 				.input-time{max-width: 120px}
 				#clock {font-size: 1rem;font-weight: bold;}
 	        	#clock.expired {color: red;}

@@ -486,10 +486,15 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 				$discount = (float) $coupon->get_discount_amount( $unit, $cart_item, true ) * $qty;
 			}
 			$discount = min( max( 0, $discount ), $subtotal );
+			$total    = max( 0, $subtotal - $discount );
 
-			$subtotal_cents = (int) round( $subtotal * 100 );
-			$discount_cents = (int) round( $discount * 100 );
-			$total_cents    = max( 0, $subtotal_cents - $discount_cents );
+			// Round the amount due, then derive the discount from that.
+			// Rounding the discount first is 1 cent low when a percent lands on a
+			// half cent: 99.75% of $698 is $1.745, which became Stripe $1.74
+			// while the Woo order total was $1.75.
+			$subtotal_cents = $this->amount_to_cents( $subtotal );
+			$total_cents    = $this->amount_to_cents( $total );
+			$discount_cents = max( 0, $subtotal_cents - $total_cents );
 
 			if ( $total_cents < self::STRIPE_MIN_AMOUNT_CENTS ) {
 				return new WP_Error(
@@ -1476,7 +1481,14 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 				);
 			}
 
-			$total_cents = (int) round( (float) $order->get_total( 'edit' ) * 100 );
+			$total_cents = $this->amount_to_cents( $order->get_total( 'edit' ) );
+			// Coupon percent rounding can still disagree by 1 cent. The card is
+			// already held for the preview amount, so move the order onto that
+			// cent instead of cancelling the payment.
+			if ( 1 === abs( (int) $pi_amount - $total_cents ) ) {
+				$this->align_order_total_to_cents( $order, (int) $pi_amount );
+				$total_cents = $this->amount_to_cents( $order->get_total( 'edit' ) );
+			}
 			if ( $pi_amount !== $total_cents ) {
 				return new WP_Error(
 					'landing_bridge_order_amount_mismatch',
@@ -1490,6 +1502,43 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 			}
 
 			return true;
+		}
+
+		/**
+		 * Store money as integer cents the same way Woo rounds a price for display.
+		 *
+		 * @param float|int|string $amount Decimal amount.
+		 * @return int
+		 */
+		private function amount_to_cents( $amount ) {
+			$decimals = function_exists( 'wc_get_price_decimals' ) ? wc_get_price_decimals() : 2;
+			if ( class_exists( '\Automattic\WooCommerce\Utilities\NumberUtil' ) ) {
+				$rounded = \Automattic\WooCommerce\Utilities\NumberUtil::round( (float) $amount, $decimals );
+			} else {
+				$rounded = round( (float) $amount, $decimals );
+			}
+			return (int) round( $rounded * 100 );
+		}
+
+		/**
+		 * Shift an order total by the 1 cent gap so it matches the authorized hold.
+		 *
+		 * @param WC_Order $order         Order after calculate_totals().
+		 * @param int      $target_cents  PaymentIntent amount in cents.
+		 */
+		private function align_order_total_to_cents( $order, $target_cents ) {
+			$delta_cents = (int) $target_cents - $this->amount_to_cents( $order->get_total( 'edit' ) );
+			if ( 0 === $delta_cents ) {
+				return;
+			}
+
+			$fee = new WC_Order_Item_Fee();
+			$fee->set_name( 'Rounding adjustment' );
+			$fee->set_amount( $delta_cents / 100 );
+			$fee->set_total( $delta_cents / 100 );
+			$fee->set_tax_status( 'none' );
+			$order->add_item( $fee );
+			$order->calculate_totals( false );
 		}
 
 		/**

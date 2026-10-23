@@ -38,8 +38,20 @@ class BH_Modules_Loader {
          */
         $this->safe_require( $base . 'common/constants.php' );
         $this->safe_require( $base . 'common/helpers.php' );
+        $this->safe_require( $base . 'common/telegra-helpers.php' );
         $this->safe_require( $base . 'common/db-ext.php' );
         $this->safe_require( $base . 'common/order-meta.php' );
+        $this->safe_require( $base . 'common/checkout-helpers.php' );
+        $this->safe_require( $base . 'common/state-product-replacement-helpers.php' );
+        $this->safe_require( $base . 'common/settings.php' );
+
+
+        /**
+         * ============================================================
+         * SHORTCODES (new shortcodes live here; values come from Brello > Settings)
+         * ============================================================
+         */
+        $this->safe_require( $base . 'shortcodes/loader.php' );
 
 
         /**
@@ -174,6 +186,14 @@ class BH_Modules_Loader {
         $this->safe_require( $base . 'wc/subscriptions/bh-renewal-endpoint.php' );
         $this->safe_require( $base . 'wc/subscriptions/early-renewal-handler.php' );
         $this->safe_require( $base . 'wc/subscriptions/renewal-duplicate-guard.php' );
+        $this->safe_require( $base . 'wc/subscriptions/renewal-intake-review.php' );
+        $this->safe_require( $base . 'wc/subscriptions/review-emails/loader.php' );
+        $this->safe_require( $base . 'wc/subscriptions/renewal-failed-email/loader.php' );
+        $this->safe_require( $base . 'wc/subscriptions/renewal-items-change-flag.php' );
+        $this->safe_require( $base . 'wc/subscriptions/renewal-items-change-flag-backfill.php' ); // One-off admin tool — remove once run in production.
+        $this->safe_require( $base . 'wc/subscriptions/subscription-zero-total-guard.php' );
+        $this->safe_require( $base . 'wc/subscriptions/subscription-zero-total-review.php' );
+        $this->safe_require( $base . 'wc/subscriptions/admin-product-rules.php' );
 
         $this->safe_require( $base . 'wc/subscriptions/state-reactivation/loader.php' );
         
@@ -217,6 +237,13 @@ class BH_Modules_Loader {
          * --------------------------------
          */
         $this->safe_require( $base . 'performance/loader.php' );
+
+        /**
+         * --------------------------------
+         * ELEMENTOR (Theme Builder conditions)
+         * --------------------------------
+         */
+        $this->safe_require( $base . 'elementor/loader.php' );
 
 
         } catch ( Exception $e ) {

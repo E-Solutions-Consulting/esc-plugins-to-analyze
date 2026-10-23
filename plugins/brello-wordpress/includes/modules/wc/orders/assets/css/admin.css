@@ -23,6 +23,11 @@
   --link-filter-status-tlg-provider_review-border: 1px solid #bbefff;
   --link-filter-status-tlg-provider_review-color: 1px solid #ffa500;
 
+  /* Not Sent to Telegra: CS must act first. The filter border comes from the Telegra group (--link-filter-status-tlg-border). */
+  --link-filter-status-not-sent-telegra-bgcolor: 255, 240, 196;
+  --link-filter-status-not-sent-telegra-color: 58, 58, 129;
+  --link-filter-status-not-sent-telegra-current-bgcolor: 218, 254, 255;
+
   --order-note-bg:215, 202, 210;
   --order-note-bg-customer-note:213, 188, 252;
   --order-note-bg-stripe-note:214, 240, 214;
@@ -60,6 +65,14 @@ body.wp-admin .order-status.status-provider_review::after{content: "🔒";positi
 
 body.wp-admin ul.subsubsub li.wc-send_to_telegra a{font-weight: 500;background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.25);color: rgba(var(--link-filter-status-tlg-send-to-telegra-color),0.75);border:var(--link-filter-status-tlg-send-to-telegra-border);}
 
+body.wp-admin ul.subsubsub li.wc-not_sent_telegra a {color: rgba(var(--link-filter-status-not-sent-telegra-color), 1);background-color: rgba(var(--link-filter-status-not-sent-telegra-bgcolor), 0.25);}
+body.wp-admin ul.subsubsub li.wc-not_sent_telegra a .count{color: inherit;}
+
+/* Alert icon (dashicons-warning) before the label, on the filter and on the status badges. */
+body.wp-admin ul.subsubsub li.wc-not_sent_telegra a::before,
+body.wp-admin .order-status.status-not_sent_telegra::before,
+span.woocommerce-order-status__indicator.is-not_sent_telegra::before{content: "\f534";font-family: dashicons;font-weight: 400;font-size: 16px;line-height: 1;vertical-align: -3px;margin-right: 3px;}
+
 body.wp-admin ul.subsubsub li:not(.all) a.current {background-color: #e5e5e5;font-weight: 500}
 body.wp-admin ul.subsubsub li[class^="wc-cancel"] a.current { background-color: rgba(255, 231, 242, 1); }
 
@@ -81,6 +94,7 @@ body.wp-admin ul.subsubsub li.fulfillment a.current,
 body.wp-admin ul.subsubsub li.wc-error_review a.current {background-color: rgba(207, 245, 246, 0.25);}
 body.wp-admin ul.subsubsub li.wc-provider_review a.current{background-color: #bbefff}
 body.wp-admin ul.subsubsub li.wc-send_to_telegra a{font-weight: 500;background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.25);color: rgba(var(--link-filter-status-tlg-send-to-telegra-color),0.75);border:var(--link-filter-status-tlg-send-to-telegra-border);}
+body.wp-admin ul.subsubsub li.wc-not_sent_telegra a.current {color: rgba(var(--link-filter-status-not-sent-telegra-color), 1);background-color: rgba(var(--link-filter-status-not-sent-telegra-bgcolor), 1);}
 
 .woocommerce-order-status.woocommerce-orders-table__status {white-space: nowrap;}
 
@@ -101,6 +115,11 @@ body.wp-admin .order-status.status-error_review{
 
 span.woocommerce-order-status__indicator.is-send_to_telegra,
 body.wp-admin .order-status.status-send_to_telegra{background-color: rgba(var(--link-filter-status-tlg-send-to-telegra-bgcolor), 0.5);color:rgba(var(--link-filter-status-tlg-send-to-telegra-color), 1);border:var(--link-filter-status-tlg-send-to-telegra-border);}
+span.woocommerce-order-status__indicator.is-not_sent_telegra,
+body.wp-admin .order-status.status-not_sent_telegra{background-color: rgba(var(--link-filter-status-not-sent-telegra-bgcolor), 1);color: rgba(var(--link-filter-status-not-sent-telegra-color), 1);}
+/* WooCommerce draws the badge as inline-flex with a 1em side margin on its span. */
+body.wp-admin .order-status.status-not_sent_telegra::before{align-self: center;margin: 0 0 0 .7em;}
+body.wp-admin .order-status.status-not_sent_telegra > span{margin-left: .3em;}
 body.wp-admin .order-status[class*="status-cancel"]{background-color: rgba(var(--link-filter-status-cancel-bgcolor), 1);color: rgba(var(--link-filter-status-cancel-color), 1);}
 
 /*select#shipping_insurance_filter_hpos {display: none;}*/
