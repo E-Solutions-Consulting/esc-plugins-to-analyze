@@ -33,6 +33,9 @@ class AH_Orders {
 			return rest_ensure_response($data);
 		}, 10, 3);
 
+		add_filter('woocommerce_rest_shop_order_schema', [$this, 'add_subscription_ids_to_rest_schema']);
+		add_filter('woocommerce_rest_prepare_shop_order_object', [$this, 'add_subscription_ids_to_rest_response'], 10, 3);
+
 		add_action('woocommerce_before_order_object_save', array($this, 'intercept_status_change_before_save'), 10, 2);
 		// Add this to your class constructor or init_hooks()
 		add_action('woocommerce_order_status_changed', [$this, 'handle_wc_api_status_change'], 10, 4);
@@ -49,6 +52,59 @@ class AH_Orders {
 
 		//add_action('woocommerce_order_status_changed', [$this, 'clean_custom_cancel_notes'], 5, 4);
     }
+
+	/**
+	 * Documents the subscription_ids field of the orders REST API.
+	 *
+	 * @param array $properties Properties of the order schema.
+	 * @return array
+	 */
+	public function add_subscription_ids_to_rest_schema( $properties ) {
+		$properties['subscription_ids'] = [
+			'description' => 'IDs of the subscriptions related to the order (parent, renewal, switch or resubscribe).',
+			'type'        => 'array',
+			'items'       => [ 'type' => 'integer' ],
+			'context'     => [ 'view', 'edit' ],
+			'readonly'    => true,
+		];
+
+		return $properties;
+	}
+
+	/**
+	 * Adds the IDs of the related subscriptions to an order REST API response.
+	 *
+	 * An order can relate to several subscriptions, so the field is always a list.
+	 * When the request limits the fields (_fields) and leaves this one out, the
+	 * subscriptions are not looked up at all.
+	 *
+	 * @param WP_REST_Response     $response Order response.
+	 * @param WC_Order             $order    Order object.
+	 * @param WP_REST_Request|null $request  Request.
+	 * @return WP_REST_Response
+	 */
+	public function add_subscription_ids_to_rest_response( $response, $order, $request = null ) {
+		if ( ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+			return $response;
+		}
+
+		if ( $request instanceof WP_REST_Request && isset( $request['_fields'] ) ) {
+			// Parse _fields the same way as rest_filter_response_fields(): an empty
+			// list means no restriction, and entries are trimmed.
+			$fields = wp_parse_list( $request['_fields'] );
+			if ( count( $fields ) > 0 && ! rest_is_field_included( 'subscription_ids', array_map( 'trim', $fields ) ) ) {
+				return $response;
+			}
+		}
+
+		$subscriptions = wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] );
+
+		$data                     = $response->get_data();
+		$data['subscription_ids'] = array_map( 'intval', array_keys( $subscriptions ) );
+		$response->set_data( $data );
+
+		return $response;
+	}
 
 
 	// function clean_custom_cancel_notes($order_id, $from_status, $to_status, $order) {

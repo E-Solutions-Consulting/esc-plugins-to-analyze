@@ -2,9 +2,15 @@
 /**
  * Shipping-state product replacement at checkout.
  *
- * When the order is placed, cart variations are swapped for the hidden variation
- * configured for the shipping state (and back when the state does not match),
- * after every checkout validation passed and before the order is created and charged.
+ * Cart variations are swapped for the hidden variation configured for the shipping
+ * state (and back when the state does not match):
+ *
+ * - when the shipping state is entered (order review refresh, Store API customer
+ *   update), so the customer sees the product and plan before paying;
+ * - when the order is placed, after every checkout validation passed and before the
+ *   order is created and charged. A swap that changes the totals at this point stops
+ *   the order so the customer can review them.
+ *
  * See common/state-product-replacement-helpers.php.
  */
 
@@ -21,6 +27,10 @@ if ( ! class_exists( 'Bh_State_Product_Replacement' ) ) {
 		const ERROR_CODE = 'bh_state_product_replacement_failed';
 
 		public function __construct() {
+			// Shipping state entered: classic order review refresh (CheckoutWC fires the same action), Store API customer update.
+			add_action( 'woocommerce_checkout_update_order_review', array( $this, 'apply_order_review' ), 20, 0 );
+			add_action( 'woocommerce_store_api_cart_update_customer_from_request', array( $this, 'apply_store_api_customer' ), 20, 2 );
+
 			// Classic checkout: last callback of the validation step, before the order is created from the cart.
 			add_action( 'woocommerce_after_checkout_validation', array( $this, 'apply_classic' ), PHP_INT_MAX, 2 );
 
@@ -33,6 +43,41 @@ if ( ! class_exists( 'Bh_State_Product_Replacement' ) ) {
 			// A coupon for (or excluding) a variation also covers its replacements.
 			add_filter( 'woocommerce_coupon_get_product_ids', array( $this, 'add_replacements_to_coupon' ), 10, 1 );
 			add_filter( 'woocommerce_coupon_get_excluded_product_ids', array( $this, 'add_replacements_to_coupon' ), 10, 1 );
+		}
+
+		/**
+		 * Order review refresh: runs before WooCommerce stores the posted address on the
+		 * customer, so the state is read from the request the way WooCommerce and
+		 * CheckoutWC read it (s_state, or state when shipping goes to the billing address).
+		 */
+		public function apply_order_review() {
+			if ( ! WC()->cart ) {
+				return;
+			}
+			// phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce verified the nonce of the order review refresh.
+			$billing_state  = isset( $_POST['state'] ) ? wc_clean( wp_unslash( $_POST['state'] ) ) : '';
+			$shipping_state = isset( $_POST['s_state'] ) ? wc_clean( wp_unslash( $_POST['s_state'] ) ) : '';
+			// phpcs:enable
+			if ( wc_ship_to_billing_address_only() || ! WC()->cart->needs_shipping() ) {
+				$shipping_state = $billing_state;
+			}
+
+			// Errors are not shown here: placing the order runs the swap again and refuses it.
+			bh_apply_state_product_replacement( WC()->cart, $this->state_from( $shipping_state, $billing_state ) );
+		}
+
+		/**
+		 * Store API customer update (block checkout, express checkout address change).
+		 *
+		 * @param WC_Customer     $customer Customer filled from the request.
+		 * @param WP_REST_Request $request  Request.
+		 */
+		public function apply_store_api_customer( $customer, $request ) {
+			if ( ! $customer instanceof WC_Customer || ! WC()->cart ) {
+				return;
+			}
+
+			bh_apply_state_product_replacement( WC()->cart, $this->state_from( $customer->get_shipping_state(), $customer->get_billing_state() ) );
 		}
 
 		/**

@@ -41,6 +41,7 @@ if ( ! function_exists( 'bh_checkout_shared_validators' ) ) {
 			),
 			'woocommerce_after_checkout_validation' => array(
 				array( 'Bh_Features_Public', 'restrict_shipping_states' ),
+				array( 'Bh_Product_Shipping_States_Checkout', 'validate' ),
 			),
 		);
 

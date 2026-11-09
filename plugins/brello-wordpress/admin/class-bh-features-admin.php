@@ -1638,7 +1638,7 @@ class Bh_Features_Admin {
 
 		$state = $subscription->get_shipping_state();
 
-		if ( ! AH_States::is_allowed( $state ) ) {
+		if ( ! AH_States::is_allowed_for_subscription( $subscription ) ) {
 
 			$logger->debug(
 				'Renew button hidden: state not allowed',

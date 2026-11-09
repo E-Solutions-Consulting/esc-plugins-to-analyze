@@ -9,5 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once plugin_dir_path( __FILE__ ) . '/products-admin.php';
 require_once plugin_dir_path( __FILE__ ) . '/state-replacement-admin.php';
+require_once plugin_dir_path( __FILE__ ) . '/shipping-states-admin.php';
 require_once plugin_dir_path( __FILE__ ) . '/product-export-admin.php';
 require_once plugin_dir_path( __FILE__ ) . '/telegra-mapping-admin.php';

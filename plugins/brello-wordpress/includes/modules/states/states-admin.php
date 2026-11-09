@@ -53,6 +53,15 @@ class AH_States_Admin_Page {
                 <div class="notice notice-success"><p>mapdata.js regenerated from the current configuration.</p></div>
             <?php endif; ?>
 
+            <?php
+            if ( class_exists( 'AH_States_Test_Mode' ) ) {
+                AH_States_Test_Mode::render_admin_card();
+            }
+            if ( class_exists( 'Bh_Shipping_States_Admin' ) ) {
+                Bh_Shipping_States_Admin::render_opt_in_card();
+            }
+            ?>
+
             <div class="card" style="max-width:none;margin:1rem 0;">
                 <h2 style="margin-top:0;">Map Data File</h2>
                 <p>

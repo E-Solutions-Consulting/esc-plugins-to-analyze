@@ -102,6 +102,25 @@ class AH_States {
     }
 
     /**
+     * Whether a subscription may renew in its shipping state: the state is licensed,
+     * or the subscription was placed through the test states link (AH_States_Test_Mode).
+     *
+     * @param WC_Subscription $subscription Subscription.
+     * @return bool
+     */
+    public static function is_allowed_for_subscription( $subscription ) {
+        if ( ! $subscription instanceof WC_Subscription ) {
+            return false;
+        }
+
+        if ( self::is_allowed( (string) $subscription->get_shipping_state() ) ) {
+            return true;
+        }
+
+        return class_exists( 'AH_States_Test_Mode' ) && AH_States_Test_Mode::subscription_allowed( $subscription );
+    }
+
+    /**
      * Return the allowed states based on user role.
      *
      * Guests + customers -> all states EXCEPT 'unavailable'.
@@ -135,11 +154,16 @@ class AH_States {
 
         // --------------------------------------------------
         // 2) Build a list excluding only 'unavailable'
+        //    (test states stay for a request that came through the test link)
         // --------------------------------------------------
+        $test_states = ( ! $onlyAvailable && class_exists( 'AH_States_Test_Mode' ) )
+            ? AH_States_Test_Mode::get_request_states()
+            : array();
+
         $filtered_states = array();
         foreach ( self::$states as $code => $label ) {
             $status = AH_Licensed_States_Manager::get_state_status( $code );
-            if ( $status === 'unavailable' ) {
+            if ( $status === 'unavailable' && ! in_array( $code, $test_states, true ) ) {
                 continue;
             }
             $filtered_states[ $code ] = $label;

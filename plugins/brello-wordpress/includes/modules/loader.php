@@ -43,6 +43,7 @@ class BH_Modules_Loader {
         $this->safe_require( $base . 'common/order-meta.php' );
         $this->safe_require( $base . 'common/checkout-helpers.php' );
         $this->safe_require( $base . 'common/state-product-replacement-helpers.php' );
+        $this->safe_require( $base . 'common/product-shipping-states-helpers.php' );
         $this->safe_require( $base . 'common/settings.php' );
 
 
@@ -78,6 +79,7 @@ class BH_Modules_Loader {
         $this->safe_require( $base . 'states/licensed-states/licensed-states-manager.php' );
         $this->safe_require( $base . 'states/licensed-states/mapdata-generator.php' );
         $this->safe_require( $base . 'states/states.php' );
+        $this->safe_require( $base . 'states/states-test-mode.php' );
         $this->safe_require( $base . 'states/states-ui.php' );
         $this->safe_require( $base . 'states/states-admin.php' );
 
@@ -223,6 +225,7 @@ class BH_Modules_Loader {
          * --------------------------------
          */
         $this->safe_require( $base . 'wc/myaccount/terms-consent.php' );
+        $this->safe_require( $base . 'wc/myaccount/block-address-editing.php' );
 
         /**
          * --------------------------------

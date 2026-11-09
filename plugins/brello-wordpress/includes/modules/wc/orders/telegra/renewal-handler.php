@@ -301,6 +301,14 @@ class AH_Orders_Telegra_Renewal_Handler {
 	    $state_status = AH_Licensed_States_Manager::get_state_status( $state_code );
 
 	    // --------------------------------------------------
+	    // Orders placed through the test states link (and their renewals)
+	    // are processed as if the state were available.
+	    // --------------------------------------------------
+	    if ( 'available' !== $state_status && class_exists( 'AH_States_Test_Mode' ) && AH_States_Test_Mode::order_allowed( $order ) ) {
+	        return $should_process;
+	    }
+
+	    // --------------------------------------------------
 	    // RULE 1: Renewal orders
 	    // Only ALLOW if state === available
 	    // --------------------------------------------------

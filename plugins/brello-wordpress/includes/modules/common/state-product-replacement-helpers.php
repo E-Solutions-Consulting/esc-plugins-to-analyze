@@ -3,8 +3,9 @@
  * Shipping-state product replacement helpers.
  *
  * Some states cannot receive a variation as sold (e.g. California cannot ship
- * three months at once). For those, a hidden sibling variation of the same
- * product replaces it when the order ships to that state:
+ * three months at once). For those, a variation of a separate state product
+ * (its own SKU and renewal cycle, e.g. "Tirzepatide CA") replaces it when the
+ * order ships to that state:
  *
  * - the replacement variation stores the variation it replaces
  *   (_bh_replaces_variation) and the shipping states it is for
@@ -12,13 +13,15 @@
  * - it is hidden on the storefront and only reaches the cart through the swap;
  * - a cart that holds the replacement but ships elsewhere is swapped back.
  *
- * The classic and the Store API (express) checkout call
- * bh_apply_state_product_replacement() so both apply one rule. The Telegra landing
- * checkout does not call it yet. Renewal, resubscribe, switch and initial-payment
- * items keep the product of their subscription or order.
+ * The checkout swaps the cart as soon as the shipping state is entered, so the
+ * order review shows the product and plan that will be charged, and again when
+ * the order is placed (classic and Store API / express checkout) in case the
+ * state changed without a refresh. The Telegra landing checkout does not call it
+ * yet. Renewal, resubscribe, switch and initial-payment items keep the product of
+ * their subscription or order.
  *
- * A replacement takes the coupon product restrictions of the variation it replaces,
- * so a swap never changes which coupons apply.
+ * A replacement takes the coupon product restrictions of the variation (and of
+ * the product) it replaces, so a swap never changes which coupons apply.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -30,6 +33,9 @@ if ( ! defined( 'BH_REPLACES_VARIATION_META' ) ) {
 }
 if ( ! defined( 'BH_EXCLUSIVE_STATES_META' ) ) {
 	define( 'BH_EXCLUSIVE_STATES_META', '_bh_exclusive_shipping_states' );
+}
+if ( ! defined( 'BH_STATE_ORIGINAL_ITEM_KEY' ) ) {
+	define( 'BH_STATE_ORIGINAL_ITEM_KEY', 'bh_state_original_item' );
 }
 
 if ( ! function_exists( 'bh_get_state_replacement_config' ) ) {
@@ -74,21 +80,17 @@ if ( ! function_exists( 'bh_get_state_replacements_of' ) ) {
 	/**
 	 * Replacement variations configured for a variation, keyed by replacement ID.
 	 *
-	 * Only siblings (same parent product) count.
-	 *
 	 * @param int $variation_id Variation that may be replaced.
 	 * @return array<int, string[]> Replacement variation ID => its shipping states.
 	 */
 	function bh_get_state_replacements_of( int $variation_id ): array {
-		$parent_id = (int) wp_get_post_parent_id( $variation_id );
-		if ( $parent_id <= 0 ) {
+		if ( $variation_id <= 0 ) {
 			return array();
 		}
 
 		$ids = get_posts(
 			array(
 				'post_type'      => 'product_variation',
-				'post_parent'    => $parent_id,
 				'post_status'    => array( 'publish', 'private' ),
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
@@ -115,12 +117,13 @@ if ( ! function_exists( 'bh_get_state_replacements_of' ) ) {
 
 if ( ! function_exists( 'bh_get_state_replacement_map' ) ) {
 	/**
-	 * Every replacement variation, grouped by the variation it replaces.
+	 * Every replacement variation, grouped by the variation it replaces and by that
+	 * variation's product.
 	 *
 	 * Cached for the request.
 	 *
 	 * @param bool $refresh Read the replacements again.
-	 * @return array<int, int[]> Replaced variation ID => replacement variation IDs.
+	 * @return array<int, int[]> Replaced variation ID or its product ID => replacement variation IDs.
 	 */
 	function bh_get_state_replacement_map( bool $refresh = false ): array {
 		static $map = null;
@@ -141,8 +144,12 @@ if ( ! function_exists( 'bh_get_state_replacement_map' ) ) {
 		$map = array();
 		foreach ( $ids as $id ) {
 			$replaces = bh_get_state_replacement_config( (int) $id )['replaces'];
-			if ( $replaces > 0 && (int) wp_get_post_parent_id( (int) $id ) === (int) wp_get_post_parent_id( $replaces ) ) {
+			if ( $replaces > 0 ) {
 				$map[ $replaces ][] = (int) $id;
+				$replaced_product   = (int) wp_get_post_parent_id( $replaces );
+				if ( $replaced_product > 0 ) {
+					$map[ $replaced_product ][] = (int) $id;
+				}
 			}
 		}
 
@@ -152,7 +159,7 @@ if ( ! function_exists( 'bh_get_state_replacement_map' ) ) {
 
 if ( ! function_exists( 'bh_add_state_replacements_to_product_ids' ) ) {
 	/**
-	 * Adds the replacements of the listed variations to a coupon's product IDs.
+	 * Adds the replacements of the listed variations and products to a coupon's product IDs.
 	 *
 	 * @param int[] $product_ids Product IDs of a coupon restriction.
 	 * @return int[]
@@ -171,25 +178,31 @@ if ( ! function_exists( 'bh_add_state_replacements_to_product_ids' ) ) {
 	}
 }
 
-if ( ! function_exists( 'bh_get_cart_payable_amount' ) ) {
+if ( ! function_exists( 'bh_get_cart_payable_amounts' ) ) {
 	/**
-	 * Amount the cart charges now plus its recurring totals, after recalculating it.
+	 * What the cart charges now and on each renewal schedule, after recalculating it.
+	 *
+	 * Kept apart so a lower renewal never hides a higher charge today.
 	 *
 	 * @param WC_Cart $cart Cart.
-	 * @return string
+	 * @return array{now: string, recurring: array<string, string>} Recurring totals keyed by billing schedule.
 	 */
-	function bh_get_cart_payable_amount( WC_Cart $cart ): string {
+	function bh_get_cart_payable_amounts( WC_Cart $cart ): array {
 		$cart->calculate_totals();
 
-		$amount = (float) $cart->get_total( 'edit' );
-		// WooCommerce Subscriptions keeps the recurring carts on the cart.
-		foreach ( (array) ( $cart->recurring_carts ?? array() ) as $recurring_cart ) {
+		$amounts = array(
+			'now'       => wc_format_decimal( $cart->get_total( 'edit' ), wc_get_price_decimals() ),
+			'recurring' => array(),
+		);
+		// WooCommerce Subscriptions keeps the recurring carts on the cart, keyed by billing schedule.
+		foreach ( (array) ( $cart->recurring_carts ?? array() ) as $schedule => $recurring_cart ) {
 			if ( $recurring_cart instanceof WC_Cart ) {
-				$amount += (float) $recurring_cart->get_total( 'edit' );
+				$amounts['recurring'][ (string) $schedule ] = wc_format_decimal( $recurring_cart->get_total( 'edit' ), wc_get_price_decimals() );
 			}
 		}
+		ksort( $amounts['recurring'] );
 
-		return wc_format_decimal( $amount, wc_get_price_decimals() );
+		return $amounts;
 	}
 }
 
@@ -236,8 +249,9 @@ if ( ! function_exists( 'bh_apply_state_product_replacement' ) ) {
 	 * The cart is changed (not only the order) because WooCommerce Subscriptions
 	 * builds the subscriptions from the cart on every checkout path. Cart item data
 	 * (e.g. Telegra fields) is kept. Totals are recalculated after a swap; when the
-	 * amount to pay changed, an error stops the order so the customer sees the new
-	 * total, and the next submission (with nothing left to swap) places it.
+	 * amount due now or on any renewal changed, an error is returned so a caller that
+	 * places the order can stop it: the customer sees the new totals, and the next
+	 * submission (with nothing left to swap) places it.
 	 *
 	 * @param WC_Cart $cart  Cart about to become an order.
 	 * @param string  $state Shipping state code.
@@ -278,8 +292,9 @@ if ( ! function_exists( 'bh_apply_state_product_replacement' ) ) {
 			}
 
 			// Subscription variations check purchasability on the parent only, so status and price are checked here.
-			$target = wc_get_product( $to );
-			if ( ! $target instanceof WC_Product_Variation || $target->get_parent_id() !== (int) $item['product_id'] || 'publish' !== $target->get_status() || '' === $target->get_price() || ! $target->is_purchasable() || ! $target->is_in_stock() ) {
+			$target         = wc_get_product( $to );
+			$target_product = $target instanceof WC_Product_Variation ? wc_get_product( $target->get_parent_id() ) : null;
+			if ( ! $target_product || ! $target_product->is_type( 'variable-subscription' ) || 'publish' !== $target_product->get_status() || 'publish' !== $target->get_status() || '' === $target->get_price() || ! $target->is_purchasable() || ! $target->is_in_stock() ) {
 				$result['errors'][] = sprintf(
 					/* translators: %s: product name */
 					__( '%s is not available for the selected shipping state. Please contact support.', 'bh-features' ),
@@ -288,15 +303,38 @@ if ( ! function_exists( 'bh_apply_state_product_replacement' ) ) {
 				continue;
 			}
 
-			// Attributes of the target; "any" attributes keep the value chosen for the item.
-			$attributes = array_merge( (array) ( $item['variation'] ?? array() ), array_filter( $target->get_variation_attributes() ) );
-			$item_data  = array_diff_key( $item, array_flip( $own_keys ) );
+			// The variation and attributes the customer chose, kept on the item across swaps.
+			$original = isset( $item[ BH_STATE_ORIGINAL_ITEM_KEY ]['variation_id'] )
+				? $item[ BH_STATE_ORIGINAL_ITEM_KEY ]
+				: array(
+					'variation_id' => $from,
+					'variation'    => (array) ( $item['variation'] ?? array() ),
+				);
 
-			if ( null === $amount_before ) {
-				$amount_before = bh_get_cart_payable_amount( $cart );
+			// Attributes of the target; an "any" attribute takes the value chosen originally, else the current one.
+			$attributes = $target->get_variation_attributes();
+			foreach ( $attributes as $name => $value ) {
+				if ( '' !== $value ) {
+					continue;
+				}
+				if ( isset( $original['variation'][ $name ] ) ) {
+					$attributes[ $name ] = $original['variation'][ $name ];
+				} elseif ( isset( $item['variation'][ $name ] ) ) {
+					$attributes[ $name ] = $item['variation'][ $name ];
+				}
+			}
+			$item_data = array_diff_key( $item, array_flip( $own_keys ) );
+			if ( (int) $original['variation_id'] === $to ) {
+				unset( $item_data[ BH_STATE_ORIGINAL_ITEM_KEY ] );
+			} else {
+				$item_data[ BH_STATE_ORIGINAL_ITEM_KEY ] = $original;
 			}
 
-			// Remove first, so a stock shared through the parent counts only the final quantity;
+			if ( null === $amount_before ) {
+				$amount_before = bh_get_cart_payable_amounts( $cart );
+			}
+
+			// Remove first, so a stock shared by both items counts only the final quantity;
 			// a failed add puts the original item back. A cart left empty for that moment and
 			// saved (WooCommerce and CheckoutWC save it on removal) loses the chosen shipping
 			// methods and the Store API draft order from the session: they are put back after.
@@ -307,7 +345,7 @@ if ( ! function_exists( 'bh_apply_state_product_replacement' ) ) {
 				}
 			}
 			$cart->remove_cart_item( $key );
-			$new_key = $cart->add_to_cart( (int) $item['product_id'], (int) $item['quantity'], $to, $attributes, $item_data );
+			$new_key = $cart->add_to_cart( $target_product->get_id(), (int) $item['quantity'], $to, $attributes, $item_data );
 			if ( ! $new_key ) {
 				$cart->restore_cart_item( $key );
 			}
@@ -330,10 +368,10 @@ if ( ! function_exists( 'bh_apply_state_product_replacement' ) ) {
 		}
 
 		if ( null !== $amount_before ) {
-			$amount_after = bh_get_cart_payable_amount( $cart );
+			$amount_after = bh_get_cart_payable_amounts( $cart );
 			if ( $result['swapped'] && $amount_after !== $amount_before ) {
 				$result['total_changed'] = true;
-				$result['errors'][]      = __( 'Your order was updated for the selected shipping state and its total changed. Please review the total and place the order again.', 'bh-features' );
+				$result['errors'][]      = __( 'Your order was updated for the selected shipping state and its totals changed. Please review them and place the order again.', 'bh-features' );
 			}
 		}
 

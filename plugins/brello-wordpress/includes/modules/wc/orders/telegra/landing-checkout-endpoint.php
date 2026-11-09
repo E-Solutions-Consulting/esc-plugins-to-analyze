@@ -21,6 +21,7 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 		const ROUTE           = '/landing-checkout';
 		const STATUS_ROUTE    = '/landing-checkout-status';
 		const CONFIG_ROUTE    = '/landing-checkout-config';
+		const PRODUCTS_ROUTE  = '/landing-checkout-products';
 		const COUPON_ROUTE    = '/landing-checkout-coupon';
 		const VALIDATE_ROUTE  = '/landing-checkout-validate';
 		const SECRET_HEADER   = 'X-Brello-Landing-Secret';
@@ -72,6 +73,16 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 				array(
 					'methods'             => 'GET',
 					'callback'            => array( $this, 'handle_landing_config' ),
+					'permission_callback' => array( $this, 'verify_bridge_secret' ),
+				)
+			);
+
+			register_rest_route(
+				self::ROUTE_NAMESPACE,
+				self::PRODUCTS_ROUTE,
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'handle_landing_products' ),
 					'permission_callback' => array( $this, 'verify_bridge_secret' ),
 				)
 			);
@@ -133,6 +144,165 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 			}
 
 			return (string) get_option( 'brello_landing_bridge_secret', '' );
+		}
+
+		/**
+		 * Turn a Woo variation SKU into that variation's ID in this database.
+		 * A parent (variable) product is refused so checkout cannot charge it.
+		 *
+		 * @param mixed $product_id Numeric Woo id, optional.
+		 * @param mixed $sku        Variation SKU, optional.
+		 * @param bool  $required   When true, sku or product_id must resolve.
+		 * @return int|WP_Error
+		 */
+		private function resolve_landing_product_id( $product_id, $sku, $required ) {
+			$product_id = absint( $product_id );
+			$sku        = trim( sanitize_text_field( (string) $sku ) );
+			$from_sku   = 0;
+
+			if ( '' !== $sku ) {
+				if ( strlen( $sku ) > 100 ) {
+					return new WP_Error(
+						'landing_bridge_invalid_sku',
+						'SKU is too long.',
+						array( 'status' => 400 )
+					);
+				}
+				if ( ! function_exists( 'wc_get_product_id_by_sku' ) ) {
+					return new WP_Error(
+						'landing_bridge_sku_unavailable',
+						'WooCommerce SKU lookup is not available.',
+						array( 'status' => 503 )
+					);
+				}
+				$from_sku = absint( wc_get_product_id_by_sku( $sku ) );
+				if ( $from_sku < 1 ) {
+					return new WP_Error(
+						'landing_bridge_sku_missing',
+						'No WooCommerce product for that SKU.',
+						array( 'status' => 404 )
+					);
+				}
+				if ( $product_id > 0 && $product_id !== $from_sku ) {
+					return new WP_Error(
+						'landing_bridge_sku_mismatch',
+						'SKU does not match product_id.',
+						array( 'status' => 400 )
+					);
+				}
+			}
+
+			$resolved = $from_sku > 0 ? $from_sku : $product_id;
+			if ( $resolved < 1 ) {
+				if ( $required ) {
+					return new WP_Error(
+						'landing_bridge_invalid_product',
+						'product_id or sku is required.',
+						array( 'status' => 400 )
+					);
+				}
+				return 0;
+			}
+
+			$product = wc_get_product( $resolved );
+			if ( ! $product || ! $product->exists() ) {
+				return new WP_Error(
+					'landing_bridge_product_missing',
+					'Product not found.',
+					array( 'status' => 400 )
+				);
+			}
+			if ( $product->is_type( 'variable' ) || $product->is_type( 'variable-subscription' ) ) {
+				return new WP_Error(
+					'landing_bridge_parent_product',
+					'Use the variation SKU, not the parent product.',
+					array( 'status' => 400 )
+				);
+			}
+
+			return $resolved;
+		}
+
+		/**
+		 * @param WC_Product $product Product.
+		 * @return string
+		 */
+		private function landing_product_duration( $product ) {
+			if ( ! class_exists( 'WC_Subscriptions_Product' ) || ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+				return '';
+			}
+			$interval = (int) WC_Subscriptions_Product::get_interval( $product );
+			$period   = (string) WC_Subscriptions_Product::get_period( $product );
+			if ( $interval < 1 || '' === $period ) {
+				return '';
+			}
+			return $interval . ' ' . $period;
+		}
+
+		/**
+		 * GET /wp-json/bh/v1/landing-checkout-products
+		 *
+		 * Sellable products that already have a SKU. Same secret as the other landing routes.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public function handle_landing_products( $request ) {
+			unset( $request );
+			if ( ! function_exists( 'wc_get_products' ) ) {
+				return new WP_Error(
+					'landing_bridge_sku_unavailable',
+					'WooCommerce is not available.',
+					array( 'status' => 503 )
+				);
+			}
+
+			$items = array();
+			$page  = 1;
+			do {
+				$batch = wc_get_products(
+					array(
+						'status'  => 'publish',
+						'limit'   => 100,
+						'page'    => $page,
+						'type'    => array( 'simple', 'subscription', 'variation', 'subscription_variation' ),
+						'orderby' => 'id',
+						'order'   => 'ASC',
+					)
+				);
+				if ( ! is_array( $batch ) || empty( $batch ) ) {
+					break;
+				}
+				foreach ( $batch as $product ) {
+					if ( ! $product instanceof WC_Product ) {
+						continue;
+					}
+					$sku = trim( (string) $product->get_sku() );
+					if ( '' === $sku ) {
+						continue;
+					}
+					$items[] = array(
+						'sku'         => $sku,
+						'name'        => $product->get_name(),
+						'price_cents' => (int) round( (float) $product->get_price() * 100 ),
+						'currency'    => strtolower( (string) get_woocommerce_currency() ),
+						'duration'    => $this->landing_product_duration( $product ),
+						'product_id'  => $product->get_id(),
+						// Licensed states this product may ship to (per-product shipping state rules).
+						'shippable_codes' => array_keys( $this->get_shippable_us_states( $product->get_id() ) ),
+					);
+				}
+				$page++;
+			} while ( count( $batch ) === 100 && $page <= 5 );
+
+			return new WP_REST_Response(
+				array(
+					'success'          => true,
+					'shippable_states' => $this->get_shippable_us_states(),
+					'products'         => $items,
+				),
+				200
+			);
 		}
 
 		/**
@@ -220,10 +390,18 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 		 * @return WP_REST_Response|WP_Error
 		 */
 		public function handle_landing_config( $request ) {
-			$product_id = absint( $request->get_param( 'product_id' ) );
+			$resolved = $this->resolve_landing_product_id(
+				$request->get_param( 'product_id' ),
+				$request->get_param( 'sku' ),
+				false
+			);
+			if ( is_wp_error( $resolved ) ) {
+				return $resolved;
+			}
+			$product_id = (int) $resolved;
 			$expected   = absint( $request->get_param( 'expected_amount_cents' ) );
 
-			$states = $this->get_shippable_us_states();
+			$states = $this->get_shippable_us_states( $product_id );
 
 			$payload = array(
 				'success'           => true,
@@ -261,6 +439,7 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 
 			$payload['product'] = array(
 				'id'                 => $product_id,
+				'sku'                => (string) $product->get_sku(),
 				'name'               => $product->get_name(),
 				'price_cents'        => $price_cents,
 				'currency'           => strtolower( (string) get_woocommerce_currency() ),
@@ -302,7 +481,15 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 
 			$body       = $request->get_json_params();
 			$body       = is_array( $body ) ? $body : array();
-			$product_id = isset( $body['product_id'] ) ? absint( $body['product_id'] ) : 0;
+			$resolved   = $this->resolve_landing_product_id(
+				isset( $body['product_id'] ) ? $body['product_id'] : 0,
+				isset( $body['sku'] ) ? $body['sku'] : '',
+				true
+			);
+			if ( is_wp_error( $resolved ) ) {
+				return $resolved;
+			}
+			$product_id = (int) $resolved;
 			$quantity   = isset( $body['quantity'] ) ? absint( $body['quantity'] ) : 1;
 			if ( $quantity < 1 ) {
 				$quantity = 1;
@@ -310,13 +497,6 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 			$code_raw   = isset( $body['coupon_code'] ) ? sanitize_text_field( (string) $body['coupon_code'] ) : '';
 			$email_raw  = isset( $body['email'] ) ? sanitize_email( (string) $body['email'] ) : '';
 
-			if ( $product_id < 1 ) {
-				return new WP_Error(
-					'landing_coupon_invalid_product',
-					'product_id is required.',
-					array( 'status' => 400 )
-				);
-			}
 			if ( '' === $code_raw ) {
 				return new WP_Error(
 					'landing_coupon_missing_code',
@@ -843,7 +1023,8 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 				$order,
 				isset( $validated['order_attribution'] ) && is_array( $validated['order_attribution'] )
 					? $validated['order_attribution']
-					: array()
+					: array(),
+				$source
 			);
 
 			$this->apply_triple_whale_identity(
@@ -1579,14 +1760,15 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 				);
 			}
 
-			$product_id = isset( $body['product_id'] ) ? absint( $body['product_id'] ) : 0;
-			if ( $product_id < 1 ) {
-				return new WP_Error(
-					'landing_bridge_invalid_product',
-					'product_id is required.',
-					array( 'status' => 400 )
-				);
+			$resolved = $this->resolve_landing_product_id(
+				isset( $body['product_id'] ) ? $body['product_id'] : 0,
+				isset( $body['sku'] ) ? $body['sku'] : '',
+				true
+			);
+			if ( is_wp_error( $resolved ) ) {
+				return $resolved;
 			}
+			$product_id = (int) $resolved;
 
 			$quantity = isset( $body['quantity'] ) ? absint( $body['quantity'] ) : 1;
 			if ( $quantity < 1 ) {
@@ -1663,6 +1845,11 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 				return $state_err;
 			}
 
+			$product_state_err = $this->assert_product_ships_to_state( $product_id, $shipping_norm['state'] );
+			if ( is_wp_error( $product_state_err ) ) {
+				return $product_state_err;
+			}
+
 			// WP logged-in parity: block only on active/pending/on-hold subscription
 			// category conflict (resolve customer by email). Do not block on past orders
 			// by email/phone (classic guest restrict_one_product_per_email_or_phone).
@@ -1674,6 +1861,12 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 			$source = isset( $body['source'] ) ? sanitize_key( (string) $body['source'] ) : 'tirzepatide-landing';
 			if ( empty( $source ) ) {
 				$source = 'tirzepatide-landing';
+			}
+			// Payload Nest → Woo: store a stable Origin / landing source label.
+			if ( 'payload-checkout' === $source ) {
+				$source = 'payload-woo';
+			} elseif ( 'payload-checkout-express' === $source ) {
+				$source = 'payload-woo-express';
 			}
 
 			$checkout_channel = isset( $body['checkout_channel'] )
@@ -1844,19 +2037,28 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 		 * Stamp WooCommerce Order Attribution metas so Orders → Origin is not Unknown.
 		 * Classic WP checkout gets these from Sourcebuster JS; landing must set them.
 		 *
-		 * @param WC_Order $order Order.
-		 * @param array    $attr  Normalized attribution.
+		 * @param WC_Order $order          Order.
+		 * @param array    $attr           Normalized attribution.
+		 * @param string   $landing_source `_brello_landing_source` value (e.g. payload-woo).
 		 */
-		private function apply_wc_order_attribution( $order, array $attr ) {
+		private function apply_wc_order_attribution( $order, array $attr, $landing_source = '' ) {
 			if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
 				return;
 			}
 
 			$source_type = isset( $attr['source_type'] ) ? sanitize_key( (string) $attr['source_type'] ) : '';
 			$utm_source  = isset( $attr['utm_source'] ) ? sanitize_text_field( (string) $attr['utm_source'] ) : '';
+			$landing_source = sanitize_key( (string) $landing_source );
 
-			// Always ensure Origin is readable (never leave blank → Unknown).
-			if ( '' === $source_type || '' === $utm_source ) {
+			// Payload Nest bridge orders: Origin column should read payload-woo.
+			if ( 0 === strpos( $landing_source, 'payload' ) ) {
+				$source_type = 'utm';
+				$utm_source  = 'payload-woo';
+				if ( empty( $attr['utm_medium'] ) ) {
+					$attr['utm_medium'] = 'payload';
+				}
+			} elseif ( '' === $source_type || '' === $utm_source ) {
+				// Always ensure Origin is readable (never leave blank → Unknown).
 				$source_type = 'utm';
 				$utm_source  = 'tirzepatide-landing';
 				if ( empty( $attr['utm_medium'] ) ) {
@@ -2036,19 +2238,57 @@ if ( ! class_exists( 'AH_Landing_Checkout_Endpoint' ) ) {
 
 		/**
 		 * Same shippable set as WP checkout (AH_States::get_states_for_current_user — excludes unavailable).
+		 * With a product, also without the states that product may not ship to
+		 * (common/product-shipping-states-helpers.php).
 		 *
+		 * @param int $product_id Product or variation ID; 0 = licensed states only.
 		 * @return array<string,string> code => label
 		 */
-		private function get_shippable_us_states() {
+		private function get_shippable_us_states( $product_id = 0 ) {
 			if ( ! class_exists( 'AH_States' ) ) {
 				return array();
 			}
 			$all      = AH_States::get_all();
 			$filtered = AH_States::get_states_for_current_user( $all, true );
 			if ( isset( $filtered['US'] ) && is_array( $filtered['US'] ) ) {
-				return $filtered['US'];
+				$states = $filtered['US'];
+			} else {
+				$states = is_array( $filtered ) ? $filtered : array();
 			}
-			return is_array( $filtered ) ? $filtered : array();
+
+			$product_id = (int) $product_id;
+			if ( $product_id > 0 && function_exists( 'bh_product_ships_to_state' ) ) {
+				foreach ( array_keys( $states ) as $code ) {
+					if ( ! bh_product_ships_to_state( $product_id, (string) $code ) ) {
+						unset( $states[ $code ] );
+					}
+				}
+			}
+
+			return $states;
+		}
+
+		/**
+		 * Mirror Bh_Product_Shipping_States_Checkout::validate (per-product shipping state rules).
+		 *
+		 * @param int    $product_id     Product or variation ID.
+		 * @param string $shipping_state State code.
+		 * @return true|WP_Error
+		 */
+		private function assert_product_ships_to_state( $product_id, $shipping_state ) {
+			$state = strtoupper( sanitize_text_field( (string) $shipping_state ) );
+			if ( (int) $product_id < 1 || '' === $state || ! function_exists( 'bh_product_ships_to_state' ) ) {
+				return true;
+			}
+			if ( bh_product_ships_to_state( (int) $product_id, $state ) ) {
+				return true;
+			}
+
+			return new WP_Error(
+				'landing_bridge_product_state_blocked',
+				bh_state_blocked_message( array( $state ) ),
+				array( 'status' => 400 )
+			);
 		}
 
 		/**

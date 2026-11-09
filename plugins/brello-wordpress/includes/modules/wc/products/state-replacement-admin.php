@@ -2,16 +2,20 @@
 /**
  * Variation settings for the shipping-state product replacement.
  *
- * On a variation of a variable subscription: "Replaces variation" (a sibling) and
- * "Exclusive for shipping states" (e.g. CA). Other product types show nothing: the
- * storefront hiding would make a plain variation unpurchasable. Such a variation
- * is hidden on the storefront and sold in place of the variation it replaces when
- * the order ships to one of its states.
- * The replaced variation shows a read-only note.
+ * On a variation of a variable subscription (usually of a separate state product,
+ * e.g. "Tirzepatide CA"): "Replaces variation" (a variation of a variable
+ * subscription) and "Exclusive for shipping states" (e.g. CA). Other product types
+ * show nothing: the storefront hiding would make a plain variation unpurchasable.
+ * Such a variation is hidden on the storefront and sold in place of the variation
+ * it replaces when the order ships to one of its states.
+ * The replaced variation shows a read-only note. A setting that cannot be saved is
+ * reported inside the card, not as an admin notice.
+ * Both products must have the same categories: coupons and checkout rules by
+ * category see the replacement's product after the swap. A replacement is not saved
+ * otherwise, and both cards warn when the categories change later.
  *
- * Replacement variations carry the same name as the variation they replace, so
- * the admin marks them (e.g. "CA only") on order and subscription items.
- * Customers never see the mark.
+ * The admin marks replacement variations (e.g. "CA only") on order and subscription
+ * items. Customers never see the mark.
  * See common/state-product-replacement-helpers.php.
  */
 
@@ -22,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 
 	class AH_State_Replacement_Admin {
+
+		const ERROR_TRANSIENT = 'bh_state_replacement_error_';
 
 		public function __construct() {
 			add_action( 'woocommerce_product_after_variable_attributes', array( $this, 'render_fields' ), 60, 3 );
@@ -99,8 +105,11 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 				return;
 			}
 			$config       = bh_get_state_replacement_config( (int) $variation->ID );
-			$siblings     = $this->sibling_ids( (int) $variation->ID );
 			$replacements = bh_get_state_replacements_of( (int) $variation->ID );
+			$error        = get_transient( self::ERROR_TRANSIENT . $variation->ID );
+			if ( false !== $error ) {
+				delete_transient( self::ERROR_TRANSIENT . $variation->ID );
+			}
 
 			if ( $config['replaces'] > 0 ) {
 				$status = 'replacement';
@@ -122,15 +131,31 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 						<span class="bh-sr__pill"><?php echo esc_html( $pill ); ?></span>
 					</div>
 					<div class="bh-sr__body">
+						<?php if ( is_string( $error ) && '' !== $error ) : ?>
+							<p class="bh-sr__error"><span class="dashicons dashicons-warning" aria-hidden="true"></span><?php echo esc_html( $error ); ?></p>
+						<?php endif; ?>
+						<?php foreach ( $this->category_mismatches( (int) $variation->ID, $config['replaces'], $replacements ) as $other_id ) : ?>
+							<p class="bh-sr__error"><span class="dashicons dashicons-warning" aria-hidden="true"></span>
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %s: product and variation name */
+										__( 'The categories of this product and of %s differ: coupons and checkout rules by category will not apply the same after the swap. Give both products the same categories.', 'bh-features' ),
+										$this->variation_label( $other_id )
+									)
+								);
+								?>
+							</p>
+						<?php endforeach; ?>
 						<?php foreach ( $replacements as $replacement_id => $states ) : ?>
 							<p class="bh-sr__note"><span class="dashicons dashicons-randomize" aria-hidden="true"></span>
 								<?php
 								echo esc_html(
 									sprintf(
-										/* translators: 1: state codes, 2: variation ID */
-										__( 'Replaced in %1$s by #%2$d.', 'bh-features' ),
+										/* translators: 1: state codes, 2: product and variation name */
+										__( 'Replaced in %1$s by %2$s.', 'bh-features' ),
 										implode( ', ', $states ),
-										$replacement_id
+										$this->variation_label( $replacement_id )
 									)
 								);
 								?>
@@ -139,15 +164,10 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 						<div class="bh-sr__grid">
 							<p class="bh-sr__field">
 								<label for="bh_replaces_variation_<?php echo esc_attr( $loop ); ?>"><?php esc_html_e( 'Replaces variation', 'bh-features' ); ?></label>
-								<select id="bh_replaces_variation_<?php echo esc_attr( $loop ); ?>" name="<?php echo esc_attr( 'bh_replaces_variation[' . $loop . ']' ); ?>">
-									<option value=""><?php esc_html_e( '— None (regular variation) —', 'bh-features' ); ?></option>
-									<?php
-									foreach ( $siblings as $sibling_id ) :
-										$sibling = wc_get_product( $sibling_id );
-										$label   = '#' . $sibling_id . ( $sibling ? ' ' . wp_strip_all_tags( wc_get_formatted_variation( $sibling, true, false ) ) : '' );
-										?>
-										<option value="<?php echo esc_attr( $sibling_id ); ?>"<?php selected( $config['replaces'], $sibling_id ); ?>><?php echo esc_html( $label ); ?></option>
-									<?php endforeach; ?>
+								<select class="wc-product-search" id="bh_replaces_variation_<?php echo esc_attr( $loop ); ?>" name="<?php echo esc_attr( 'bh_replaces_variation[' . $loop . ']' ); ?>" data-action="woocommerce_json_search_products_and_variations" data-placeholder="<?php esc_attr_e( 'None (regular variation)', 'bh-features' ); ?>" data-allow_clear="true" data-exclude="<?php echo esc_attr( (string) $variation->ID ); ?>">
+									<?php if ( $config['replaces'] > 0 ) : ?>
+										<option value="<?php echo esc_attr( (string) $config['replaces'] ); ?>" selected="selected"><?php echo esc_html( $this->variation_label( $config['replaces'] ) ); ?></option>
+									<?php endif; ?>
 								</select>
 							</p>
 							<p class="bh-sr__field">
@@ -158,7 +178,7 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 					</div>
 					<div class="bh-sr__foot">
 						<span class="dashicons dashicons-info-outline" aria-hidden="true"></span>
-						<span><?php esc_html_e( 'Set both to make this a hidden variation: it is not shown on the storefront and is sold instead of the selected variation when the order ships to one of these states (comma-separated state codes).', 'bh-features' ); ?></span>
+						<span><?php esc_html_e( 'Set both to make this a hidden variation: it is not shown on the storefront and is sold instead of the selected variation (usually of the regular product) when the order ships to one of these states (comma-separated state codes).', 'bh-features' ); ?></span>
 					</div>
 				</div>
 			</div>
@@ -184,10 +204,13 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 			.bh-sr__body{padding:10px 12px}
 			.bh-sr__note{display:flex;align-items:center;gap:6px;margin:0 0 10px;color:#50575e;font-size:13px}
 			.bh-sr__note .dashicons{font-size:14px;width:14px;height:14px;color:#a7aaad}
+			.bh-sr__error{display:flex;align-items:flex-start;gap:6px;margin:0 0 10px;padding:6px 8px;border-left:3px solid #d63638;background:#fcf0f1;color:#8a2424;font-size:13px}
+			.bh-sr__error .dashicons{font-size:16px;width:16px;height:16px;flex:none;color:#d63638}
 			.bh-sr__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
 			.woocommerce_variation .bh-sr p.bh-sr__field{margin:0;padding:0;float:none;width:auto}
 			.woocommerce_variation .bh-sr p.bh-sr__field label{display:block;margin:0 0 4px;color:#787c82;font-size:12px;float:none}
 			#variable_product_options .bh-sr .bh-sr__field select,#variable_product_options .bh-sr .bh-sr__field input{width:100%;max-width:none;height:40px;min-height:40px;float:none;margin:0}
+			#variable_product_options .bh-sr .bh-sr__field .select2-container{width:100%!important}
 			.bh-sr__foot{display:flex;align-items:flex-start;gap:6px;padding:6px 12px;border-top:1px solid #efefef;color:#787c82;font-size:12px;line-height:18px}
 			.bh-sr__foot .dashicons{font-size:14px;width:14px;height:14px;flex:none;margin-top:2px;color:#a7aaad}
 			@media (max-width:782px){.bh-sr__grid{grid-template-columns:1fr}}
@@ -254,9 +277,11 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 
 			$error = $this->validate( (int) $variation_id, $replaces, $states );
 			if ( '' !== $error ) {
-				WC_Admin_Meta_Boxes::add_error( sprintf( '#%d: %s', $variation_id, $error ) );
+				// Shown in the card when the variations reload after the save.
+				set_transient( self::ERROR_TRANSIENT . $variation_id, $error, 10 * MINUTE_IN_SECONDS );
 				return;
 			}
+			delete_transient( self::ERROR_TRANSIENT . $variation_id );
 
 			update_post_meta( $variation_id, BH_REPLACES_VARIATION_META, $replaces );
 			update_post_meta( $variation_id, BH_EXCLUSIVE_STATES_META, $states );
@@ -272,14 +297,17 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 			if ( ! $this->is_variable_subscription_variation( $variation_id ) ) {
 				return __( 'Shipping state replacement is only for variations of variable subscriptions. Not saved.', 'bh-features' );
 			}
-			if ( ! in_array( $replaces, $this->sibling_ids( $variation_id ), true ) ) {
-				return __( '"Replaces variation" must be another variation of this product. Not saved.', 'bh-features' );
+			if ( $replaces === $variation_id || 'product_variation' !== get_post_type( $replaces ) || ! $this->is_variable_subscription_variation( $replaces ) ) {
+				return __( '"Replaces variation" must be another variation of a variable subscription. Not saved.', 'bh-features' );
 			}
 			if ( bh_is_state_replacement_variation( $replaces ) ) {
 				return __( 'The replaced variation is itself a replacement. Not saved.', 'bh-features' );
 			}
 			if ( bh_get_state_replacements_of( $variation_id ) ) {
 				return __( 'This variation is already replaced by another one, so it cannot be a replacement. Not saved.', 'bh-features' );
+			}
+			if ( ! $this->same_categories( $variation_id, $replaces ) ) {
+				return __( 'The product of this variation must have the same categories as the product of the replaced variation (coupons and checkout rules use them). Save the product categories first. Not saved.', 'bh-features' );
 			}
 
 			$valid   = class_exists( 'AH_States' ) ? AH_States::get_codes() : array_keys( (array) WC()->countries->get_states( 'US' ) );
@@ -309,37 +337,47 @@ if ( ! class_exists( 'AH_State_Replacement_Admin' ) ) {
 			return $parent_id > 0 && 'variable-subscription' === WC_Product_Factory::get_product_type( $parent_id );
 		}
 
-		private function clear( $variation_id ) {
-			delete_post_meta( $variation_id, BH_REPLACES_VARIATION_META );
-			delete_post_meta( $variation_id, BH_EXCLUSIVE_STATES_META );
+		/**
+		 * Whether the products of two variations have the same categories, as coupons see them.
+		 */
+		private function same_categories( int $variation_id, int $other_id ): bool {
+			$ids = array();
+			foreach ( array( $variation_id, $other_id ) as $id ) {
+				$cats = array_map( 'intval', wc_get_product_cat_ids( (int) wp_get_post_parent_id( $id ) ) );
+				sort( $cats );
+				$ids[] = $cats;
+			}
+
+			return $ids[0] === $ids[1];
 		}
 
 		/**
-		 * Other variations of the same product.
+		 * Variations linked to this one (the one it replaces, or its replacements) whose product has other categories.
 		 *
+		 * @param int   $variation_id Variation ID.
+		 * @param int   $replaces     Variation it replaces, 0 when none.
+		 * @param array $replacements Its replacements (ID => states).
 		 * @return int[]
 		 */
-		private function sibling_ids( int $variation_id ): array {
-			$parent_id = (int) wp_get_post_parent_id( $variation_id );
-			if ( $parent_id <= 0 ) {
-				return array();
-			}
+		private function category_mismatches( int $variation_id, int $replaces, array $replacements ): array {
+			$linked = $replaces > 0 ? array( $replaces ) : array_keys( $replacements );
 
-			$ids = get_posts(
-				array(
-					'post_type'      => 'product_variation',
-					'post_parent'    => $parent_id,
-					'post_status'    => array( 'publish', 'private' ),
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					'orderby'        => array(
-						'menu_order' => 'ASC',
-						'ID'         => 'ASC',
-					),
-				)
-			);
+			return array_values( array_filter( $linked, fn( $id ) => ! $this->same_categories( $variation_id, (int) $id ) ) );
+		}
 
-			return array_values( array_diff( array_map( 'intval', $ids ), array( $variation_id ) ) );
+		private function clear( $variation_id ) {
+			delete_post_meta( $variation_id, BH_REPLACES_VARIATION_META );
+			delete_post_meta( $variation_id, BH_EXCLUSIVE_STATES_META );
+			delete_transient( self::ERROR_TRANSIENT . $variation_id );
+		}
+
+		/**
+		 * "Product name – attributes (#ID)" of a variation.
+		 */
+		private function variation_label( int $variation_id ): string {
+			$product = wc_get_product( $variation_id );
+
+			return ( $product ? wp_strip_all_tags( $product->get_formatted_name() ) : '#' . $variation_id );
 		}
 	}
 

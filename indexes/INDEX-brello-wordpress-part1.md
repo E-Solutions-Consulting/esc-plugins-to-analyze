@@ -1,5 +1,5 @@
 # INDEX -- brello-wordpress-part1
-# Generated  : 2026-10-23 15:15
+# Generated  : 2026-11-09 01:06
 # Source     : https://github.com/E-Solutions-Consulting/esc-plugins-to-analyze/tree/main/plugins/brello-wordpress (part 1 of 2)
 # Raw base   : https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress
 #
@@ -31,6 +31,7 @@
 - `includes/modules/common/db-ext.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/db-ext.php
 - `includes/modules/common/helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/helpers.php
 - `includes/modules/common/order-meta.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/order-meta.php
+- `includes/modules/common/product-shipping-states-helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/product-shipping-states-helpers.php
 - `includes/modules/common/settings.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/settings.php
 - `includes/modules/common/state-product-replacement-helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/state-product-replacement-helpers.php
 - `includes/modules/common/telegra-helpers.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/common/telegra-helpers.php
@@ -142,6 +143,7 @@
 - `includes/modules/states/licensed-states/mapdata-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/licensed-states/mapdata-generator.php
 - `includes/modules/states/states-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/states-admin.php
 - `includes/modules/states/states.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/states.php
+- `includes/modules/states/states-test-mode.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/states-test-mode.php
 - `includes/modules/states/states-ui.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/states/states-ui.php
 - `includes/modules/testing/test-mode.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/testing/test-mode.php
 - `includes/modules/wc/admin/admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/admin/admin.php
@@ -150,11 +152,13 @@
 - `includes/modules/wc/checkout/bh-phone-standardization.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/bh-phone-standardization.php
 - `includes/modules/wc/checkout/checkout-ui.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/checkout-ui.php
 - `includes/modules/wc/checkout/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/loader.php
+- `includes/modules/wc/checkout/product-shipping-states.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/product-shipping-states.php
 - `includes/modules/wc/checkout/state-product-replacement.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/state-product-replacement.php
 - `includes/modules/wc/checkout/store-api-checkout-validations.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/checkout/store-api-checkout-validations.php
 - `includes/modules/wc/coupons/coupon-batch-generator.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/coupon-batch-generator.php
 - `includes/modules/wc/coupons/coupons.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/coupons.php
 - `includes/modules/wc/coupons/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/coupons/loader.php
+- `includes/modules/wc/myaccount/block-address-editing.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/myaccount/block-address-editing.php
 - `includes/modules/wc/myaccount/terms-consent.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/myaccount/terms-consent.php
 - `includes/modules/wc/orders/columns/orders-columns.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/orders/columns/orders-columns.php
 - `includes/modules/wc/orders/orders-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/orders/orders-admin.php
@@ -170,6 +174,7 @@
 - `includes/modules/wc/products/loader.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/loader.php
 - `includes/modules/wc/products/product-export-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/product-export-admin.php
 - `includes/modules/wc/products/products-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/products-admin.php
+- `includes/modules/wc/products/shipping-states-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/shipping-states-admin.php
 - `includes/modules/wc/products/state-replacement-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/state-replacement-admin.php
 - `includes/modules/wc/products/telegra-mapping-admin.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/products/telegra-mapping-admin.php
 - `includes/modules/wc/subscriptions/admin-product-rules.php` -- Admin screen | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/subscriptions/admin-product-rules.php
@@ -201,16 +206,11 @@
 - `includes/modules/wc/welcome-kit/order-status.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/welcome-kit/order-status.php
 - `includes/modules/wc/welcome-kit/settings.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/welcome-kit/settings.php
 - `includes/modules/wc/welcome-kit/welcome-kit.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/includes/modules/wc/welcome-kit/welcome-kit.php
-- `index.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/index.php
-- `public/class-bh-features-public.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/public/class-bh-features-public.php
-- `public/index.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/public/index.php
-- `public/partials/bh-features-public-display.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/public/partials/bh-features-public-display.php
-- `templates/checkout__/form-checkout.php` | https://raw.githubusercontent.com/E-Solutions-Consulting/esc-plugins-to-analyze/main/plugins/brello-wordpress/templates/checkout__/form-checkout.php
 
 # -----------------------------------------------------------------------------
 # EOF -- INDEX-brello-wordpress-part1.md
 # Total PHP files indexed : 200
 # Total lines in this file: 208
-# Generated               : 2026-10-23 15:15
+# Generated               : 2026-11-09 01:06
 # If you can read this line, you have read the complete index.
 # -----------------------------------------------------------------------------

@@ -176,6 +176,12 @@ class AH_Orders_Telegra_Renewal_Blocker {
                 return $renewal_order;
             }
 
+            // Subscription placed through the test states link (AH_States_Test_Mode).
+            if ( AH_States::is_allowed_for_subscription( $subscription ) ) {
+                $this->log("Allow sub #{$sub_id}: test state order ({$state}).");
+                return $renewal_order;
+            }
+
             // LOG blocked action
             //$this->log("BLOCK renewal for sub #{$sub_id} — Restricted State={$state}");
             $reason = "Renewal blocked: state {$state} restricted.";
@@ -230,7 +236,7 @@ class AH_Orders_Telegra_Renewal_Blocker {
 
             $state = strtoupper( $subscription->get_shipping_state() );
 
-            if ( ! AH_States::is_allowed( $state ) ) {
+            if ( ! AH_States::is_allowed_for_subscription( $subscription ) ) {
 
                 wc_get_logger()->warning(
                     'Checkout blocked: early renewal not allowed for state',
@@ -259,7 +265,7 @@ class AH_Orders_Telegra_Renewal_Blocker {
 
         $state = strtoupper( $subscription->get_shipping_state() );
 
-        if ( ! AH_States::is_allowed( $state ) ) {
+        if ( ! AH_States::is_allowed_for_subscription( $subscription ) ) {
 
             wc_get_logger()->warning(
                 'Automatic renewal blocked: state not allowed',
